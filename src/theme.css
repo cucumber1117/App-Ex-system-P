@@ -1,0 +1,17 @@
+.light {
+  background: #ffffff;
+  color: #222222;
+}
+.dark {
+  background: #121212;
+  color: #ffffff;
+}
+.green {
+  background: #e9f8ef;
+  color: #1f3d2b;
+}
+
+/* Basic elements to reflect theme globally */
+.light header, .light nav, .light .section { background: #ffffff; color: inherit }
+.dark header, .dark nav, .dark .section { background: #1f1f1f; color: inherit }
+.green header, .green nav, .green .section { background: #f7fff7; color: inherit }
