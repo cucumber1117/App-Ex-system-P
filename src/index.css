@@ -3,3 +3,12 @@ margin: 0;
 padding: 0; 
 box-sizing: border-box; 
 }
+
+/* Reserve space for the fixed footer so mobile content doesn't get hidden */
+body {
+	padding-bottom: 96px;
+}
+
+@media (min-width: 800px) {
+	body { padding-bottom: 40px; }
+}

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Home from './pages/home/home.jsx';
 import CreateSchedule from './pages/create/CreateSchedule.jsx';
 import SharedSchedules from './pages/shared/SharedSchedules.jsx';
+import Footer from './compornent/Footer/Footer.jsx';
 import { loginWithGoogle } from './Firebase/auth/login';
 import { auth } from './Firebase/firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -57,6 +58,7 @@ function App() {
         <Route path="/create" element={<CreateSchedule />} />
         <Route path="/shared" element={<SharedSchedules />} />
       </Routes>
+      <Footer />
     </>
   );
 }

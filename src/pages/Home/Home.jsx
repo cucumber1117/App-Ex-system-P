@@ -8,10 +8,6 @@ export default function Home() {
 	return (
 		<div style={{padding:20}}>
 			<h1>ホーム</h1>
-			<div style={{display:'flex',gap:12}}>
-				<button onClick={() => navigate('/create')}>新しいスケジュール作成</button>
-				<button onClick={() => navigate('/shared')}>共有中のスケジュールを見る</button>
-			</div>
 		</div>
 	);
 }
