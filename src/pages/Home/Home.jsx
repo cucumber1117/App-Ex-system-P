@@ -1,13 +1,11 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import './home.module.css';
+import React from "react";
+import CalendarPage from "./CalendarPage.jsx";
+import styles from "./Home.module.css";
 
 export default function Home() {
-	const navigate = useNavigate();
-
-	return (
-		<div style={{padding:20}}>
-			<h1>ホーム</h1>
-		</div>
-	);
+  return (
+    <div className={styles.home}>
+      <CalendarPage />
+    </div>
+  );
 }
