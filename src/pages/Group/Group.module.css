@@ -1,9 +1,14 @@
 .container {
-	padding: 20px;
+	padding: 16px;
+	background-color: #f8f9fa;
+	min-height: 100vh;
+	padding-bottom: 100px;
 }
 .title {
-	font-size: 20px;
-	margin: 0 0 12px 0;
+	font-size: 24px;
+	font-weight: 800;
+	margin: 10px 0 20px 0;
+	color: #333;
 }
 .form {
 	display: flex;
@@ -30,47 +35,56 @@
 	resize: vertical;
 }
 .submit {
-	background: #2f80ed;
-	color: #fff;
-	padding: 10px 14px;
-	border: none;
-	border-radius: 8px;
-	cursor: pointer;
+	width: 100%;
+	padding: 16px;
+	border-radius: 16px;
+	font-size: 18px;
+	font-weight: 700;
 }
 .submit:hover { opacity: 0.95 }
 
 .searchWrap {
 	margin: 12px 0;
 	max-width: 480px;
+
+	display: flex;
+	gap:8px;
+	align-items:center;
+	margin-bottom: 24px;
 }
 .search {
-	width: 100%;
-	padding: 8px 10px;
-	border: 1px solid #ddd;
-	border-radius: 6px;
-	font-size: 14px;
+	flex:1;
+	padding: 14px 18px;
+	border: none;
+	border-radius: 30px;
+	background: #f1f3f5;
+	font-size: 16px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 .searchBtn {
-	margin-left: 8px;
-	padding: 8px 12px;
-	border-radius: 6px;
+	padding: 8px 20px;
+	border-radius: 12px;
 	border: none;
 	background: #2f80ed;
 	color: #fff;
+	font-weight: bold;
 	cursor: pointer;
 }
 .list {
-	margin: 12px 0 18px 0;
+	margin: 0 0 32px 0;
 	padding: 0;
 	list-style: none;
-	max-width: 480px;
 }
 .item {
-	padding: 8px 10px;
-	border: 1px solid #f0f0f0;
-	border-radius: 6px;
+	padding: 22px;
+	border: 1px solid transparent;
+	border-radius: 20px;
 	background: #fff;
-	margin-bottom: 8px;
+	margin-bottom: 12px;
+	box-shadow:0 6px 18px rgba(0, 0, 0, .08);
+	transition: transform 0.1s, border-color 0.2s;
+	font-size: 18px;
+	font-weight: 600;
 }
 .noresult {
 	color: #888;
@@ -78,19 +92,22 @@
 }
 
 .mainRow {
-	display: flex;
+	display: block;
 	gap: 18px;
 }
 .selected {
 	outline: 2px solid #2f80ed;
+	background: #eef5ff;
+	transform: scale(1.02);
 }
 .detail {
 	min-width: 220px;
 	max-width: 360px;
-	padding: 12px;
-	border: 1px solid #eee;
-	border-radius: 8px;
+	padding: 20px;
+	border: none;
+	border-radius: 20px;
 	background: #fafafa;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, .08);
 }
 .detailTitle {
 	margin: 0 0 8px 0;
