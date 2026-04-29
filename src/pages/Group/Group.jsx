@@ -105,7 +105,7 @@ const Group = () => {
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch() } }}
         />
-        <button className={styles.searchBtn} onClick={handleSearch}>検索</button>
+        <button className={styles.searchBtn} onClick={handleSearch}>🔍</button>
       </div>
 
       <div className={styles.mainRow}>
@@ -139,19 +139,21 @@ const Group = () => {
         </div>
       </div>
 
-      <form className={styles.form} onSubmit={handleSubmit}>
-        <label className={styles.field}>
-          <span className={styles.label}>グループ名</span>
-          <input
-            className={styles.input}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </label>
+      <div className={styles.createCard}>
+        <h2 className={styles.createTitle}>
+          + グループ作成
+        </h2>
 
-        <button className={styles.submit} type="submit">作成</button>
-      </form>
+        <p className={styles.createSub}>
+          新しいコミュニティを作れます
+        </p>
+
+        <form onSubmit={handleSubmit}>
+          <input className={styles.createInput} placeholder="グループ名を入力" value={name} onChange={(e)=>setName(e.target.value)} required />
+
+          <button className={styles.createBtn} type="submit">作成する</button>
+        </form>
+    </div>
     </div>
   );
 };
