@@ -311,4 +311,85 @@
     width: 100%;
     justify-content: space-between;
   }
+  .disabled {
+  opacity: 0.45;
+}
+
+.disabled input,
+.disabled select {
+  cursor: not-allowed;
+}
+
+.actionRow {
+  display: flex;
+  gap: 10px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+
+.dangerBtn {
+  background: linear-gradient(135deg, #e53935, #ff6b6b);
+  box-shadow: 0 6px 14px rgba(229, 57, 53, 0.22);
+  color: #ffffff;
+}
+
+.dangerBtn:hover {
+  background: linear-gradient(135deg, #c62828, #ff5252);
+  opacity: 1;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 22px rgba(229, 57, 53, 0.28);
+}
+
+.version {
+  font-size: 14px;
+  font-weight: 700;
+  color: #777;
+}
+
+
+.dark .version {
+  color: #cccccc;
+}
+
+.dark .dangerBtn {
+  background: linear-gradient(135deg, #ff5252, #ff7676);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(255, 82, 82, 0.22);
+}
+
+.dark .dangerBtn:hover {
+  background: linear-gradient(135deg, #ff3b3b, #ff6666);
+  box-shadow: 0 10px 22px rgba(255, 82, 82, 0.3);
+}
+
+/* グリーンテーマ用 */
+.green .version {
+  color: #008f3a;
+}
+
+.green .dangerBtn {
+  background: linear-gradient(135deg, #e53935, #ff6b6b);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(229, 57, 53, 0.22);
+}
+
+
+input.select {
+  box-sizing: border-box;
+}
+
+.select:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .actionRow {
+    flex-direction: column;
+  }
+
+  .actionRow .btn {
+    width: 100%;
+  }
+}
 }
