@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { createGroup, listGroups, getGroupDetails, isMember, joinGroup } from '../../Firebase/auth/groups';
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
+import { Search } from "lucide-react";
 
 const Group = () => {
   const [name, setName] = useState('');
@@ -105,7 +106,9 @@ const Group = () => {
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch() } }}
         />
-        <button className={styles.searchBtn} onClick={handleSearch}>🔍</button>
+        <button className={styles.searchBtn} onClick={handleSearch}>
+          <Search size={20}/>
+        </button>
       </div>
 
       <div className={styles.mainRow}>

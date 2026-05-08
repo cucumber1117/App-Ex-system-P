@@ -1,8 +1,8 @@
 .container {
-	padding: 16px;
+	padding: 20px 18px;
 	background-color: #f8f9fa;
 	min-height: 100vh;
-	padding-bottom: 100px;
+	padding-bottom: 120px;
 
 	max-width: 1100px;
 	margin:0 auto;
@@ -10,7 +10,7 @@
 .title {
 	font-size: 24px;
 	font-weight: 800;
-	margin: 10px 0 20px;
+	margin: 10px 0 28px;
 	color: #333;
 }
 .form {
@@ -53,7 +53,7 @@
 }
 .search {
 	width: 100%;
-	padding: 16px 20px 16px 60px;
+	padding: 16px 20px 16px 48px;
 	border: none;
 	border-radius: 999px;
 	background: #fff;
@@ -62,22 +62,21 @@
 }
 .searchBtn {
 	position: absolute;
-	left: 18px;
+	z-index: 1;
+	left: 16px;
 	top:50%;
 	transform: translateY(-50%);
-
-	width: 36px;
-	height: 36px;
 
 	display: flex;
 	align-items: center;
 	justify-content: center;
 
-	border-radius: 50%;
-	background: white;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	padding: 0;
 
-	box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
-	font-size: 18px;
+	color: #888;
 }
 .list {
 	margin: 0 0 32px 0;
@@ -88,11 +87,12 @@
 	background: #fff;
 	border: none;
 	border-radius: 24px;
-	padding: 22px;
-	margin-bottom: 16px;
+	padding: 18px 22px;
+	margin-bottom: 24px;
 	box-shadow: 0 8px 24px rgba(0, 0, 0, .06);
-	font-size: 20px;
-	font-weight: 700;
+	font-size: 16px;
+	font-weight: 600;
+	transition: transform 0.1s;
 }
 .noresult {
 	color: #888;
@@ -114,7 +114,8 @@
 	border-radius: 28px;
 	padding: 26px;
 	box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
-	margin-top: 20px;
+	margin-top: 32px;
+	line-height: 1.6;
 }
 .detailTitle {
 	font-size: 22px;
@@ -122,6 +123,8 @@
 }
 .detailItem {
 	margin: 6px 0;
+	font-size: 14px;
+	color: #666;
 }
 
 .joinBtn {
@@ -131,6 +134,7 @@
 	font-size: 17px;
 	font-weight: 700;
 	background: #2f80ed;
+	transition: transform 0.1s;
 }
 .joinedLabel {
 	margin-top: 8px;
@@ -140,11 +144,11 @@
 
 .createCard{
 	margin-top: 32px;
-	padding: 26px;
-	border-radius: 30px;
+	padding: 20px;
+	border-radius: 24px;
 	background: linear-gradient(135deg, #2f80ed, #66a6ff);
 	color: white;
-	box-shadow: 0 14px 35px rgba(47, 128, 237, .25);
+	box-shadow: 0 8px 24px rgba(47, 128, 237, .18);
 }
 
 .createTitle{
@@ -156,6 +160,7 @@
 .createSub{
 	margin-bottom: 20px;
 	opacity: .9;
+	font-size: 14px;
 }
 
 .createInput{
@@ -174,4 +179,17 @@
 	background: white;
 	color: #2f80ed;
 	font-weight:800;
+	transition: transform 0.1s;
+}
+
+.item:active{
+	transform: scale(0.97);
+}
+
+.joinBtn:active{
+	transform: scale(0.97);
+}
+
+.createBtn:active{
+	transform: scale(0.97);
 }
