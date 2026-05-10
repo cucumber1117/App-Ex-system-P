@@ -6,6 +6,16 @@
   overflow-x: hidden;
 }
 
+.light {
+  background: #f6f7fb;
+  color: #202124;
+}
+
+.dark {
+  background: #000;
+  color: #f5f5f7;
+}
+
 .header {
   background: linear-gradient(180deg, #151515 0%, #050505 100%);
   border-bottom: 1px solid #2b2b2d;
@@ -169,6 +179,50 @@
   font-size: 24px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.light .header {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f6fb 100%);
+  border-bottom-color: #dfe3ec;
+}
+
+.light .backButton,
+.light .yearText,
+.light .iconButton,
+.light .nextButton,
+.light .bottomActions button {
+  color: #2f80ed;
+}
+
+.light .monthTitle,
+.light .weekDay,
+.light .innerMonthTitle,
+.light .dayCell {
+  color: #202124;
+}
+
+.light .weekDay:first-child,
+.light .weekDay:last-child,
+.light .weekendCell {
+  color: #7a8190;
+}
+
+.light .innerMonthTitleRow,
+.light .dayCell,
+.light .bottomActions {
+  border-color: #dfe3ec;
+}
+
+.light .dayCell:active:not(.emptyCell) {
+  background: #eaf2ff;
+}
+
+.light .bottomActions {
+  background: #ffffff;
+}
+
+.light .emptyCell {
+  color: transparent;
 }
 
 @media (max-width: 480px) {

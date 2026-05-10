@@ -65,7 +65,7 @@
 
 .btn {
   background: linear-gradient(135deg, #2f80ed, #4aa3ff);
-  color: #111111;
+  color: #ffffff;
   padding: 9px 14px;
   border: none;
   border-radius: 999px;
@@ -74,11 +74,14 @@
   font-weight: 700;
   white-space: nowrap;
   box-shadow: 0 6px 14px rgba(47, 128, 237, 0.25);
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .btn:hover {
-  opacity: 0.9;
+  opacity: 1;
+  background: #898888;
+  box-shadow: 0 10px 22px rgba(20, 133, 174, 0.28);
   transform: translateY(-1px);
 }
 
@@ -164,7 +167,51 @@
   cursor: pointer;
 }
 
+input.select {
+  box-sizing: border-box;
+}
 
+.select:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.disabled {
+  opacity: 0.45;
+}
+
+.disabled input,
+.disabled select {
+  cursor: not-allowed;
+}
+
+.actionRow {
+  display: flex;
+  gap: 10px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+
+.dangerBtn {
+  background: linear-gradient(135deg, #e53935, #ff6b6b);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(229, 57, 53, 0.22);
+}
+
+.dangerBtn:hover {
+  background: linear-gradient(135deg, #c62828, #ff5252);
+  opacity: 1;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 22px rgba(229, 57, 53, 0.28);
+}
+
+.version {
+  font-size: 14px;
+  font-weight: 700;
+  color: #777;
+}
+
+/* ライトテーマ */
 .light {
   background:
     radial-gradient(circle at top right, rgba(47, 128, 237, 0.12), transparent 30%),
@@ -172,7 +219,7 @@
   color: #202124;
 }
 
-
+/* ダークテーマ */
 .dark {
   background:
     radial-gradient(circle at top right, rgba(90, 120, 255, 0.22), transparent 32%),
@@ -210,18 +257,33 @@
 
 .dark .btn {
   background: linear-gradient(135deg, #5b7cfa, #7c5cff);
+  color: #ffffff;
   box-shadow: 0 6px 14px rgba(124, 92, 255, 0.25);
 }
 
-/* Dark theme: button hover (slightly brighter and lifted) */
-:global(.dark) .btn:hover {
+.dark .btn:hover {
   transform: translateY(-2px) scale(1.02);
   opacity: 1;
   background: linear-gradient(135deg, #6f8cff, #8f6bff);
   box-shadow: 0 10px 22px rgba(124, 92, 255, 0.28);
 }
 
+.dark .version {
+  color: #cccccc;
+}
 
+.dark .dangerBtn {
+  background: linear-gradient(135deg, #ff5252, #ff7676);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(255, 82, 82, 0.22);
+}
+
+.dark .dangerBtn:hover {
+  background: linear-gradient(135deg, #ff3b3b, #ff6666);
+  box-shadow: 0 10px 22px rgba(255, 82, 82, 0.3);
+}
+
+/* グリーンテーマ */
 .green {
   background:
     radial-gradient(circle at top right, rgba(0, 195, 0, 0.18), transparent 34%),
@@ -241,11 +303,11 @@
 
 .green .btn {
   background: linear-gradient(135deg, #00c300, #37d67a);
+  color: #ffffff;
   box-shadow: 0 6px 14px rgba(0, 195, 0, 0.22);
 }
 
-/* Green theme: button hover (deeper green) */
-:global(.green) .btn:hover {
+.green .btn:hover {
   transform: translateY(-2px) scale(1.02);
   opacity: 1;
   background: linear-gradient(135deg, #00b000, #2fbf63);
@@ -261,7 +323,24 @@
   border-color: #bde8cc;
 }
 
+.green .version {
+  color: #008f3a;
+}
 
+.green .dangerBtn {
+  background: linear-gradient(135deg, #e53935, #ff6b6b);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(229, 57, 53, 0.22);
+}
+
+.green .dangerBtn:hover {
+  background: linear-gradient(135deg, #c62828, #ff5252);
+  opacity: 1;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 22px rgba(229, 57, 53, 0.28);
+}
+
+/* スマホ対応 */
 @media (max-width: 600px) {
   .container {
     padding: 24px 16px 110px;
@@ -311,79 +390,7 @@
     width: 100%;
     justify-content: space-between;
   }
-  .disabled {
-  opacity: 0.45;
-}
 
-.disabled input,
-.disabled select {
-  cursor: not-allowed;
-}
-
-.actionRow {
-  display: flex;
-  gap: 10px;
-  padding: 16px 0;
-  flex-wrap: wrap;
-}
-
-.dangerBtn {
-  background: linear-gradient(135deg, #e53935, #ff6b6b);
-  box-shadow: 0 6px 14px rgba(229, 57, 53, 0.22);
-  color: #ffffff;
-}
-
-.dangerBtn:hover {
-  background: linear-gradient(135deg, #c62828, #ff5252);
-  opacity: 1;
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 10px 22px rgba(229, 57, 53, 0.28);
-}
-
-.version {
-  font-size: 14px;
-  font-weight: 700;
-  color: #777;
-}
-
-
-.dark .version {
-  color: #cccccc;
-}
-
-.dark .dangerBtn {
-  background: linear-gradient(135deg, #ff5252, #ff7676);
-  color: #ffffff;
-  box-shadow: 0 6px 14px rgba(255, 82, 82, 0.22);
-}
-
-.dark .dangerBtn:hover {
-  background: linear-gradient(135deg, #ff3b3b, #ff6666);
-  box-shadow: 0 10px 22px rgba(255, 82, 82, 0.3);
-}
-
-/* グリーンテーマ用 */
-.green .version {
-  color: #008f3a;
-}
-
-.green .dangerBtn {
-  background: linear-gradient(135deg, #e53935, #ff6b6b);
-  color: #ffffff;
-  box-shadow: 0 6px 14px rgba(229, 57, 53, 0.22);
-}
-
-
-input.select {
-  box-sizing: border-box;
-}
-
-.select:disabled {
-  opacity: 0.75;
-  cursor: not-allowed;
-}
-
-@media (max-width: 600px) {
   .actionRow {
     flex-direction: column;
   }
@@ -391,5 +398,4 @@ input.select {
   .actionRow .btn {
     width: 100%;
   }
-}
 }

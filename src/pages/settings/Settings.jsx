@@ -21,13 +21,11 @@ const Settings = () => {
     // 表示設定
     const [weekStart, setWeekStart] = useState('sunday');
     const [viewMode, setViewMode] = useState('month');
-    const [compactMode, setCompactMode] = useState(false);
     const [showCompleted, setShowCompleted] = useState(true);
 
     // データ設定
     const [autoBackup, setAutoBackup] = useState(false);
     const [backupFreq, setBackupFreq] = useState('weekly');
-    const [reduceDataUsage, setReduceDataUsage] = useState(false);
 
     const { theme, setTheme: setThemeContext } = useTheme();
 
@@ -49,12 +47,10 @@ const Settings = () => {
 
                     setWeekStart(s.weekStart || 'sunday');
                     setViewMode(s.viewMode || 'month');
-                    setCompactMode(Boolean(s.compactMode));
                     setShowCompleted(s.showCompleted ?? true);
 
                     setAutoBackup(Boolean(s.autoBackup));
                     setBackupFreq(s.backupFreq || 'weekly');
-                    setReduceDataUsage(Boolean(s.reduceDataUsage));
 
                     if (s.theme) {
                         setThemeContext(s.theme);
@@ -80,12 +76,10 @@ const Settings = () => {
 
                         setWeekStart(parsed.weekStart || 'sunday');
                         setViewMode(parsed.viewMode || 'month');
-                        setCompactMode(Boolean(parsed.compactMode));
                         setShowCompleted(parsed.showCompleted ?? true);
 
                         setAutoBackup(Boolean(parsed.autoBackup));
                         setBackupFreq(parsed.backupFreq || 'weekly');
-                        setReduceDataUsage(Boolean(parsed.reduceDataUsage));
 
                         if (parsed.theme) {
                             setThemeContext(parsed.theme);
@@ -146,12 +140,10 @@ const Settings = () => {
 
             weekStart,
             viewMode,
-            compactMode,
             showCompleted,
 
             autoBackup,
             backupFreq,
-            reduceDataUsage,
 
             theme,
             ...newSettings,
@@ -166,12 +158,10 @@ const Settings = () => {
 
         if ('weekStart' in newSettings) setWeekStart(newSettings.weekStart);
         if ('viewMode' in newSettings) setViewMode(newSettings.viewMode);
-        if ('compactMode' in newSettings) setCompactMode(newSettings.compactMode);
         if ('showCompleted' in newSettings) setShowCompleted(newSettings.showCompleted);
 
         if ('autoBackup' in newSettings) setAutoBackup(newSettings.autoBackup);
         if ('backupFreq' in newSettings) setBackupFreq(newSettings.backupFreq);
-        if ('reduceDataUsage' in newSettings) setReduceDataUsage(newSettings.reduceDataUsage);
 
         if ('theme' in newSettings) setThemeContext(newSettings.theme);
 
@@ -215,12 +205,10 @@ const Settings = () => {
 
         setWeekStart('sunday');
         setViewMode('month');
-        setCompactMode(false);
         setShowCompleted(true);
 
         setAutoBackup(false);
         setBackupFreq('weekly');
-        setReduceDataUsage(false);
 
         setThemeContext('light');
     };
@@ -287,9 +275,7 @@ const Settings = () => {
                                 handleNotificationChange(e.target.checked)
                             }
                         />
-                        <span className={styles.toggleText}>
-                            {notifications ? 'オン' : 'オフ'}
-                        </span>
+                        <span className={styles.toggleText}></span>
                     </label>
                 </div>
 
@@ -333,9 +319,7 @@ const Settings = () => {
                                         saveSettings({ notifySound: e.target.checked })
                                     }
                                 />
-                                <span className={styles.toggleText}>
-                                    {notifySound ? 'オン' : 'オフ'}
-                                </span>
+                                <span className={styles.toggleText}></span>
                             </label>
                         </div>
 
@@ -355,9 +339,7 @@ const Settings = () => {
                                         saveSettings({ notifyVibrate: e.target.checked })
                                     }
                                 />
-                                <span className={styles.toggleText}>
-                                    {notifyVibrate ? 'オン' : 'オフ'}
-                                </span>
+                                <span className={styles.toggleText}></span>
                             </label>
                         </div>
 
@@ -377,9 +359,7 @@ const Settings = () => {
                                         saveSettings({ dailySummary: e.target.checked })
                                     }
                                 />
-                                <span className={styles.toggleText}>
-                                    {dailySummary ? 'オン' : 'オフ'}
-                                </span>
+                                <span className={styles.toggleText}></span>
                             </label>
                         </div>
 
@@ -471,27 +451,7 @@ const Settings = () => {
                     </select>
                 </div>
 
-                <div className={styles.row}>
-                    <div>
-                        <div className={styles.label}>コンパクト表示</div>
-                        <p className={styles.description}>
-                            予定一覧の余白を少なくして表示します。
-                        </p>
-                    </div>
-
-                    <label className={styles.toggleLabel}>
-                        <input
-                            type="checkbox"
-                            checked={compactMode}
-                            onChange={(e) =>
-                                saveSettings({ compactMode: e.target.checked })
-                            }
-                        />
-                        <span className={styles.toggleText}>
-                            {compactMode ? 'オン' : 'オフ'}
-                        </span>
-                    </label>
-                </div>
+                
 
                 <div className={styles.row}>
                     <div>
@@ -509,9 +469,7 @@ const Settings = () => {
                                 saveSettings({ showCompleted: e.target.checked })
                             }
                         />
-                        <span className={styles.toggleText}>
-                            {showCompleted ? 'オン' : 'オフ'}
-                        </span>
+                        <span className={styles.toggleText}></span>
                     </label>
                 </div>
             </div>
@@ -535,9 +493,7 @@ const Settings = () => {
                                 saveSettings({ autoBackup: e.target.checked })
                             }
                         />
-                        <span className={styles.toggleText}>
-                            {autoBackup ? 'オン' : 'オフ'}
-                        </span>
+                        <span className={styles.toggleText}></span>
                     </label>
                 </div>
 
@@ -564,27 +520,7 @@ const Settings = () => {
                     </div>
                 )}
 
-                <div className={styles.row}>
-                    <div>
-                        <div className={styles.label}>データ使用量を抑える</div>
-                        <p className={styles.description}>
-                            通信量を減らすための設定です。
-                        </p>
-                    </div>
-
-                    <label className={styles.toggleLabel}>
-                        <input
-                            type="checkbox"
-                            checked={reduceDataUsage}
-                            onChange={(e) =>
-                                saveSettings({ reduceDataUsage: e.target.checked })
-                            }
-                        />
-                        <span className={styles.toggleText}>
-                            {reduceDataUsage ? 'オン' : 'オフ'}
-                        </span>
-                    </label>
-                </div>
+                
 
                 <div className={styles.actionRow}>
                     <button

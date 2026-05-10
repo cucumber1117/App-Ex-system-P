@@ -5,8 +5,10 @@ import { createGroup, listGroups, getGroupDetails, isMember, joinGroup } from '.
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Search } from "lucide-react";
+import { useTheme } from '../../contexts/ThemeContext';
 
 const Group = () => {
+  const { theme } = useTheme();
   const [name, setName] = useState('');
   const [groups, setGroups] = useState([]);
   const [search, setSearch] = useState('');
@@ -95,7 +97,7 @@ const Group = () => {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${styles[theme]}`}>
       <h1 className={styles.title}>グループ作成 / 検索</h1>
 
       <div className={styles.searchWrap}>

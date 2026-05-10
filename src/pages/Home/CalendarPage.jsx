@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import styles from './CalendarPage.module.css';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const WEEK_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
 export default function CalendarPage() {
+  const { theme } = useTheme();
   const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1));
 
   const year = currentDate.getFullYear();
@@ -48,7 +50,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className={styles.calendarPage}>
+    <div className={`${styles.calendarPage} ${styles[theme]}`}>
       <header className={styles.header}>
         <div className={styles.topRow}>
           <div className={styles.yearArea}>
