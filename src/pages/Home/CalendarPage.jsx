@@ -1,21 +1,74 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styles from './CalendarPage.module.css';
 import { useTheme } from '../../contexts/ThemeContext';
+import { auth } from '../../Firebase/firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getUserSettings } from '../../Firebase/auth/users';
 
-const WEEK_DAYS = ['日', '月', '火', '水', '木', '金', '土'];
+const WEEK_DAYS = [
+  { label: '日', day: 0 },
+  { label: '月', day: 1 },
+  { label: '火', day: 2 },
+  { label: '水', day: 3 },
+  { label: '木', day: 4 },
+  { label: '金', day: 5 },
+  { label: '土', day: 6 },
+];
 
 export default function CalendarPage() {
   const { theme } = useTheme();
+  const [weekStart, setWeekStart] = useState('sunday');
   const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1));
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const weekStartDay = weekStart === 'monday' ? 1 : 0;
+
+  useEffect(() => {
+    const readLocalWeekStart = () => {
+      const raw = localStorage.getItem('settings');
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed.weekStart || 'sunday';
+    };
+
+    setWeekStart(readLocalWeekStart());
+
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setWeekStart(readLocalWeekStart());
+        return;
+      }
+
+      try {
+        const settings = await getUserSettings(user.uid);
+        setWeekStart(settings.weekStart || readLocalWeekStart());
+      } catch (err) {
+        console.error('load week start', err);
+      }
+    });
+
+    const handleFocus = () => setWeekStart(readLocalWeekStart());
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      unsub();
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  const orderedWeekDays = useMemo(() => {
+    const startIndex = WEEK_DAYS.findIndex((day) => day.day === weekStartDay);
+    return [
+      ...WEEK_DAYS.slice(startIndex),
+      ...WEEK_DAYS.slice(0, startIndex),
+    ];
+  }, [weekStartDay]);
 
   const calendarDays = useMemo(() => {
     const firstDate = new Date(year, month, 1);
     const lastDate = new Date(year, month + 1, 0);
 
-    const firstDayOfWeek = firstDate.getDay();
+    const firstDayOfWeek = (firstDate.getDay() - weekStartDay + 7) % 7;
     const daysInMonth = lastDate.getDate();
 
     const days = [];
@@ -29,7 +82,7 @@ export default function CalendarPage() {
     }
 
     return days;
-  }, [year, month]);
+  }, [year, month, weekStartDay]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
@@ -44,8 +97,9 @@ export default function CalendarPage() {
     setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
   };
 
-  const isWeekend = (index) => {
-    const dayOfWeek = index % 7;
+  const isWeekend = (day) => {
+    if (day === null) return false;
+    const dayOfWeek = new Date(year, month, day).getDay();
     return dayOfWeek === 0 || dayOfWeek === 6;
   };
 
@@ -84,9 +138,12 @@ export default function CalendarPage() {
         </div>
 
         <div className={styles.weekRow}>
-          {WEEK_DAYS.map((day) => (
-            <div key={day} className={styles.weekDay}>
-              {day}
+          {orderedWeekDays.map((day) => (
+            <div
+              key={day.day}
+              className={`${styles.weekDay} ${day.day === 0 || day.day === 6 ? styles.weekendDay : ''}`}
+            >
+              {day.label}
             </div>
           ))}
         </div>
@@ -114,7 +171,7 @@ export default function CalendarPage() {
               className={[
                 styles.dayCell,
                 day === null ? styles.emptyCell : '',
-                isWeekend(index) ? styles.weekendCell : '',
+                isWeekend(day) ? styles.weekendCell : '',
               ].join(' ')}
               disabled={day === null}
             >

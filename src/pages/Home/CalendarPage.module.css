@@ -94,8 +94,7 @@
   color: #f5f5f7;
 }
 
-.weekDay:first-child,
-.weekDay:last-child {
+.weekendDay {
   color: #8e8e93;
 }
 
@@ -201,8 +200,7 @@
   color: #202124;
 }
 
-.light .weekDay:first-child,
-.light .weekDay:last-child,
+.light .weekendDay,
 .light .weekendCell {
   color: #7a8190;
 }
