@@ -1,21 +1,37 @@
-import { collection, addDoc, serverTimestamp, query, orderBy, startAt, endAt, getDocs, doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { collection, collectionGroup, deleteDoc, doc, documentId, serverTimestamp, query, where, orderBy, startAt, endAt, getDocs, getDoc, setDoc, updateDoc, increment, writeBatch } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 const groupsCol = collection(db, 'groups');
 
-export async function createGroup(name) {
-  const docRef = await addDoc(groupsCol, {
+export async function createGroup(name, creatorUid) {
+  const groupRef = doc(groupsCol);
+  const batch = writeBatch(db);
+
+  batch.set(groupRef, {
+    groupId: groupRef.id,
     name,
+    ...(creatorUid ? { createdBy: creatorUid } : {}),
     createdAt: serverTimestamp(),
-    memberCount: 0,
+    memberCount: creatorUid ? 1 : 0,
   });
-  return docRef.id;
+
+  if (creatorUid) {
+    const memberRef = doc(db, 'groups', groupRef.id, 'members', creatorUid);
+    batch.set(memberRef, {
+      uid: creatorUid,
+      joinedAt: serverTimestamp(),
+      role: 'owner',
+    });
+  }
+
+  await batch.commit();
+  return groupRef.id;
 }
 
-export async function listGroups(search = '') {
-  // simple prefix search using startAt/endAt on ordered name
+export async function listGroups(groupIdSearch = '') {
+  const search = groupIdSearch.trim();
   const q = search
-    ? query(groupsCol, orderBy('name'), startAt(search), endAt(search + '\uf8ff'))
+    ? query(groupsCol, orderBy(documentId()), startAt(search), endAt(search + '\uf8ff'))
     : query(groupsCol, orderBy('createdAt'));
 
   const snap = await getDocs(q);
@@ -38,10 +54,60 @@ export async function isMember(groupId, uid) {
   return m.exists();
 }
 
+export async function listJoinedGroups(uid) {
+  if (!uid) return [];
+
+  try {
+    const byUidField = query(collectionGroup(db, 'members'), where('uid', '==', uid));
+    const snap = await getDocs(byUidField);
+    const groupIds = snap.docs
+      .map((memberDoc) => memberDoc.ref.parent.parent?.id)
+      .filter(Boolean);
+
+    if (groupIds.length > 0) {
+      const groups = await Promise.all(groupIds.map((groupId) => getGroupDetails(groupId)));
+      return groups.filter(Boolean);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  const groupsSnap = await getDocs(groupsCol);
+  const groups = await Promise.all(
+    groupsSnap.docs.map(async (groupDoc) => {
+      const memberSnap = await getDoc(doc(db, 'groups', groupDoc.id, 'members', uid));
+      if (!memberSnap.exists()) return null;
+
+      const data = groupDoc.data();
+      const memberCount = typeof data.memberCount === 'number' ? data.memberCount : 0;
+      return { id: groupDoc.id, ...data, memberCount };
+    })
+  );
+
+  return groups.filter(Boolean);
+}
+
 export async function joinGroup(groupId, uid) {
   if (!uid) throw new Error('uid required');
   const memberRef = doc(db, 'groups', groupId, 'members', uid);
+  const memberSnap = await getDoc(memberRef);
+  if (memberSnap.exists()) {
+    await setDoc(memberRef, { uid }, { merge: true });
+    return;
+  }
+
   await setDoc(memberRef, { uid, joinedAt: serverTimestamp() });
   const groupRef = doc(db, 'groups', groupId);
   await updateDoc(groupRef, { memberCount: increment(1) });
+}
+
+export async function leaveGroup(groupId, uid) {
+  if (!uid) throw new Error('uid required');
+  const memberRef = doc(db, 'groups', groupId, 'members', uid);
+  const memberSnap = await getDoc(memberRef);
+  if (!memberSnap.exists()) return;
+
+  await deleteDoc(memberRef);
+  const groupRef = doc(db, 'groups', groupId);
+  await updateDoc(groupRef, { memberCount: increment(-1) });
 }

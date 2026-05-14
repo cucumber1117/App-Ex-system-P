@@ -88,6 +88,33 @@
 
 	color: #888;
 }
+.joinedGroups {
+	margin: 0 0 28px;
+}
+.sectionTitle {
+	margin: 0 0 14px;
+	font-size: 18px;
+	font-weight: 800;
+}
+.joinedList {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.joinedItem {
+	background: #fff;
+	border: none;
+	border-radius: 18px;
+	padding: 16px 18px;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, .05);
+	font-size: 15px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: transform 0.1s;
+}
 .list {
 	margin: 0 0 32px 0;
 	padding: 0;
@@ -103,6 +130,17 @@
 	font-size: 16px;
 	font-weight: 600;
 	transition: transform 0.1s;
+}
+.groupName,
+.groupId {
+	display: block;
+}
+.groupId {
+	margin-top: 6px;
+	color: #777;
+	font-size: 12px;
+	font-weight: 500;
+	overflow-wrap: anywhere;
 }
 .noresult {
 	color: #888;
@@ -151,6 +189,26 @@
 	color: #16a34a;
 	font-weight: 600;
 }
+.joinedActions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 8px;
+}
+.joinedActions .joinedLabel {
+	margin-top: 0;
+}
+.leaveBtn {
+	margin-left: auto;
+	padding: 10px 16px;
+	border: none;
+	border-radius: 12px;
+	background: #fee2e2;
+	color: #b91c1c;
+	font-size: 14px;
+	font-weight: 800;
+	transition: transform 0.1s;
+}
 
 .createCard{
 	margin-top: 32px;
@@ -191,12 +249,26 @@
 	font-weight:800;
 	transition: transform 0.1s;
 }
+.createdId {
+	margin: 14px 0 0;
+	font-size: 13px;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
 
 .item:active{
 	transform: scale(0.97);
 }
 
+.joinedItem:active{
+	transform: scale(0.97);
+}
+
 .joinBtn:active{
+	transform: scale(0.97);
+}
+
+.leaveBtn:active{
 	transform: scale(0.97);
 }
 
@@ -205,6 +277,10 @@
 }
 
 .dark .title {
+	color: #f5f5f5;
+}
+
+.dark .sectionTitle {
 	color: #f5f5f5;
 }
 
@@ -224,6 +300,7 @@
 }
 
 .dark .item,
+.dark .joinedItem,
 .dark .detail {
 	background: rgba(35, 38, 45, 0.96);
 	color: #f5f5f5;
@@ -236,7 +313,8 @@
 }
 
 .dark .detailItem,
-.dark .noresult {
+.dark .noresult,
+.dark .groupId {
 	color: #b7bdc8;
 }
 
@@ -247,6 +325,11 @@
 
 .dark .joinedLabel {
 	color: #4ade80;
+}
+
+.dark .leaveBtn {
+	background: rgba(127, 29, 29, .62);
+	color: #fecaca;
 }
 
 .dark .createCard {
