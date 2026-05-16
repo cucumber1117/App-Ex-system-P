@@ -1,11 +1,344 @@
-button {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background: #fff;
+.home {
+  width: 100%;
+  min-height: 100dvh;
+  background: #000;
+  overflow-x: hidden;
+}
+
+.calendarPage {
+  min-height: 100dvh;
+  background: #000;
+  color: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.light {
+  background: #f6f7fb;
+  color: #202124;
+}
+
+.dark {
+  background: #000;
+  color: #f5f5f7;
+}
+
+.header {
+  background: linear-gradient(180deg, #151515 0%, #050505 100%);
+  border-bottom: 1px solid #2b2b2d;
+  padding-top: clamp(18px, 5vw, 42px);
+  flex-shrink: 0;
+}
+
+.topRow {
+  min-height: 48px;
+  padding: 0 clamp(12px, 4vw, 24px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.yearArea {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.backButton {
+  border: none;
+  background: transparent;
+  color: #ff453a;
+  font-size: clamp(34px, 10vw, 54px);
+  line-height: 1;
+  padding: 0;
+  margin-right: 4px;
   cursor: pointer;
 }
 
-button:hover {
-  background: #f2f2f2;
+.yearText {
+  color: #ff453a;
+  font-size: clamp(18px, 5vw, 28px);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.headerButtons {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 4vw, 24px);
+  flex-shrink: 0;
+}
+
+.iconButton {
+  border: none;
+  background: transparent;
+  color: #ff453a;
+  font-size: clamp(24px, 8vw, 38px);
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.monthTitleRow {
+  padding: clamp(10px, 4vw, 18px) clamp(20px, 8vw, 44px) clamp(12px, 4vw, 22px);
+}
+
+.monthTitle {
+  margin: 0;
+  font-size: clamp(36px, 12vw, 58px);
+  font-weight: 800;
+  letter-spacing: -1.5px;
+}
+
+.weekRow {
+  height: 34px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: center;
+}
+
+.weekDay {
+  text-align: center;
+  font-size: clamp(13px, 3.6vw, 18px);
+  font-weight: 700;
+  color: #f5f5f7;
+}
+
+.weekendDay {
+  color: #8e8e93;
+}
+
+.main {
+  flex: 1;
+  padding: clamp(16px, 5vw, 48px) clamp(8px, 2vw, 24px) 92px;
+}
+
+.innerMonthTitleRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-left: 0;
+  padding: 0 clamp(4px, 2vw, 16px) 10px;
+  border-bottom: 1px solid #2b2b2d;
+}
+
+.innerMonthTitle {
+  font-size: clamp(24px, 8vw, 42px);
+  font-weight: 800;
+}
+
+.nextButton {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #ff453a;
+  font-size: clamp(30px, 9vw, 42px);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+}
+
+.dayCell {
+  aspect-ratio: 1 / 1;
+  min-height: 44px;
+  border: none;
+  border-bottom: 1px solid #2b2b2d;
+  background: transparent;
+  color: #f5f5f7;
+  font-size: clamp(17px, 5vw, 35px);
+  font-weight: 700;
+  text-align: center;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: clamp(8px, 3vw, 28px);
+}
+
+.dayCell:active:not(.emptyCell) {
+  background: #1c1c1e;
+}
+
+.weekendCell {
+  color: #8e8e93;
+}
+
+.emptyCell {
+  color: transparent;
+  cursor: default;
+}
+
+.emptyCell:disabled {
+  cursor: default;
+}
+
+.bottomActions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  min-height: 72px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #1c1c1e;
+  border-top: 1px solid #2b2b2d;
+  flex-shrink: 0;
+}
+
+.bottomActions button {
+  border: none;
+  background: transparent;
+  color: #ff453a;
+  font-size: clamp(14px, 4vw, 24px);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 10px;
+}
+
+/* light mode */
+.light .header {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f6fb 100%);
+  border-bottom-color: #dfe3ec;
+}
+
+.light .backButton,
+.light .yearText,
+.light .iconButton,
+.light .nextButton,
+.light .bottomActions button {
+  color: #2f80ed;
+}
+
+.light .monthTitle,
+.light .weekDay,
+.light .innerMonthTitle,
+.light .dayCell {
+  color: #202124;
+}
+
+.light .weekendDay,
+.light .weekendCell {
+  color: #7a8190;
+}
+
+.light .innerMonthTitleRow,
+.light .dayCell,
+.light .bottomActions {
+  border-color: #dfe3ec;
+}
+
+.light .dayCell:active:not(.emptyCell) {
+  background: #eaf2ff;
+}
+
+.light .bottomActions {
+  background: #ffffff;
+}
+
+.light .emptyCell {
+  color: transparent;
+}
+
+/* smartphone */
+@media (max-width: 600px) {
+  .home {
+    min-height: 100dvh;
+  }
+
+  .calendarPage {
+    min-height: 100dvh;
+  }
+
+  .header {
+    padding-top: 18px;
+  }
+
+  .topRow {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .headerButtons {
+    gap: 14px;
+  }
+
+  .monthTitleRow {
+    padding: 8px 20px 12px;
+  }
+
+  .weekRow {
+    height: 28px;
+  }
+
+  .main {
+    padding: 14px 6px 84px;
+  }
+
+  .innerMonthTitleRow {
+    padding: 0 8px 8px;
+  }
+
+  .calendarGrid {
+    border-top: 1px solid #2b2b2d;
+  }
+
+  .dayCell {
+    min-height: 48px;
+    padding-top: 7px;
+  }
+
+  .bottomActions {
+    min-height: 64px;
+  }
+}
+
+/* very small smartphone */
+@media (max-width: 360px) {
+  .headerButtons {
+    gap: 10px;
+  }
+
+  .monthTitleRow {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .main {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .dayCell {
+    min-height: 42px;
+    font-size: 16px;
+  }
+
+  .bottomActions button {
+    font-size: 13px;
+    padding: 6px;
+  }
+}
+
+/* desktop */
+@media (min-width: 900px) {
+  .main {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  .dayCell {
+    aspect-ratio: auto;
+    height: 130px;
+    padding-top: 24px;
+  }
 }
