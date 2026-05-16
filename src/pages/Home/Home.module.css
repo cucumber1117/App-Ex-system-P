@@ -113,7 +113,7 @@
 
 .main {
   flex: 1;
-  padding: clamp(16px, 5vw, 48px) clamp(8px, 2vw, 24px) 92px;
+  padding: clamp(16px, 5vw, 48px) clamp(8px, 2vw, 24px) 24px;
 }
 
 .innerMonthTitleRow {
@@ -123,6 +123,7 @@
   margin-left: 0;
   padding: 0 clamp(4px, 2vw, 16px) 10px;
   border-bottom: 1px solid #2b2b2d;
+  gap: 10px;
 }
 
 .innerMonthTitle {
@@ -130,8 +131,19 @@
   font-weight: 800;
 }
 
-.nextButton {
+.todayButton {
   margin-left: auto;
+  border: 1px solid #2b2b2d;
+  background: transparent;
+  color: #ff453a;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nextButton {
   border: none;
   background: transparent;
   color: #ff453a;
@@ -148,28 +160,67 @@
 
 .dayCell {
   aspect-ratio: 1 / 1;
-  min-height: 44px;
+  min-height: 72px;
   border: none;
   border-bottom: 1px solid #2b2b2d;
   background: transparent;
   color: #f5f5f7;
-  font-size: clamp(17px, 5vw, 35px);
-  font-weight: 700;
-  text-align: center;
-  padding: 0;
   cursor: pointer;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: clamp(8px, 3vw, 28px);
+  padding: 0;
+  text-align: left;
+  vertical-align: top;
 }
 
 .dayCell:active:not(.emptyCell) {
   background: #1c1c1e;
 }
 
+.dayCellInner {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dayNumber {
+  font-size: clamp(16px, 3vw, 28px);
+  font-weight: 700;
+  text-align: center;
+}
+
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.eventItem {
+  background: rgba(255, 69, 58, 0.14);
+  color: #ffb4ae;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 4px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.moreEvents {
+  color: #8e8e93;
+  font-size: 11px;
+  padding-left: 2px;
+}
+
 .weekendCell {
   color: #8e8e93;
+}
+
+.todayCell .dayNumber {
+  color: #ff453a;
 }
 
 .emptyCell {
@@ -181,28 +232,138 @@
   cursor: default;
 }
 
-.bottomActions {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  min-height: 72px;
-  padding-bottom: env(safe-area-inset-bottom);
-  background: #1c1c1e;
-  border-top: 1px solid #2b2b2d;
-  flex-shrink: 0;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
 }
 
-.bottomActions button {
+.modal {
+  width: min(680px, 100%);
+  max-height: 90dvh;
+  overflow-y: auto;
+  border-radius: 24px;
+  background: #1c1c1e;
+  border: 1px solid #2b2b2d;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.modalHeader {
+  position: sticky;
+  top: 0;
+  background: #1c1c1e;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid #2b2b2d;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.modalTextButton {
   border: none;
   background: transparent;
   color: #ff453a;
-  font-size: clamp(14px, 4vw, 24px);
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  padding: 8px 10px;
+}
+
+.modalPrimaryButton {
+  border: none;
+  background: #ff453a;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.modalBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formCard {
+  background: #2a2a2e;
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.textInput,
+.textArea,
+.dateInput,
+.timeInput {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: #3a3a40;
+  color: #f5f5f7;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.textArea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.switchRow input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+}
+
+.dateTimeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dateTimeLabel {
+  min-width: 48px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.dateTimeInputs {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+}
+
+.dateInput {
+  flex: 1;
+}
+
+.timeInput {
+  width: 130px;
 }
 
 /* light mode */
@@ -215,25 +376,30 @@
 .light .yearText,
 .light .iconButton,
 .light .nextButton,
-.light .bottomActions button {
+.light .todayButton {
   color: #2f80ed;
+}
+
+.light .todayButton {
+  border-color: #dfe3ec;
 }
 
 .light .monthTitle,
 .light .weekDay,
 .light .innerMonthTitle,
-.light .dayCell {
+.light .dayCell,
+.light .dayNumber {
   color: #202124;
 }
 
 .light .weekendDay,
-.light .weekendCell {
+.light .weekendCell,
+.light .moreEvents {
   color: #7a8190;
 }
 
 .light .innerMonthTitleRow,
-.light .dayCell,
-.light .bottomActions {
+.light .dayCell {
   border-color: #dfe3ec;
 }
 
@@ -241,24 +407,52 @@
   background: #eaf2ff;
 }
 
-.light .bottomActions {
-  background: #ffffff;
-}
-
 .light .emptyCell {
   color: transparent;
 }
 
+.light .todayCell .dayNumber {
+  color: #2f80ed;
+}
+
+.light .eventItem {
+  background: rgba(47, 128, 237, 0.14);
+  color: #2f80ed;
+}
+
+.light .modal {
+  background: #ffffff;
+  border-color: #dfe3ec;
+}
+
+.light .modalHeader {
+  background: #ffffff;
+  border-bottom-color: #dfe3ec;
+}
+
+.light .modalTextButton {
+  color: #2f80ed;
+}
+
+.light .modalPrimaryButton {
+  background: #2f80ed;
+}
+
+.light .formCard {
+  background: #f4f6fb;
+}
+
+.light .textInput,
+.light .textArea,
+.light .dateInput,
+.light .timeInput {
+  background: #ffffff;
+  color: #202124;
+  border: 1px solid #dfe3ec;
+}
+
 /* smartphone */
 @media (max-width: 600px) {
-  .home {
-    min-height: 100dvh;
-  }
-
-  .calendarPage {
-    min-height: 100dvh;
-  }
-
   .header {
     padding-top: 18px;
   }
@@ -281,7 +475,7 @@
   }
 
   .main {
-    padding: 14px 6px 84px;
+    padding: 14px 6px 18px;
   }
 
   .innerMonthTitleRow {
@@ -293,12 +487,61 @@
   }
 
   .dayCell {
-    min-height: 48px;
-    padding-top: 7px;
+    min-height: 54px;
   }
 
-  .bottomActions {
-    min-height: 64px;
+  .dayCellInner {
+    padding: 6px 4px;
+    gap: 4px;
+  }
+
+  .dayNumber {
+    font-size: 16px;
+  }
+
+  .eventItem,
+  .moreEvents {
+    font-size: 9px;
+  }
+
+  .modalOverlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .modalHeader {
+    padding: 16px;
+  }
+
+  .modalTitle {
+    font-size: 20px;
+  }
+
+  .modalBody {
+    padding: 16px;
+  }
+
+  .dateTimeRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dateTimeLabel {
+    min-width: auto;
+  }
+
+  .dateTimeInputs {
+    flex-direction: column;
+  }
+
+  .timeInput {
+    width: 100%;
   }
 }
 
@@ -319,13 +562,12 @@
   }
 
   .dayCell {
-    min-height: 42px;
-    font-size: 16px;
+    min-height: 46px;
   }
 
-  .bottomActions button {
-    font-size: 13px;
-    padding: 6px;
+  .todayButton {
+    padding: 6px 10px;
+    font-size: 12px;
   }
 }
 
@@ -339,6 +581,5 @@
   .dayCell {
     aspect-ratio: auto;
     height: 130px;
-    padding-top: 24px;
   }
 }
