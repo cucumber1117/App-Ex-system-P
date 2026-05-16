@@ -13,6 +13,7 @@
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  touch-action: pan-y;
 }
 
 .light {
@@ -45,17 +46,6 @@
   display: flex;
   align-items: center;
   min-width: 0;
-}
-
-.backButton {
-  border: none;
-  background: transparent;
-  color: #ff453a;
-  font-size: clamp(34px, 10vw, 54px);
-  line-height: 1;
-  padding: 0;
-  margin-right: 4px;
-  cursor: pointer;
 }
 
 .yearText {
@@ -113,43 +103,7 @@
 
 .main {
   flex: 1;
-  padding: clamp(16px, 5vw, 48px) clamp(8px, 2vw, 24px) 24px;
-}
-
-.innerMonthTitleRow {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  margin-left: 0;
-  padding: 0 clamp(4px, 2vw, 16px) 10px;
-  border-bottom: 1px solid #2b2b2d;
-  gap: 10px;
-}
-
-.innerMonthTitle {
-  font-size: clamp(24px, 8vw, 42px);
-  font-weight: 800;
-}
-
-.todayButton {
-  margin-left: auto;
-  border: 1px solid #2b2b2d;
-  background: transparent;
-  color: #ff453a;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.nextButton {
-  border: none;
-  background: transparent;
-  color: #ff453a;
-  font-size: clamp(30px, 9vw, 42px);
-  line-height: 1;
-  cursor: pointer;
+  padding: 0 clamp(8px, 2vw, 24px) 24px;
 }
 
 .calendarGrid {
@@ -372,21 +326,13 @@
   border-bottom-color: #dfe3ec;
 }
 
-.light .backButton,
 .light .yearText,
-.light .iconButton,
-.light .nextButton,
-.light .todayButton {
+.light .iconButton {
   color: #2f80ed;
-}
-
-.light .todayButton {
-  border-color: #dfe3ec;
 }
 
 .light .monthTitle,
 .light .weekDay,
-.light .innerMonthTitle,
 .light .dayCell,
 .light .dayNumber {
   color: #202124;
@@ -398,7 +344,6 @@
   color: #7a8190;
 }
 
-.light .innerMonthTitleRow,
 .light .dayCell {
   border-color: #dfe3ec;
 }
@@ -475,11 +420,7 @@
   }
 
   .main {
-    padding: 14px 6px 18px;
-  }
-
-  .innerMonthTitleRow {
-    padding: 0 8px 8px;
+    padding: 0 6px 18px;
   }
 
   .calendarGrid {
@@ -563,11 +504,6 @@
 
   .dayCell {
     min-height: 46px;
-  }
-
-  .todayButton {
-    padding: 6px 10px;
-    font-size: 12px;
   }
 }
 

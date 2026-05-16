@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './Home.module.css';
 import { useTheme } from '../../contexts/ThemeContext';
 import { auth } from '../../Firebase/firebaseConfig';
@@ -50,11 +50,17 @@ function getDefaultEventForm(baseDate = new Date()) {
 
 export default function Home() {
   const { theme } = useTheme();
+
   const [weekStart, setWeekStart] = useState('sunday');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [eventForm, setEventForm] = useState(getDefaultEventForm());
+
+  const lastMonthChangeRef = useRef(0);
+  const touchStartYRef = useRef(null);
+  const touchStartXRef = useRef(null);
+  const isSwipeChangingMonthRef = useRef(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -152,23 +158,77 @@ export default function Home() {
       if (!grouped[event.startDate]) {
         grouped[event.startDate] = [];
       }
+
       grouped[event.startDate].push(event);
     });
 
     return grouped;
   }, [events]);
 
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+  const changeMonth = (offset) => {
+    setCurrentDate((prev) => {
+      return new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
+    });
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+  const canChangeMonth = () => {
+    const now = Date.now();
+
+    if (now - lastMonthChangeRef.current < 650) {
+      return false;
+    }
+
+    lastMonthChangeRef.current = now;
+    return true;
   };
 
-  const handleToday = () => {
-    const today = new Date();
-    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
+  const handleCalendarWheel = (e) => {
+    if (isModalOpen) return;
+    if (Math.abs(e.deltaY) < 40) return;
+    if (!canChangeMonth()) return;
+
+    if (e.deltaY > 0) {
+      changeMonth(1);
+    } else {
+      changeMonth(-1);
+    }
+  };
+
+  const handleTouchStart = (e) => {
+    if (isModalOpen) return;
+
+    touchStartYRef.current = e.touches[0].clientY;
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (isModalOpen) return;
+    if (touchStartYRef.current === null || touchStartXRef.current === null) return;
+
+    const endY = e.changedTouches[0].clientY;
+    const endX = e.changedTouches[0].clientX;
+
+    const diffY = touchStartYRef.current - endY;
+    const diffX = touchStartXRef.current - endX;
+
+    touchStartYRef.current = null;
+    touchStartXRef.current = null;
+
+    if (Math.abs(diffY) < 70) return;
+    if (Math.abs(diffY) < Math.abs(diffX)) return;
+    if (!canChangeMonth()) return;
+
+    isSwipeChangingMonthRef.current = true;
+
+    if (diffY > 0) {
+      changeMonth(1);
+    } else {
+      changeMonth(-1);
+    }
+
+    setTimeout(() => {
+      isSwipeChangingMonthRef.current = false;
+    }, 250);
   };
 
   const isWeekend = (day) => {
@@ -182,6 +242,7 @@ export default function Home() {
     if (day === null) return false;
 
     const today = new Date();
+
     return (
       today.getFullYear() === year &&
       today.getMonth() === month &&
@@ -236,21 +297,27 @@ export default function Home() {
     setIsModalOpen(false);
   };
 
+  const handleDayClick = (day) => {
+    if (!day) return;
+
+    if (isSwipeChangingMonthRef.current) {
+      return;
+    }
+
+    openAddModal(day);
+  };
+
   return (
     <div className={styles.home}>
-      <div className={`${styles.calendarPage} ${styles[theme]}`}>
+      <div
+        className={`${styles.calendarPage} ${styles[theme]}`}
+        onWheel={handleCalendarWheel}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <header className={styles.header}>
           <div className={styles.topRow}>
             <div className={styles.yearArea}>
-              <button
-                className={styles.backButton}
-                type="button"
-                onClick={handlePrevMonth}
-                aria-label="前の月"
-              >
-                ‹
-              </button>
-
               <span className={styles.yearText}>{year}年</span>
             </div>
 
@@ -301,27 +368,6 @@ export default function Home() {
         </header>
 
         <main className={styles.main}>
-          <div className={styles.innerMonthTitleRow}>
-            <div className={styles.innerMonthTitle}>{month + 1}月</div>
-
-            <button
-              className={styles.todayButton}
-              type="button"
-              onClick={handleToday}
-            >
-              今日
-            </button>
-
-            <button
-              className={styles.nextButton}
-              type="button"
-              onClick={handleNextMonth}
-              aria-label="次の月"
-            >
-              ›
-            </button>
-          </div>
-
           <div className={styles.calendarGrid}>
             {calendarDays.map((day, index) => {
               const dateKey = day ? formatDateKey(year, month, day) : null;
@@ -338,7 +384,7 @@ export default function Home() {
                     isToday(day) ? styles.todayCell : '',
                   ].join(' ')}
                   disabled={day === null}
-                  onClick={() => day && openAddModal(day)}
+                  onClick={() => handleDayClick(day)}
                 >
                   {day !== null && (
                     <div className={styles.dayCellInner}>
@@ -429,6 +475,7 @@ export default function Home() {
                         value={eventForm.startDate}
                         onChange={(e) => handleFormChange('startDate', e.target.value)}
                       />
+
                       {!eventForm.allDay && (
                         <input
                           type="time"
@@ -449,6 +496,7 @@ export default function Home() {
                         value={eventForm.endDate}
                         onChange={(e) => handleFormChange('endDate', e.target.value)}
                       />
+
                       {!eventForm.allDay && (
                         <input
                           type="time"
