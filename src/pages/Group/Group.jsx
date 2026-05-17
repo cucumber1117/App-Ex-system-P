@@ -21,6 +21,7 @@ const Group = () => {
   const [createdGroupId, setCreatedGroupId] = useState('');
   const [joinedGroups, setJoinedGroups] = useState([]);
   const [loadingJoinedGroups, setLoadingJoinedGroups] = useState(false);
+  const [showJoinedGroups, setShowJoinedGroups] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -151,25 +152,66 @@ const Group = () => {
     <div className={`${styles.container} ${styles[theme]}`}>
       <h1 className={styles.title}>グループ作成 / 検索</h1>
 
-      <section className={styles.joinedGroups}>
-        <h2 className={styles.sectionTitle}>参加中のグループ</h2>
-        {!currentUser && <p className={styles.noresult}>ログインすると参加中のグループを確認できます。</p>}
-        {currentUser && loadingJoinedGroups && <p className={styles.noresult}>読み込み中...</p>}
-        {currentUser && !loadingJoinedGroups && joinedGroups.length === 0 && (
-          <p className={styles.noresult}>参加中のグループはありません。</p>
+     <section className={styles.joinedGroups}>
+     <div className={styles.joinedHeader}>
+     <h2 className={styles.sectionTitle}>
+       参加中のグループ
+    </h2>
+
+    <button
+      className={styles.toggleBtn}
+      onClick={() => setShowJoinedGroups(!showJoinedGroups)}
+    >
+      {showJoinedGroups ? '閉じる' : '表示'}
+    </button>
+  </div>
+
+  {showJoinedGroups && (
+    <>
+      {!currentUser && (
+        <p className={styles.noresult}>
+          ログインすると参加中のグループを確認できます。
+        </p>
+      )}
+
+      {currentUser && loadingJoinedGroups && (
+        <p className={styles.noresult}>
+          読み込み中...
+        </p>
+      )}
+
+      {currentUser &&
+        !loadingJoinedGroups &&
+        joinedGroups.length === 0 && (
+          <p className={styles.noresult}>
+            参加中のグループはありません。
+          </p>
         )}
-        {currentUser && !loadingJoinedGroups && joinedGroups.length > 0 && (
+
+      {currentUser &&
+        !loadingJoinedGroups &&
+        joinedGroups.length > 0 && (
           <ul className={styles.joinedList}>
             {joinedGroups.map((g) => (
-              <li key={g.id} className={styles.joinedItem} onClick={() => handleSelect(g.id)}>
-                <span className={styles.groupName}>{g.name}</span>
-                <span className={styles.groupId}>ID: {g.groupId || g.id}</span>
+              <li
+                key={g.id}
+                className={styles.joinedItem}
+                onClick={() => handleSelect(g.id)}
+              >
+                <span className={styles.groupName}>
+                  {g.name}
+                </span>
+
+                <span className={styles.groupId}>
+                  ID: {g.groupId || g.id}
+                </span>
               </li>
             ))}
           </ul>
         )}
-      </section>
-
+    </>
+  )}
+</section>
       <div className={styles.searchWrap}>
         <input
           className={styles.search}
