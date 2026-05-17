@@ -1,0 +1,186 @@
+.container {
+  min-height: 100vh;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 18px 120px;
+  background: #f8f9fa;
+  color: #333;
+}
+
+.light {
+  background: #f8f9fa;
+  color: #333;
+}
+
+.dark {
+  background: linear-gradient(180deg, #10131a 0%, #151925 100%);
+  color: #f5f5f5;
+}
+
+.title {
+  margin: 10px 0 28px;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.addSection,
+.listSection {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.addForm {
+  display: flex;
+  gap: 10px;
+}
+
+.ownId {
+  margin: 0 0 12px;
+  color: #777;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 15px 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 14px;
+  background: #fff;
+  color: inherit;
+  font-size: 15px;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 96px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 14px;
+  background: #2f80ed;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.addBtn:disabled {
+  opacity: .65;
+}
+
+.note,
+.success,
+.error {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.note {
+  color: #888;
+}
+
+.success {
+  color: #16a34a;
+}
+
+.error {
+  color: #dc2626;
+}
+
+.friendList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.friendItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .05);
+}
+
+.avatar,
+.avatarFallback {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 50%;
+}
+
+.avatar {
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.friendMeta {
+  min-width: 0;
+}
+
+.friendName,
+.friendEmail,
+.friendId {
+  display: block;
+}
+
+.friendName {
+  font-size: 16px;
+}
+
+.friendEmail,
+.friendId {
+  margin-top: 3px;
+  color: #777;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.dark .input,
+.dark .friendItem {
+  border-color: rgba(255, 255, 255, .08);
+  background: rgba(35, 38, 45, .96);
+}
+
+.dark .note,
+.dark .ownId,
+.dark .friendEmail,
+.dark .friendId {
+  color: #b7bdc8;
+}
+
+.dark .avatarFallback {
+  background: rgba(47, 128, 237, .22);
+  color: #bfdbfe;
+}
+
+@media (max-width: 560px) {
+  .addForm {
+    flex-direction: column;
+  }
+
+  .addBtn {
+    min-height: 48px;
+  }
+}

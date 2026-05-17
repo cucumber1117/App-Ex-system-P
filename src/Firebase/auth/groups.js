@@ -111,3 +111,50 @@ export async function leaveGroup(groupId, uid) {
   const groupRef = doc(db, 'groups', groupId);
   await updateDoc(groupRef, { memberCount: increment(-1) });
 }
+
+export async function inviteFriendToGroup(groupId, inviterUid, friendUid) {
+  if (!groupId || !inviterUid || !friendUid) throw new Error('招待情報が不足しています');
+  if (!(await isMember(groupId, inviterUid))) throw new Error('参加中のグループのみ招待できます');
+  if (await isMember(groupId, friendUid)) throw new Error('このフレンドはすでに参加済みです');
+
+  const group = await getGroupDetails(groupId);
+  if (!group) throw new Error('グループが見つかりません');
+
+  await setDoc(
+    doc(db, 'users', friendUid, 'groupInvites', groupId),
+    {
+      groupId,
+      groupName: group.name,
+      inviterUid,
+      createdAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+export async function listGroupInvites(uid) {
+  if (!uid) return [];
+
+  const snap = await getDocs(collection(db, 'users', uid, 'groupInvites'));
+  const invites = await Promise.all(
+    snap.docs.map(async (inviteDoc) => {
+      const data = inviteDoc.data();
+      const group = await getGroupDetails(data.groupId || inviteDoc.id);
+      if (!group) return null;
+      return { id: inviteDoc.id, ...data, group };
+    })
+  );
+
+  return invites.filter(Boolean);
+}
+
+export async function acceptGroupInvite(groupId, uid) {
+  if (!groupId || !uid) throw new Error('招待情報が不足しています');
+  await joinGroup(groupId, uid);
+  await deleteDoc(doc(db, 'users', uid, 'groupInvites', groupId));
+}
+
+export async function declineGroupInvite(groupId, uid) {
+  if (!groupId || !uid) throw new Error('招待情報が不足しています');
+  await deleteDoc(doc(db, 'users', uid, 'groupInvites', groupId));
+}

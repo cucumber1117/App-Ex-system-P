@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import React, { useEffect } from 'react';
 import Home from './pages/Home/Home.jsx';
 import Group from './pages/Group/Group.jsx';
+import Friends from './pages/Friends/Friends.jsx';
 import SharedSchedules from './pages/shared/SharedSchedules.jsx';
 import Settings from './pages/settings/Settings.jsx';
 import Footer from './compornent/Footer/Footer.jsx';
@@ -88,6 +89,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/create" element={<Group />} />
+          <Route path="/friends" element={<Friends />} />
           <Route path="/shared" element={<SharedSchedules />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>

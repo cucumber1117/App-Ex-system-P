@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import styles from './Group.module.css';
-import { createGroup, listGroups, listJoinedGroups, getGroupDetails, isMember, joinGroup, leaveGroup } from '../../Firebase/auth/groups';
+import { createGroup, listGroups, listJoinedGroups, getGroupDetails, isMember, joinGroup, leaveGroup, inviteFriendToGroup, listGroupInvites, acceptGroupInvite, declineGroupInvite } from '../../Firebase/auth/groups';
+import { listFriends } from '../../Firebase/auth/friends';
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Search } from "lucide-react";
@@ -22,6 +23,11 @@ const Group = () => {
   const [joinedGroups, setJoinedGroups] = useState([]);
   const [loadingJoinedGroups, setLoadingJoinedGroups] = useState(false);
   const [showJoinedGroups, setShowJoinedGroups] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [groupInvites, setGroupInvites] = useState([]);
+  const [inviteFriendId, setInviteFriendId] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteError, setInviteError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -106,13 +112,33 @@ const Group = () => {
     }
   }, []);
 
+  const refreshGroupData = useCallback(async (uid) => {
+    if (!uid) {
+      setFriends([]);
+      setGroupInvites([]);
+      return;
+    }
+
+    try {
+      const [friendItems, inviteItems] = await Promise.all([
+        listFriends(uid),
+        listGroupInvites(uid),
+      ]);
+      setFriends(friendItems);
+      setGroupInvites(inviteItems);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setCurrentUser(u);
       refreshJoinedGroups(u?.uid);
+      refreshGroupData(u?.uid);
     });
     return () => unsub();
-  }, [refreshJoinedGroups]);
+  }, [refreshGroupData, refreshJoinedGroups]);
 
   const handleJoin = async () => {
     if (!currentUser || !selectedId) return;
@@ -148,9 +174,68 @@ const Group = () => {
     }
   };
 
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    if (!currentUser || !selectedId || !inviteFriendId) return;
+
+    try {
+      setInviteError('');
+      setInviteMessage('');
+      await inviteFriendToGroup(selectedId, currentUser.uid, inviteFriendId);
+      setInviteFriendId('');
+      setInviteMessage('招待を送りました');
+    } catch (err) {
+      console.error(err);
+      setInviteError(err.message || '招待を送れませんでした');
+    }
+  };
+
+  const handleAcceptInvite = async (invite) => {
+    if (!currentUser) return;
+    try {
+      await acceptGroupInvite(invite.groupId, currentUser.uid);
+      await Promise.all([
+        refreshJoinedGroups(currentUser.uid),
+        refreshGroupData(currentUser.uid),
+      ]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeclineInvite = async (invite) => {
+    if (!currentUser) return;
+    try {
+      await declineGroupInvite(invite.groupId, currentUser.uid);
+      await refreshGroupData(currentUser.uid);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className={`${styles.container} ${styles[theme]}`}>
       <h1 className={styles.title}>グループ作成 / 検索</h1>
+
+      {currentUser && groupInvites.length > 0 && (
+        <section className={styles.invites}>
+          <h2 className={styles.sectionTitle}>受け取った招待</h2>
+          <ul className={styles.inviteList}>
+            {groupInvites.map((invite) => (
+              <li key={invite.id} className={styles.inviteItem}>
+                <div>
+                  <strong>{invite.group.name}</strong>
+                  <span className={styles.groupId}>ID: {invite.group.id}</span>
+                </div>
+                <div className={styles.inviteActions}>
+                  <button className={styles.acceptBtn} onClick={() => handleAcceptInvite(invite)}>参加</button>
+                  <button className={styles.declineBtn} onClick={() => handleDeclineInvite(invite)}>辞退</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
      <section className={styles.joinedGroups}>
      <div className={styles.joinedHeader}>
@@ -247,10 +332,33 @@ const Group = () => {
                 <p className={styles.detailItem}>作成日: {selectedDetails.createdAt?.toDate ? selectedDetails.createdAt.toDate().toLocaleString() : '-'}</p>
                 {currentUser ? (
                   isJoined ? (
-                    <div className={styles.joinedActions}>
-                      <div className={styles.joinedLabel}>参加済み</div>
-                      <button className={styles.leaveBtn} onClick={handleLeave}>脱退</button>
-                    </div>
+                    <>
+                      <div className={styles.joinedActions}>
+                        <div className={styles.joinedLabel}>参加済み</div>
+                        <button className={styles.leaveBtn} onClick={handleLeave}>脱退</button>
+                      </div>
+                      <form className={styles.inviteForm} onSubmit={handleInvite}>
+                        <select
+                          className={styles.inviteSelect}
+                          value={inviteFriendId}
+                          onChange={(e) => setInviteFriendId(e.target.value)}
+                          required
+                        >
+                          <option value="">フレンドを選択</option>
+                          {friends.map((friend) => (
+                            <option key={friend.id} value={friend.id}>
+                              {friend.name || friend.email || friend.id}
+                            </option>
+                          ))}
+                        </select>
+                        <button className={styles.inviteBtn} type="submit" disabled={friends.length === 0}>
+                          招待
+                        </button>
+                      </form>
+                      {friends.length === 0 && <p className={styles.noresult}>招待できるフレンドがいません。</p>}
+                      {inviteMessage && <p className={styles.successText}>{inviteMessage}</p>}
+                      {inviteError && <p className={styles.errorText}>{inviteError}</p>}
+                    </>
                   ) : (
                     <button className={styles.joinBtn} onClick={handleJoin}>参加</button>
                   )

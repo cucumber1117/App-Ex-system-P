@@ -90,6 +90,9 @@
 .joinedGroups {
 	margin: 0 0 28px;
 }
+.invites {
+	margin: 0 0 28px;
+}
 .sectionTitle {
 	margin: 0 0 14px;
 	font-size: 18px;
@@ -144,6 +147,72 @@
 .noresult {
 	color: #888;
 	font-size: 14px;
+}
+.inviteList {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.inviteItem {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 16px 18px;
+	border: 1px solid #ececec;
+	border-radius: 14px;
+	background: #fff;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, .05);
+}
+.inviteActions,
+.inviteForm {
+	display: flex;
+	gap: 8px;
+}
+.acceptBtn,
+.declineBtn,
+.inviteBtn {
+	padding: 10px 14px;
+	border: none;
+	border-radius: 12px;
+	font-weight: 800;
+}
+.acceptBtn,
+.inviteBtn {
+	background: #2f80ed;
+	color: #fff;
+}
+.declineBtn {
+	background: #eef1f5;
+	color: #555;
+}
+.inviteForm {
+	margin-top: 16px;
+}
+.inviteSelect {
+	flex: 1;
+	min-width: 0;
+	padding: 12px 14px;
+	border: 1px solid #ddd;
+	border-radius: 12px;
+	background: #fff;
+}
+.inviteBtn:disabled {
+	opacity: .55;
+}
+.successText,
+.errorText {
+	margin: 10px 0 0;
+	font-size: 14px;
+}
+.successText {
+	color: #16a34a;
+}
+.errorText {
+	color: #dc2626;
 }
 
 .mainRow {
@@ -303,6 +372,7 @@
 
 .dark .item,
 .dark .joinedItem,
+.dark .inviteItem,
 .dark .detail {
 	background: #1b2230;
 	color: #f5f5f5;
@@ -320,6 +390,15 @@
 .dark .noresult,
 .dark .groupId {
 	color: #b7bdc8;
+}
+.dark .inviteSelect {
+	background: #1b2230;
+	color: #fff;
+	border-color: rgba(255, 255, 255, 0.08);
+}
+.dark .declineBtn {
+	background: #273244;
+	color: #e5e7eb;
 }
 
 .dark .joinBtn {
@@ -393,4 +472,20 @@
 
 .toggleBtn:active {
 	transform: scale(0.96);
+}
+
+@media (max-width: 560px) {
+	.inviteItem,
+	.inviteForm {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.inviteActions {
+		width: 100%;
+	}
+
+	.inviteActions button {
+		flex: 1;
+	}
 }
