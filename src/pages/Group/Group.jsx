@@ -23,6 +23,7 @@ const Group = () => {
   const [joinedGroups, setJoinedGroups] = useState([]);
   const [loadingJoinedGroups, setLoadingJoinedGroups] = useState(false);
   const [showJoinedGroups, setShowJoinedGroups] = useState(false);
+  const [openedJoinedGroupId, setOpenedJoinedGroupId] = useState(null);
   const [friends, setFriends] = useState([]);
   const [groupInvites, setGroupInvites] = useState([]);
   const [inviteFriendId, setInviteFriendId] = useState('');
@@ -174,14 +175,14 @@ const Group = () => {
     }
   };
 
-  const handleInvite = async (e) => {
+  const handleInvite = async (e, groupId) => {
     e.preventDefault();
-    if (!currentUser || !selectedId || !inviteFriendId) return;
+    if (!currentUser || !groupId || !inviteFriendId) return;
 
     try {
       setInviteError('');
       setInviteMessage('');
-      await inviteFriendToGroup(selectedId, currentUser.uid, inviteFriendId);
+      await inviteFriendToGroup(groupId, currentUser.uid, inviteFriendId);
       setInviteFriendId('');
       setInviteMessage('招待を送りました');
     } catch (err) {
@@ -281,7 +282,7 @@ const Group = () => {
               <li
                 key={g.id}
                 className={styles.joinedItem}
-                onClick={() => handleSelect(g.id)}
+                onClick={() => setOpenedJoinedGroupId(openedJoinedGroupId === g.id ? null : g.id)}
               >
                 <span className={styles.groupName}>
                   {g.name}
@@ -290,6 +291,55 @@ const Group = () => {
                 <span className={styles.groupId}>
                   ID: {g.groupId || g.id}
                 </span>
+
+                {openedJoinedGroupId === g.id && (
+                  <div className = {styles.joinedDetail}>
+
+                    <p className = {styles.detailItem}>
+                      メンバー数:
+                      <strong>{g.memberCount ?? 0}</strong>
+                    </p>
+
+                    <div className={styles.joinedActions}>
+                      <div className={styles.joinedLabel}>
+                        参加済み
+                      </div>
+
+                      <button className={styles.leaveBtn} onClick={(e) => {e.stopPropagation(); handleLeave()}}>
+                        脱退
+                      </button>
+                    </div>
+
+                    <from className = {styles.inviteForm} onSubmit = {handleInvite} onClick = {(e) => e.stopPropagation()}>
+                      <select className= {styles.inviteSelect} value={inviteFriendId} onChange={(e) => setInviteFriendId(e.target.value)} required>
+                        <option value="">フレンドを選択</option>
+
+                        {friends.map((friend) => (
+                          <option key = {friend.id} value = {friend.id}>
+                            {friend.name || friend.email || friend.id}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button className={styles.inviteBtn} type="submit" disabled={friends.length === 0}>
+                        招待
+                      </button>
+                    </from>
+
+                    {friends.length === 0 && (
+                      <p className={styles.noresult}>
+                        招待できるフレンドがいません。
+                      </p>
+                    )}
+
+                    {inviteError && (
+                      <p className={styles.errorText}>
+                        {inviteError}
+                      </p>
+                    )}
+                    
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -337,7 +387,7 @@ const Group = () => {
                         <div className={styles.joinedLabel}>参加済み</div>
                         <button className={styles.leaveBtn} onClick={handleLeave}>脱退</button>
                       </div>
-                      <form className={styles.inviteForm} onSubmit={handleInvite}>
+                      <form className={styles.inviteForm} onSubmit={(e) => handleInvite(e, g.id)}>
                         <select
                           className={styles.inviteSelect}
                           value={inviteFriendId}
