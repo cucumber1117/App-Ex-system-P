@@ -1,6 +1,14 @@
 import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
+function getFriendProfile(data = {}) {
+  return {
+    name: data.name || data.displayName || '',
+    email: data.email || '',
+    photoURL: data.photoURL || '',
+  };
+}
+
 export async function listFriends(uid) {
   if (!uid) return [];
 
@@ -8,12 +16,20 @@ export async function listFriends(uid) {
   const friends = await Promise.all(
     friendsSnap.docs.map(async (friendDoc) => {
       const userSnap = await getDoc(doc(db, 'users', friendDoc.id));
-      if (!userSnap.exists()) return null;
+      const friendship = friendDoc.data();
+      if (!userSnap.exists()) {
+        return {
+          id: friendDoc.id,
+          ...getFriendProfile(friendship),
+          friendship,
+        };
+      }
 
       return {
         id: userSnap.id,
+        ...getFriendProfile(userSnap.data()),
         ...userSnap.data(),
-        friendship: friendDoc.data(),
+        friendship,
       };
     })
   );
@@ -30,19 +46,25 @@ export async function addFriend(uid, friendUid) {
   const friendUserRef = doc(db, 'users', normalizedFriendUid);
   const friendUserSnap = await getDoc(friendUserRef);
   if (!friendUserSnap.exists()) throw new Error('ユーザーが見つかりません');
+  const friendProfile = getFriendProfile(friendUserSnap.data());
+
+  const currentUserSnap = await getDoc(doc(db, 'users', uid));
+  const currentUserProfile = currentUserSnap.exists()
+    ? getFriendProfile(currentUserSnap.data())
+    : {};
 
   const batch = writeBatch(db);
   batch.set(
     doc(db, 'users', uid, 'friends', normalizedFriendUid),
-    { uid: normalizedFriendUid, addedAt: serverTimestamp() },
+    { uid: normalizedFriendUid, ...friendProfile, addedAt: serverTimestamp() },
     { merge: true }
   );
   batch.set(
     doc(db, 'users', normalizedFriendUid, 'friends', uid),
-    { uid, addedAt: serverTimestamp() },
+    { uid, ...currentUserProfile, addedAt: serverTimestamp() },
     { merge: true }
   );
   await batch.commit();
 
-  return { id: friendUserSnap.id, ...friendUserSnap.data() };
+  return { id: friendUserSnap.id, ...friendUserSnap.data(), ...friendProfile };
 }
