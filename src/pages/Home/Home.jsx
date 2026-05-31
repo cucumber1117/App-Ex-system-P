@@ -17,6 +17,28 @@ const WEEK_DAYS = [
 
 const EVENT_STORAGE_KEY = 'calendarEvents';
 
+const EVENT_CATEGORIES = [
+  { id: 'default', name: '予定', color: '#ff453a' },
+  { id: 'school', name: '授業', color: '#2f80ed' },
+  { id: 'club', name: '部活', color: '#34c759' },
+  { id: 'parttime', name: 'バイト', color: '#ff9500' },
+  { id: 'private', name: '個人', color: '#af52de' },
+  { id: 'important', name: '重要', color: '#ff2d55' },
+];
+
+const CUSTOM_CATEGORY = {
+  id: 'custom',
+  name: 'その他',
+  color: '#8e8e93',
+};
+
+const REPEAT_OPTIONS = [
+  { value: 'none', label: 'しない' },
+  { value: 'daily', label: '毎日' },
+  { value: 'weekly', label: '毎週' },
+  { value: 'yearly', label: '毎年' },
+];
+
 function pad(value) {
   return String(value).padStart(2, '0');
 }
@@ -29,6 +51,20 @@ function formatDateKey(year, month, day) {
   return `${year}-${pad(month + 1)}-${pad(day)}`;
 }
 
+function parseDateOnly(dateText) {
+  if (!dateText) return null;
+  const date = new Date(`${dateText}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getTodayKey() {
+  return formatDateInput(new Date());
+}
+
+function getDefaultCategory() {
+  return EVENT_CATEGORIES[0];
+}
+
 function getDefaultEventForm(baseDate = new Date()) {
   const start = new Date(baseDate);
   start.setMinutes(0, 0, 0);
@@ -36,14 +72,23 @@ function getDefaultEventForm(baseDate = new Date()) {
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
 
+  const startDate = formatDateInput(start);
+  const endDate = formatDateInput(end);
+  const defaultCategory = getDefaultCategory();
+
   return {
     title: '',
     location: '',
     allDay: false,
-    startDate: formatDateInput(start),
+    useToday: startDate === getTodayKey() && endDate === getTodayKey(),
+    startDate,
     startTime: `${pad(start.getHours())}:00`,
-    endDate: formatDateInput(end),
+    endDate,
     endTime: `${pad(end.getHours())}:00`,
+    categoryId: defaultCategory.id,
+    categoryName: defaultCategory.name,
+    categoryColor: defaultCategory.color,
+    repeat: 'none',
     notes: '',
   };
 }
@@ -55,10 +100,85 @@ function getEventTimeLabel(event) {
   return '';
 }
 
+function getRepeatLabel(repeat) {
+  return REPEAT_OPTIONS.find((option) => option.value === repeat)?.label || 'しない';
+}
+
 function getEventDateTimeValue(date, time, allDay, isEnd = false) {
   const fallbackTime = isEnd ? '23:59' : '00:00';
   const safeTime = allDay ? fallbackTime : time || fallbackTime;
   return new Date(`${date}T${safeTime}`);
+}
+
+function normalizeColor(color) {
+  if (typeof color !== 'string') return getDefaultCategory().color;
+  return color.startsWith('#') ? color : getDefaultCategory().color;
+}
+
+function hexToRgba(hex, alpha) {
+  const safeHex = normalizeColor(hex).replace('#', '');
+  const fullHex = safeHex.length === 3
+    ? safeHex.split('').map((char) => char + char).join('')
+    : safeHex;
+
+  const value = Number.parseInt(fullHex, 16);
+  if (Number.isNaN(value)) {
+    return `rgba(255, 69, 58, ${alpha})`;
+  }
+
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getEventColor(event) {
+  return normalizeColor(event.categoryColor || getDefaultCategory().color);
+}
+
+function getEventStyle(event) {
+  const color = getEventColor(event);
+
+  return {
+    '--event-color': color,
+    '--event-bg': hexToRgba(color, 0.16),
+    '--event-hover-bg': hexToRgba(color, 0.24),
+  };
+}
+
+function isEventOnDate(event, dateKey) {
+  if (!event?.startDate || !dateKey) return false;
+
+  const repeat = event.repeat || 'none';
+
+  if (repeat === 'none') {
+    return event.startDate === dateKey;
+  }
+
+  if (dateKey < event.startDate) return false;
+
+  const startDate = parseDateOnly(event.startDate);
+  const targetDate = parseDateOnly(dateKey);
+
+  if (!startDate || !targetDate) return false;
+
+  if (repeat === 'daily') {
+    return true;
+  }
+
+  if (repeat === 'weekly') {
+    return startDate.getDay() === targetDate.getDay();
+  }
+
+  if (repeat === 'yearly') {
+    return (
+      startDate.getMonth() === targetDate.getMonth() &&
+      startDate.getDate() === targetDate.getDate()
+    );
+  }
+
+  return event.startDate === dateKey;
 }
 
 export default function Home() {
@@ -169,24 +289,30 @@ export default function Home() {
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
+    const lastDate = new Date(year, month + 1, 0);
+    const daysInMonth = lastDate.getDate();
 
-    events.forEach((event) => {
-      if (!grouped[event.startDate]) {
-        grouped[event.startDate] = [];
-      }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = formatDateKey(year, month, day);
+      grouped[dateKey] = [];
 
-      grouped[event.startDate].push(event);
-    });
+      events.forEach((event) => {
+        if (!isEventOnDate(event, dateKey)) return;
 
-    Object.values(grouped).forEach((dayEvents) => {
-      dayEvents.sort((a, b) => {
+        grouped[dateKey].push({
+          ...event,
+          occurrenceDate: dateKey,
+        });
+      });
+
+      grouped[dateKey].sort((a, b) => {
         if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
         return String(a.startTime || '').localeCompare(String(b.startTime || ''));
       });
-    });
+    }
 
     return grouped;
-  }, [events]);
+  }, [events, year, month]);
 
   const changeMonth = (offset) => {
     setCurrentDate((prev) => {
@@ -276,7 +402,7 @@ export default function Home() {
   const openAddModal = (selectedDay = null) => {
     const baseDate = selectedDay
       ? new Date(year, month, selectedDay)
-      : new Date(year, month, 1);
+      : new Date();
 
     setModalMode('add');
     setEditingEventId(null);
@@ -287,16 +413,25 @@ export default function Home() {
   const openEditModal = (calendarEvent, clickEvent) => {
     clickEvent.stopPropagation();
 
+    const defaultCategory = getDefaultCategory();
+    const startDate = calendarEvent.startDate || formatDateInput(new Date());
+    const endDate = calendarEvent.endDate || calendarEvent.startDate || formatDateInput(new Date());
+
     setModalMode('edit');
     setEditingEventId(calendarEvent.id);
     setEventForm({
       title: calendarEvent.title || '',
       location: calendarEvent.location || '',
       allDay: Boolean(calendarEvent.allDay),
-      startDate: calendarEvent.startDate || formatDateInput(new Date()),
+      useToday: startDate === getTodayKey() && endDate === getTodayKey(),
+      startDate,
       startTime: calendarEvent.startTime || '09:00',
-      endDate: calendarEvent.endDate || calendarEvent.startDate || formatDateInput(new Date()),
+      endDate,
       endTime: calendarEvent.endTime || calendarEvent.startTime || '10:00',
+      categoryId: calendarEvent.categoryId || defaultCategory.id,
+      categoryName: calendarEvent.categoryName || defaultCategory.name,
+      categoryColor: calendarEvent.categoryColor || defaultCategory.color,
+      repeat: calendarEvent.repeat || 'none',
       notes: calendarEvent.notes || '',
     });
     setIsModalOpen(true);
@@ -312,6 +447,40 @@ export default function Home() {
     setEventForm((prev) => ({
       ...prev,
       [key]: value,
+      ...(key === 'startDate' || key === 'endDate' ? { useToday: false } : {}),
+    }));
+  };
+
+  const handleTodayToggle = (checked) => {
+    const today = getTodayKey();
+
+    setEventForm((prev) => ({
+      ...prev,
+      useToday: checked,
+      ...(checked
+        ? {
+            startDate: today,
+            endDate: today,
+          }
+        : {}),
+    }));
+  };
+
+  const handleTimeToggle = (checked) => {
+    setEventForm((prev) => ({
+      ...prev,
+      allDay: !checked,
+      startTime: prev.startTime || '09:00',
+      endTime: prev.endTime || '10:00',
+    }));
+  };
+
+  const handleCategorySelect = (category) => {
+    setEventForm((prev) => ({
+      ...prev,
+      categoryId: category.id,
+      categoryName: category.name,
+      categoryColor: category.color,
     }));
   };
 
@@ -328,6 +497,11 @@ export default function Home() {
 
     if (!eventForm.allDay && (!eventForm.startTime || !eventForm.endTime)) {
       alert('開始時間と終了時間を入力してください。');
+      return false;
+    }
+
+    if (!eventForm.categoryName.trim()) {
+      alert('用事の名前を入力してください。');
       return false;
     }
 
@@ -361,6 +535,10 @@ export default function Home() {
     startTime: eventForm.allDay ? '' : eventForm.startTime,
     endDate: eventForm.endDate,
     endTime: eventForm.allDay ? '' : eventForm.endTime,
+    categoryId: eventForm.categoryId,
+    categoryName: eventForm.categoryName.trim(),
+    categoryColor: normalizeColor(eventForm.categoryColor),
+    repeat: eventForm.repeat || 'none',
     notes: eventForm.notes.trim(),
   });
 
@@ -387,7 +565,7 @@ export default function Home() {
   const handleDeleteEvent = () => {
     if (editingEventId === null) return;
 
-    const ok = window.confirm('この予定を削除しますか？');
+    const ok = window.confirm('この予定を削除しますか？\n繰り返し予定の場合は、同じ予定がすべて削除されます。');
     if (!ok) return;
 
     setEvents((prev) => prev.filter((event) => event.id !== editingEventId));
@@ -499,18 +677,25 @@ export default function Home() {
                       <div className={styles.eventList}>
                         {dayEvents.map((event) => {
                           const timeLabel = getEventTimeLabel(event);
+                          const repeatLabel = getRepeatLabel(event.repeat);
 
                           return (
                             <button
-                              key={event.id}
+                              key={`${event.id}-${event.occurrenceDate}`}
                               type="button"
                               className={styles.eventItem}
+                              style={getEventStyle(event)}
                               onClick={(e) => openEditModal(event, e)}
                               aria-label={`${event.title}を編集`}
                             >
-                              {timeLabel && (
-                                <span className={styles.eventTime}>{timeLabel}</span>
-                              )}
+                              <span className={styles.eventMetaRow}>
+                                {timeLabel && (
+                                  <span className={styles.eventTime}>{timeLabel}</span>
+                                )}
+                                {event.repeat && event.repeat !== 'none' && (
+                                  <span className={styles.eventRepeat}>{repeatLabel}</span>
+                                )}
+                              </span>
                               <span className={styles.eventTitle}>{event.title}</span>
                             </button>
                           );
@@ -572,13 +757,90 @@ export default function Home() {
                 </div>
 
                 <div className={styles.formCard}>
+                  <div className={styles.sectionHeader}>
+                    <span className={styles.sectionTitle}>予定の色</span>
+                    <span className={styles.sectionSubText}>{eventForm.categoryName}</span>
+                  </div>
+
+                  <div className={styles.categoryList}>
+                    {[...EVENT_CATEGORIES, CUSTOM_CATEGORY].map((category) => {
+                      const isSelected = eventForm.categoryId === category.id;
+
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          className={`${styles.categoryOption} ${
+                            isSelected ? styles.categoryOptionSelected : ''
+                          }`}
+                          onClick={() => handleCategorySelect(category)}
+                        >
+                          <span
+                            className={styles.categoryColorDot}
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span className={styles.categoryName}>{category.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {eventForm.categoryId === 'custom' && (
+                    <div className={styles.customCategoryRow}>
+                      <input
+                        type="text"
+                        className={styles.textInput}
+                        placeholder="用事の名前"
+                        value={eventForm.categoryName}
+                        onChange={(e) => handleFormChange('categoryName', e.target.value)}
+                      />
+
+                      <label className={styles.colorPickerLabel}>
+                        <span>色</span>
+                        <input
+                          type="color"
+                          className={styles.colorPicker}
+                          value={eventForm.categoryColor}
+                          onChange={(e) => handleFormChange('categoryColor', e.target.value)}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.formCard}>
                   <label className={styles.switchRow}>
-                    <span>終日</span>
-                    <input
-                      type="checkbox"
-                      checked={eventForm.allDay}
-                      onChange={(e) => handleFormChange('allDay', e.target.checked)}
-                    />
+                    <span className={styles.switchTextGroup}>
+                      <span className={styles.switchTitle}>今日の予定にする</span>
+                      <span className={styles.switchDescription}>オンにすると日付を今日にします</span>
+                    </span>
+
+                    <span className={styles.toggleSwitch}>
+                      <input
+                        type="checkbox"
+                        checked={eventForm.useToday}
+                        onChange={(e) => handleTodayToggle(e.target.checked)}
+                      />
+                      <span className={styles.toggleTrack} />
+                    </span>
+                  </label>
+
+                  <label className={styles.switchRow}>
+                    <span className={styles.switchTextGroup}>
+                      <span className={styles.switchTitle}>時刻を設定</span>
+                      <span className={styles.switchDescription}>
+                        オフの場合は終日予定になります
+                      </span>
+                    </span>
+
+                    <span className={styles.toggleSwitch}>
+                      <input
+                        type="checkbox"
+                        checked={!eventForm.allDay}
+                        onChange={(e) => handleTimeToggle(e.target.checked)}
+                      />
+                      <span className={styles.toggleTrack} />
+                    </span>
                   </label>
 
                   <div className={styles.dateTimeRow}>
@@ -622,6 +884,33 @@ export default function Home() {
                       )}
                     </div>
                   </div>
+                </div>
+
+                <div className={styles.formCard}>
+                  <div className={styles.selectRow}>
+                    <div className={styles.selectTextGroup}>
+                      <span className={styles.sectionTitle}>繰り返し</span>
+                      <span className={styles.sectionSubText}>毎日・毎週・毎年から選択</span>
+                    </div>
+
+                    <select
+                      className={styles.selectInput}
+                      value={eventForm.repeat}
+                      onChange={(e) => handleFormChange('repeat', e.target.value)}
+                    >
+                      {REPEAT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {eventForm.repeat !== 'none' && (
+                    <p className={styles.repeatHelpText}>
+                      繰り返し予定は開始日以降の同じ条件の日に表示されます。
+                    </p>
+                  )}
                 </div>
 
                 <div className={styles.formCard}>
