@@ -16,21 +16,11 @@ const WEEK_DAYS = [
 ];
 
 const EVENT_STORAGE_KEY = 'calendarEvents';
+const EVENT_CATEGORY_STORAGE_KEY = 'calendarEventCategories';
 
-const EVENT_CATEGORIES = [
-  { id: 'default', name: '予定', color: '#ff453a' },
-  { id: 'school', name: '授業', color: '#2f80ed' },
-  { id: 'club', name: '部活', color: '#34c759' },
-  { id: 'parttime', name: 'バイト', color: '#ff9500' },
-  { id: 'private', name: '個人', color: '#af52de' },
-  { id: 'important', name: '重要', color: '#ff2d55' },
+const DEFAULT_EVENT_CATEGORIES = [
+  { id: 'default', name: '予定', color: '#5ac8fa' },
 ];
-
-const CUSTOM_CATEGORY = {
-  id: 'custom',
-  name: 'その他',
-  color: '#8e8e93',
-};
 
 const REPEAT_OPTIONS = [
   { value: 'none', label: 'しない' },
@@ -57,37 +47,28 @@ function parseDateOnly(dateText) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function getTodayKey() {
-  return formatDateInput(new Date());
-}
-
 function getDefaultCategory() {
-  return EVENT_CATEGORIES[0];
+  return DEFAULT_EVENT_CATEGORIES[0];
 }
 
-function getDefaultEventForm(baseDate = new Date()) {
+function getDefaultEventForm(baseDate = new Date(), category = getDefaultCategory()) {
   const start = new Date(baseDate);
   start.setMinutes(0, 0, 0);
 
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
 
-  const startDate = formatDateInput(start);
-  const endDate = formatDateInput(end);
-  const defaultCategory = getDefaultCategory();
-
   return {
     title: '',
     location: '',
     allDay: false,
-    useToday: startDate === getTodayKey() && endDate === getTodayKey(),
-    startDate,
+    startDate: formatDateInput(start),
     startTime: `${pad(start.getHours())}:00`,
-    endDate,
+    endDate: formatDateInput(end),
     endTime: `${pad(end.getHours())}:00`,
-    categoryId: defaultCategory.id,
-    categoryName: defaultCategory.name,
-    categoryColor: defaultCategory.color,
+    categoryId: category.id,
+    categoryName: category.name,
+    categoryColor: category.color,
     repeat: 'none',
     notes: '',
   };
@@ -104,26 +85,23 @@ function getRepeatLabel(repeat) {
   return REPEAT_OPTIONS.find((option) => option.value === repeat)?.label || 'しない';
 }
 
-function getEventDateTimeValue(date, time, allDay, isEnd = false) {
+function getEventDateTimeValue(date, time, isEnd = false) {
   const fallbackTime = isEnd ? '23:59' : '00:00';
-  const safeTime = allDay ? fallbackTime : time || fallbackTime;
+  const safeTime = time || fallbackTime;
   return new Date(`${date}T${safeTime}`);
 }
 
 function normalizeColor(color) {
   if (typeof color !== 'string') return getDefaultCategory().color;
-  return color.startsWith('#') ? color : getDefaultCategory().color;
+  return /^#[0-9A-Fa-f]{6}$/.test(color) ? color : getDefaultCategory().color;
 }
 
 function hexToRgba(hex, alpha) {
   const safeHex = normalizeColor(hex).replace('#', '');
-  const fullHex = safeHex.length === 3
-    ? safeHex.split('').map((char) => char + char).join('')
-    : safeHex;
+  const value = Number.parseInt(safeHex, 16);
 
-  const value = Number.parseInt(fullHex, 16);
   if (Number.isNaN(value)) {
-    return `rgba(255, 69, 58, ${alpha})`;
+    return `rgba(90, 200, 250, ${alpha})`;
   }
 
   const r = (value >> 16) & 255;
@@ -181,16 +159,47 @@ function isEventOnDate(event, dateKey) {
   return event.startDate === dateKey;
 }
 
+function readStoredCategories() {
+  try {
+    const saved = localStorage.getItem(EVENT_CATEGORY_STORAGE_KEY);
+    if (!saved) return DEFAULT_EVENT_CATEGORIES;
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_EVENT_CATEGORIES;
+
+    const cleaned = parsed
+      .filter((category) => category?.id && category?.name && category?.color)
+      .map((category) => ({
+        id: String(category.id),
+        name: String(category.name),
+        color: normalizeColor(category.color),
+      }));
+
+    return cleaned.length > 0 ? cleaned : DEFAULT_EVENT_CATEGORIES;
+  } catch (error) {
+    console.error('failed to load categories', error);
+    return DEFAULT_EVENT_CATEGORIES;
+  }
+}
+
 export default function Home() {
   const { theme } = useTheme();
 
   const [weekStart, setWeekStart] = useState('sunday');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
+  const [eventCategories, setEventCategories] = useState(DEFAULT_EVENT_CATEGORIES);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [eventForm, setEventForm] = useState(getDefaultEventForm());
+  const [eventForm, setEventForm] = useState(() => getDefaultEventForm());
   const [modalMode, setModalMode] = useState('add');
   const [editingEventId, setEditingEventId] = useState(null);
+  const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
+  const [categoryDraftMode, setCategoryDraftMode] = useState('add');
+  const [categoryDraft, setCategoryDraft] = useState({
+    id: null,
+    name: '',
+    color: '#5ac8fa',
+  });
 
   const lastMonthChangeRef = useRef(0);
   const touchStartYRef = useRef(null);
@@ -251,12 +260,24 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    setEventCategories(readStoredCategories());
+  }, []);
+
+  useEffect(() => {
     try {
       localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events));
     } catch (error) {
       console.error('failed to save events', error);
     }
   }, [events]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(EVENT_CATEGORY_STORAGE_KEY, JSON.stringify(eventCategories));
+    } catch (error) {
+      console.error('failed to save categories', error);
+    }
+  }, [eventCategories]);
 
   const orderedWeekDays = useMemo(() => {
     const startIndex = WEEK_DAYS.findIndex((day) => day.day === weekStartDay);
@@ -403,34 +424,43 @@ export default function Home() {
     const baseDate = selectedDay
       ? new Date(year, month, selectedDay)
       : new Date();
+    const defaultCategory = eventCategories[0] || getDefaultCategory();
 
     setModalMode('add');
     setEditingEventId(null);
-    setEventForm(getDefaultEventForm(baseDate));
+    setIsCategoryFormOpen(false);
+    setCategoryDraftMode('add');
+    setCategoryDraft({ id: null, name: '', color: defaultCategory.color });
+    setEventForm(getDefaultEventForm(baseDate, defaultCategory));
     setIsModalOpen(true);
   };
 
   const openEditModal = (calendarEvent, clickEvent) => {
     clickEvent.stopPropagation();
 
-    const defaultCategory = getDefaultCategory();
+    const defaultCategory = eventCategories[0] || getDefaultCategory();
     const startDate = calendarEvent.startDate || formatDateInput(new Date());
     const endDate = calendarEvent.endDate || calendarEvent.startDate || formatDateInput(new Date());
+    const startTime = calendarEvent.startTime || '09:00';
+    const endTime = calendarEvent.endTime || calendarEvent.startTime || '10:00';
+    const categoryColor = calendarEvent.categoryColor || defaultCategory.color;
 
     setModalMode('edit');
     setEditingEventId(calendarEvent.id);
+    setIsCategoryFormOpen(false);
+    setCategoryDraftMode('add');
+    setCategoryDraft({ id: null, name: '', color: defaultCategory.color });
     setEventForm({
       title: calendarEvent.title || '',
       location: calendarEvent.location || '',
-      allDay: Boolean(calendarEvent.allDay),
-      useToday: startDate === getTodayKey() && endDate === getTodayKey(),
+      allDay: false,
       startDate,
-      startTime: calendarEvent.startTime || '09:00',
+      startTime,
       endDate,
-      endTime: calendarEvent.endTime || calendarEvent.startTime || '10:00',
+      endTime,
       categoryId: calendarEvent.categoryId || defaultCategory.id,
       categoryName: calendarEvent.categoryName || defaultCategory.name,
-      categoryColor: calendarEvent.categoryColor || defaultCategory.color,
+      categoryColor,
       repeat: calendarEvent.repeat || 'none',
       notes: calendarEvent.notes || '',
     });
@@ -441,37 +471,14 @@ export default function Home() {
     setIsModalOpen(false);
     setModalMode('add');
     setEditingEventId(null);
+    setIsCategoryFormOpen(false);
+    setCategoryDraftMode('add');
   };
 
   const handleFormChange = (key, value) => {
     setEventForm((prev) => ({
       ...prev,
       [key]: value,
-      ...(key === 'startDate' || key === 'endDate' ? { useToday: false } : {}),
-    }));
-  };
-
-  const handleTodayToggle = (checked) => {
-    const today = getTodayKey();
-
-    setEventForm((prev) => ({
-      ...prev,
-      useToday: checked,
-      ...(checked
-        ? {
-            startDate: today,
-            endDate: today,
-          }
-        : {}),
-    }));
-  };
-
-  const handleTimeToggle = (checked) => {
-    setEventForm((prev) => ({
-      ...prev,
-      allDay: !checked,
-      startTime: prev.startTime || '09:00',
-      endTime: prev.endTime || '10:00',
     }));
   };
 
@@ -482,6 +489,117 @@ export default function Home() {
       categoryName: category.name,
       categoryColor: category.color,
     }));
+  };
+
+  const openAddCategoryForm = () => {
+    setCategoryDraftMode('add');
+    setCategoryDraft({ id: null, name: '', color: '#5ac8fa' });
+    setIsCategoryFormOpen(true);
+  };
+
+  const openEditCategoryForm = (category, e) => {
+    e.stopPropagation();
+    setCategoryDraftMode('edit');
+    setCategoryDraft({
+      id: category.id,
+      name: category.name,
+      color: category.color,
+    });
+    setIsCategoryFormOpen(true);
+  };
+
+  const cancelCategoryForm = () => {
+    setIsCategoryFormOpen(false);
+    setCategoryDraftMode('add');
+    setCategoryDraft({ id: null, name: '', color: '#5ac8fa' });
+  };
+
+  const handleCategoryDraftChange = (key, value) => {
+    setCategoryDraft((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleSaveCategory = () => {
+    const name = categoryDraft.name.trim();
+    const color = normalizeColor(categoryDraft.color);
+
+    if (!name) {
+      alert('用事の名前を入力してください。');
+      return;
+    }
+
+    if (categoryDraftMode === 'edit' && categoryDraft.id) {
+      const updatedCategory = { id: categoryDraft.id, name, color };
+
+      setEventCategories((prev) => (
+        prev.map((category) => (
+          category.id === categoryDraft.id ? updatedCategory : category
+        ))
+      ));
+
+      setEvents((prev) => (
+        prev.map((event) => (
+          event.categoryId === categoryDraft.id
+            ? {
+                ...event,
+                categoryName: name,
+                categoryColor: color,
+              }
+            : event
+        ))
+      ));
+
+      if (eventForm.categoryId === categoryDraft.id) {
+        handleCategorySelect(updatedCategory);
+      }
+
+      cancelCategoryForm();
+      return;
+    }
+
+    const newCategory = {
+      id: `custom-${Date.now()}`,
+      name,
+      color,
+    };
+
+    setEventCategories((prev) => [...prev, newCategory]);
+    handleCategorySelect(newCategory);
+    cancelCategoryForm();
+  };
+
+  const handleDeleteCategory = (category, e) => {
+    e.stopPropagation();
+
+    if (category.id === 'default') {
+      alert('最初の「予定」は削除できません。');
+      return;
+    }
+
+    const ok = window.confirm(`「${category.name}」を削除しますか？\nこの色を使っている予定は「予定」に戻ります。`);
+    if (!ok) return;
+
+    const defaultCategory = eventCategories[0] || getDefaultCategory();
+
+    setEventCategories((prev) => prev.filter((item) => item.id !== category.id));
+    setEvents((prev) => (
+      prev.map((event) => (
+        event.categoryId === category.id
+          ? {
+              ...event,
+              categoryId: defaultCategory.id,
+              categoryName: defaultCategory.name,
+              categoryColor: defaultCategory.color,
+            }
+          : event
+      ))
+    ));
+
+    if (eventForm.categoryId === category.id) {
+      handleCategorySelect(defaultCategory);
+    }
   };
 
   const validateEventForm = () => {
@@ -495,7 +613,7 @@ export default function Home() {
       return false;
     }
 
-    if (!eventForm.allDay && (!eventForm.startTime || !eventForm.endTime)) {
+    if (!eventForm.startTime || !eventForm.endTime) {
       alert('開始時間と終了時間を入力してください。');
       return false;
     }
@@ -508,13 +626,11 @@ export default function Home() {
     const startDateTime = getEventDateTimeValue(
       eventForm.startDate,
       eventForm.startTime,
-      eventForm.allDay,
       false,
     );
     const endDateTime = getEventDateTimeValue(
       eventForm.endDate,
       eventForm.endTime,
-      eventForm.allDay,
       true,
     );
 
@@ -530,11 +646,11 @@ export default function Home() {
     id,
     title: eventForm.title.trim(),
     location: eventForm.location.trim(),
-    allDay: eventForm.allDay,
+    allDay: false,
     startDate: eventForm.startDate,
-    startTime: eventForm.allDay ? '' : eventForm.startTime,
+    startTime: eventForm.startTime,
     endDate: eventForm.endDate,
-    endTime: eventForm.allDay ? '' : eventForm.endTime,
+    endTime: eventForm.endTime,
     categoryId: eventForm.categoryId,
     categoryName: eventForm.categoryName.trim(),
     categoryColor: normalizeColor(eventForm.categoryColor),
@@ -757,92 +873,6 @@ export default function Home() {
                 </div>
 
                 <div className={styles.formCard}>
-                  <div className={styles.sectionHeader}>
-                    <span className={styles.sectionTitle}>予定の色</span>
-                    <span className={styles.sectionSubText}>{eventForm.categoryName}</span>
-                  </div>
-
-                  <div className={styles.categoryList}>
-                    {[...EVENT_CATEGORIES, CUSTOM_CATEGORY].map((category) => {
-                      const isSelected = eventForm.categoryId === category.id;
-
-                      return (
-                        <button
-                          key={category.id}
-                          type="button"
-                          className={`${styles.categoryOption} ${
-                            isSelected ? styles.categoryOptionSelected : ''
-                          }`}
-                          onClick={() => handleCategorySelect(category)}
-                        >
-                          <span
-                            className={styles.categoryColorDot}
-                            style={{ backgroundColor: category.color }}
-                          />
-                          <span className={styles.categoryName}>{category.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {eventForm.categoryId === 'custom' && (
-                    <div className={styles.customCategoryRow}>
-                      <input
-                        type="text"
-                        className={styles.textInput}
-                        placeholder="用事の名前"
-                        value={eventForm.categoryName}
-                        onChange={(e) => handleFormChange('categoryName', e.target.value)}
-                      />
-
-                      <label className={styles.colorPickerLabel}>
-                        <span>色</span>
-                        <input
-                          type="color"
-                          className={styles.colorPicker}
-                          value={eventForm.categoryColor}
-                          onChange={(e) => handleFormChange('categoryColor', e.target.value)}
-                        />
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.formCard}>
-                  <label className={styles.switchRow}>
-                    <span className={styles.switchTextGroup}>
-                      <span className={styles.switchTitle}>今日の予定にする</span>
-                      <span className={styles.switchDescription}>オンにすると日付を今日にします</span>
-                    </span>
-
-                    <span className={styles.toggleSwitch}>
-                      <input
-                        type="checkbox"
-                        checked={eventForm.useToday}
-                        onChange={(e) => handleTodayToggle(e.target.checked)}
-                      />
-                      <span className={styles.toggleTrack} />
-                    </span>
-                  </label>
-
-                  <label className={styles.switchRow}>
-                    <span className={styles.switchTextGroup}>
-                      <span className={styles.switchTitle}>時刻を設定</span>
-                      <span className={styles.switchDescription}>
-                        オフの場合は終日予定になります
-                      </span>
-                    </span>
-
-                    <span className={styles.toggleSwitch}>
-                      <input
-                        type="checkbox"
-                        checked={!eventForm.allDay}
-                        onChange={(e) => handleTimeToggle(e.target.checked)}
-                      />
-                      <span className={styles.toggleTrack} />
-                    </span>
-                  </label>
-
                   <div className={styles.dateTimeRow}>
                     <span className={styles.dateTimeLabel}>開始</span>
                     <div className={styles.dateTimeInputs}>
@@ -853,14 +883,12 @@ export default function Home() {
                         onChange={(e) => handleFormChange('startDate', e.target.value)}
                       />
 
-                      {!eventForm.allDay && (
-                        <input
-                          type="time"
-                          className={styles.timeInput}
-                          value={eventForm.startTime}
-                          onChange={(e) => handleFormChange('startTime', e.target.value)}
-                        />
-                      )}
+                      <input
+                        type="time"
+                        className={styles.timeInput}
+                        value={eventForm.startTime}
+                        onChange={(e) => handleFormChange('startTime', e.target.value)}
+                      />
                     </div>
                   </div>
 
@@ -874,16 +902,119 @@ export default function Home() {
                         onChange={(e) => handleFormChange('endDate', e.target.value)}
                       />
 
-                      {!eventForm.allDay && (
-                        <input
-                          type="time"
-                          className={styles.timeInput}
-                          value={eventForm.endTime}
-                          onChange={(e) => handleFormChange('endTime', e.target.value)}
-                        />
-                      )}
+                      <input
+                        type="time"
+                        className={styles.timeInput}
+                        value={eventForm.endTime}
+                        onChange={(e) => handleFormChange('endTime', e.target.value)}
+                      />
                     </div>
                   </div>
+                </div>
+
+                <div className={styles.formCard}>
+                  <div className={styles.sectionHeader}>
+                    <span className={styles.sectionTitle}>予定の色</span>
+                    <span className={styles.sectionSubText}>{eventForm.categoryName}</span>
+                  </div>
+
+                  <div className={styles.categoryList}>
+                    {eventCategories.map((category) => {
+                      const isSelected = eventForm.categoryId === category.id;
+
+                      return (
+                        <div
+                          key={category.id}
+                          role="button"
+                          tabIndex={0}
+                          className={`${styles.categoryOption} ${
+                            isSelected ? styles.categoryOptionSelected : ''
+                          }`}
+                          onClick={() => handleCategorySelect(category)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleCategorySelect(category);
+                            }
+                          }}
+                        >
+                          <span
+                            className={styles.categoryColorDot}
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span className={styles.categoryName}>{category.name}</span>
+
+                          <span className={styles.categoryActions}>
+                            <button
+                              type="button"
+                              className={styles.categoryActionButton}
+                              onClick={(e) => openEditCategoryForm(category, e)}
+                            >
+                              編集
+                            </button>
+
+                            {category.id !== 'default' && (
+                              <button
+                                type="button"
+                                className={styles.categoryDeleteButton}
+                                onClick={(e) => handleDeleteCategory(category, e)}
+                              >
+                                削除
+                              </button>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {isCategoryFormOpen ? (
+                    <div className={styles.categoryEditor}>
+                      <input
+                        type="text"
+                        className={styles.textInput}
+                        placeholder="用事の名前"
+                        value={categoryDraft.name}
+                        onChange={(e) => handleCategoryDraftChange('name', e.target.value)}
+                      />
+
+                      <label className={styles.colorPickerLabel}>
+                        <span>色</span>
+                        <input
+                          type="color"
+                          className={styles.colorPicker}
+                          value={categoryDraft.color}
+                          onChange={(e) => handleCategoryDraftChange('color', e.target.value)}
+                        />
+                      </label>
+
+                      <div className={styles.categoryEditorButtons}>
+                        <button
+                          type="button"
+                          className={styles.categoryCancelButton}
+                          onClick={cancelCategoryForm}
+                        >
+                          やめる
+                        </button>
+
+                        <button
+                          type="button"
+                          className={styles.categorySaveButton}
+                          onClick={handleSaveCategory}
+                        >
+                          {categoryDraftMode === 'edit' ? '更新' : '追加'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.addCategoryButton}
+                      onClick={openAddCategoryForm}
+                    >
+                      + 用事を追加
+                    </button>
+                  )}
                 </div>
 
                 <div className={styles.formCard}>

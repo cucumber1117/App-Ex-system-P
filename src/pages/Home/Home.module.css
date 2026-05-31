@@ -814,3 +814,125 @@
     height: 130px;
   }
 }
+
+.categoryActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.categoryActionButton,
+.categoryDeleteButton,
+.categoryCancelButton,
+.categorySaveButton,
+.addCategoryButton {
+  border: none;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.categoryActionButton {
+  background: rgba(90, 200, 250, 0.16);
+  color: #5ac8fa;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.categoryDeleteButton {
+  background: rgba(255, 69, 58, 0.14);
+  color: #ff453a;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.categoryEditor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 10px;
+  align-items: stretch;
+  padding-top: 4px;
+}
+
+.categoryEditorButtons {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.categoryCancelButton,
+.categorySaveButton,
+.addCategoryButton {
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+}
+
+.categoryCancelButton {
+  background: #3a3a40;
+  color: #f5f5f7;
+}
+
+.categorySaveButton,
+.addCategoryButton {
+  background: #5ac8fa;
+  color: #07151d;
+}
+
+.addCategoryButton {
+  width: 100%;
+  text-align: center;
+}
+
+.categoryOptionSelected {
+  border-color: #5ac8fa;
+  background: rgba(90, 200, 250, 0.16);
+}
+
+.light .categoryOptionSelected {
+  border-color: #5ac8fa;
+  background: rgba(90, 200, 250, 0.14);
+}
+
+.light .categoryActionButton {
+  background: rgba(90, 200, 250, 0.14);
+  color: #007aff;
+}
+
+.light .categoryDeleteButton {
+  background: rgba(235, 87, 87, 0.1);
+  color: #eb5757;
+}
+
+.light .categoryCancelButton {
+  background: #ffffff;
+  color: #202124;
+  border: 1px solid #dfe3ec;
+}
+
+.light .categorySaveButton,
+.light .addCategoryButton {
+  background: #5ac8fa;
+  color: #062338;
+}
+
+@media (max-width: 600px) {
+  .categoryActions {
+    gap: 6px;
+  }
+
+  .categoryActionButton,
+  .categoryDeleteButton {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .categoryEditor {
+    grid-template-columns: 1fr;
+  }
+}
