@@ -1,6 +1,7 @@
 import { auth, db } from "../firebaseConfig"; // Firestoreを使うためにdbをインポート
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { saveUserProfile } from "./users";
 
 export async function signUpWithGoogle() {
     try {
@@ -11,12 +12,9 @@ export async function signUpWithGoogle() {
 
 
         await setDoc(doc(db, "users", user.uid), {
-            uid: user.uid,
-            name: user.displayName,
-            email: user.email,
-            photoURL: user.photoURL,
-            createdAt: new Date(),
-        });
+            createdAt: serverTimestamp(),
+        }, { merge: true });
+        await saveUserProfile(user);
 
         console.log("Googleサインアップ成功 & Firestoreにユーザー情報を保存:", user);
 

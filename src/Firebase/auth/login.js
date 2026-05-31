@@ -1,5 +1,6 @@
 import { auth } from "../firebaseConfig"; 
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { saveUserProfile } from "./users";
 
 export async function loginWithGoogle() {
   try {
@@ -8,6 +9,7 @@ export async function loginWithGoogle() {
 
 
     const user = result.user;
+    await saveUserProfile(user);
     console.log("Googleログイン成功:", user);
 
     return user;

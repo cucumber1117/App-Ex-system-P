@@ -1,5 +1,21 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+
+export async function saveUserProfile(user) {
+  if (!user?.uid) return;
+
+  await setDoc(
+    doc(db, 'users', user.uid),
+    {
+      uid: user.uid,
+      name: user.displayName || '',
+      email: user.email || '',
+      photoURL: user.photoURL || '',
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
 
 export async function getUserSettings(uid) {
   if (!uid) return {};
