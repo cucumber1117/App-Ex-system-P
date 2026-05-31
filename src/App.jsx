@@ -8,6 +8,9 @@ import Settings from './pages/settings/Settings.jsx';
 import Footer from './compornent/Footer/Footer.jsx';
 import './theme.css';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './Firebase/firebaseConfig.js';
+import { saveUserProfile } from './Firebase/auth/users.js';
 
 const NotificationWatcher = () => {
   useEffect(() => {
@@ -81,6 +84,20 @@ const NotificationWatcher = () => {
 };
 
 function App() {
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+
+      try {
+        await saveUserProfile(user);
+      } catch (err) {
+        console.error('save user profile', err);
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
   return (
     <ThemeProvider>
       <>

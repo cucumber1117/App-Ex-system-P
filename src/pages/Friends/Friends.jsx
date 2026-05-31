@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { UserRoundPlus } from 'lucide-react';
+import { UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
 import { addFriend, listFriends } from '../../Firebase/auth/friends';
@@ -13,6 +13,7 @@ export default function Friends() {
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [failedAvatarIds, setFailedAvatarIds] = useState({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -27,6 +28,7 @@ export default function Friends() {
       setLoading(true);
       const items = await listFriends(uid);
       setFriends(items);
+      setFailedAvatarIds({});
     } catch (err) {
       console.error(err);
       setFriends([]);
@@ -103,22 +105,36 @@ export default function Friends() {
         )}
         {currentUser && !loading && friends.length > 0 && (
           <ul className={styles.friendList}>
-            {friends.map((friend) => (
-              <li key={friend.id} className={styles.friendItem}>
-                {friend.photoURL ? (
-                  <img className={styles.avatar} src={friend.photoURL} alt="" />
-                ) : (
-                  <div className={styles.avatarFallback}>
-                    {(friend.name || friend.email || '?').slice(0, 1)}
+            {friends.map((friend) => {
+              const friendName = friend.name || friend.displayName || '名前未設定';
+              const fallbackLabel = (friendName !== '名前未設定' ? friendName : friend.email || '').slice(0, 1);
+              const canShowAvatar = friend.photoURL && !failedAvatarIds[friend.id];
+
+              return (
+                <li key={friend.id} className={styles.friendItem}>
+                  {canShowAvatar ? (
+                    <img
+                      className={styles.avatar}
+                      src={friend.photoURL}
+                      alt={`${friendName}のアイコン`}
+                      referrerPolicy="no-referrer"
+                      onError={() => {
+                        setFailedAvatarIds((prev) => ({ ...prev, [friend.id]: true }));
+                      }}
+                    />
+                  ) : (
+                    <div className={styles.avatarFallback} aria-label={`${friendName}のアイコン`}>
+                      {fallbackLabel || <UserRound size={22} strokeWidth={2.4} />}
+                    </div>
+                  )}
+                  <div className={styles.friendMeta}>
+                    <strong className={styles.friendName}>{friendName}</strong>
+                    {friend.email && <span className={styles.friendEmail}>{friend.email}</span>}
+                    <span className={styles.friendId}>ID: {friend.id}</span>
                   </div>
-                )}
-                <div className={styles.friendMeta}>
-                  <strong className={styles.friendName}>{friend.name || '名前未設定'}</strong>
-                  {friend.email && <span className={styles.friendEmail}>{friend.email}</span>}
-                  <span className={styles.friendId}>ID: {friend.id}</span>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

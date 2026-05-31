@@ -5,7 +5,7 @@ function getFriendProfile(data = {}) {
   return {
     name: data.name || data.displayName || '',
     email: data.email || '',
-    photoURL: data.photoURL || '',
+    photoURL: data.photoURL || data.avatarUrl || data.avatarURL || data.imageUrl || data.picture || '',
   };
 }
 
@@ -27,8 +27,8 @@ export async function listFriends(uid) {
 
       return {
         id: userSnap.id,
-        ...getFriendProfile(userSnap.data()),
         ...userSnap.data(),
+        ...getFriendProfile(userSnap.data()),
         friendship,
       };
     })
