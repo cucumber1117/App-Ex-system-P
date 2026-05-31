@@ -13,7 +13,7 @@
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  touch-action: pan-y;
+  touch-action: auto;
 }
 
 .light {
@@ -27,6 +27,9 @@
 }
 
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   background: linear-gradient(180deg, #151515 0%, #050505 100%);
   border-bottom: 1px solid #2b2b2d;
   padding-top: clamp(18px, 5vw, 42px);
@@ -103,7 +106,38 @@
 
 .main {
   flex: 1;
-  padding: 0 clamp(8px, 2vw, 24px) 24px;
+  padding: 0 clamp(8px, 2vw, 24px) 32px;
+}
+
+.connectedCalendar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.monthSection {
+  scroll-margin-top: 96px;
+  border-bottom: 1px solid #2b2b2d;
+  padding-bottom: 14px;
+}
+
+.inlineMonthHeader {
+  min-height: 48px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px 0 8px;
+}
+
+.inlineMonthTitle {
+  margin: 0;
+  min-width: 86px;
+  border-bottom: 1px solid #2b2b2d;
+  color: #f5f5f7;
+  font-size: clamp(22px, 6vw, 32px);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .calendarGrid {
@@ -113,8 +147,7 @@
 }
 
 .dayCell {
-  aspect-ratio: 1 / 1;
-  min-height: 72px;
+  min-height: 88px;
   border: none;
   border-bottom: 1px solid #2b2b2d;
   background: transparent;
@@ -127,6 +160,11 @@
 
 .dayCell:active:not(.emptyCell) {
   background: #1c1c1e;
+}
+
+.dayCell:focus-visible {
+  outline: 2px solid #ff453a;
+  outline-offset: -2px;
 }
 
 .dayCellInner {
@@ -148,16 +186,66 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .eventItem {
-  background: rgba(255, 69, 58, 0.14);
-  color: #ffb4ae;
+  width: 100%;
+  border: none;
+  border-left: 4px solid var(--event-color, #ff453a);
+  background: var(--event-bg, rgba(255, 69, 58, 0.16));
+  color: var(--event-color, #ff453a);
+  font-family: inherit;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.2;
   border-radius: 8px;
   padding: 4px 6px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.eventItem:hover,
+.eventItem:focus-visible {
+  background: var(--event-hover-bg, rgba(255, 69, 58, 0.24));
+  outline: none;
+}
+
+.eventMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+
+.eventTime {
+  font-size: 9px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.eventRepeat,
+.eventShared {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 8px;
+  line-height: 1;
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.eventShared {
+  background: rgba(52, 199, 89, 0.18);
+  color: #34c759;
+}
+
+.eventTitle {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -174,7 +262,15 @@
 }
 
 .todayCell .dayNumber {
-  color: #ff453a;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: #ff453a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .emptyCell {
@@ -215,6 +311,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 18px 20px;
   border-bottom: 1px solid #2b2b2d;
 }
@@ -223,6 +320,7 @@
   margin: 0;
   font-size: 24px;
   font-weight: 800;
+  text-align: center;
 }
 
 .modalTextButton {
@@ -232,6 +330,7 @@
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .modalPrimaryButton {
@@ -243,6 +342,30 @@
   border-radius: 10px;
   padding: 10px 14px;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: center;
+}
+
+.modalDangerButton {
+  width: 100%;
+  border: 1px solid rgba(255, 69, 58, 0.5);
+  background: rgba(255, 69, 58, 0.12);
+  color: #ff453a;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 14px;
+  padding: 13px 16px;
+  cursor: pointer;
+}
+
+.modalDangerButton:hover,
+.modalDangerButton:focus-visible {
+  background: rgba(255, 69, 58, 0.2);
+  outline: none;
 }
 
 .modalBody {
@@ -261,10 +384,30 @@
   gap: 12px;
 }
 
+.sectionHeader,
+.selectRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.sectionSubText {
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .textInput,
 .textArea,
 .dateInput,
-.timeInput {
+.timeInput,
+.selectInput {
   width: 100%;
   border: none;
   outline: none;
@@ -281,17 +424,148 @@
   min-height: 110px;
 }
 
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.categoryOption {
+  width: 100%;
+  border: 1px solid transparent;
+  background: #3a3a40;
+  color: #f5f5f7;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.categoryOptionSelected {
+  border-color: #ff453a;
+  background: rgba(255, 69, 58, 0.14);
+}
+
+.categoryColorDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.categoryName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customCategoryRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.colorPickerLabel {
+  background: #3a3a40;
+  color: #f5f5f7;
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.colorPicker {
+  width: 34px;
+  height: 34px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
 .switchRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 18px;
-  font-weight: 700;
+  gap: 12px;
 }
 
-.switchRow input[type='checkbox'] {
-  width: 22px;
-  height: 22px;
+.switchTextGroup,
+.selectTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.switchTitle {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.switchDescription {
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 52px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.toggleSwitch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.toggleTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #5a5a60;
+  transition: background 0.2s ease;
+}
+
+.toggleTrack::before {
+  content: '';
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  top: 2px;
+  left: 2px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.toggleSwitch input:checked + .toggleTrack {
+  background: #34c759;
+}
+
+.toggleSwitch input:checked + .toggleTrack::before {
+  transform: translateX(20px);
 }
 
 .dateTimeRow {
@@ -320,9 +594,31 @@
   width: 130px;
 }
 
+.selectInput {
+  width: 150px;
+  appearance: auto;
+  cursor: pointer;
+}
+
+.repeatHelpText {
+  margin: 0;
+  color: #a1a1aa;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* light mode */
 .light .header {
   background: linear-gradient(180deg, #ffffff 0%, #f4f6fb 100%);
+  border-bottom-color: #dfe3ec;
+}
+
+.light .monthSection {
+  border-bottom-color: #dfe3ec;
+}
+
+.light .inlineMonthTitle {
+  color: #202124;
   border-bottom-color: #dfe3ec;
 }
 
@@ -352,17 +648,37 @@
   background: #eaf2ff;
 }
 
+.light .dayCell:focus-visible {
+  outline-color: #2f80ed;
+}
+
 .light .emptyCell {
   color: transparent;
 }
 
 .light .todayCell .dayNumber {
-  color: #2f80ed;
+  background: #2f80ed;
+  color: #ffffff;
 }
 
-.light .eventItem {
-  background: rgba(47, 128, 237, 0.14);
-  color: #2f80ed;
+.light .eventRepeat {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.light .eventShared {
+  background: rgba(52, 199, 89, 0.14);
+  color: #248a3d;
+}
+
+.light .modalDangerButton {
+  border-color: rgba(235, 87, 87, 0.45);
+  background: rgba(235, 87, 87, 0.1);
+  color: #eb5757;
+}
+
+.light .modalDangerButton:hover,
+.light .modalDangerButton:focus-visible {
+  background: rgba(235, 87, 87, 0.18);
 }
 
 .light .modal {
@@ -390,10 +706,32 @@
 .light .textInput,
 .light .textArea,
 .light .dateInput,
-.light .timeInput {
+.light .timeInput,
+.light .selectInput,
+.light .categoryOption,
+.light .colorPickerLabel {
   background: #ffffff;
   color: #202124;
   border: 1px solid #dfe3ec;
+}
+
+.light .categoryOptionSelected {
+  border-color: #2f80ed;
+  background: rgba(47, 128, 237, 0.12);
+}
+
+.light .sectionSubText,
+.light .switchDescription,
+.light .repeatHelpText {
+  color: #7a8190;
+}
+
+.light .toggleTrack {
+  background: #d0d5de;
+}
+
+.light .toggleSwitch input:checked + .toggleTrack {
+  background: #34c759;
 }
 
 /* smartphone */
@@ -415,6 +753,20 @@
     padding: 8px 20px 12px;
   }
 
+  .monthSection {
+    scroll-margin-top: 78px;
+    padding-bottom: 10px;
+  }
+
+  .inlineMonthHeader {
+    min-height: 40px;
+    padding: 14px 0 6px;
+  }
+
+  .inlineMonthTitle {
+    min-width: 72px;
+  }
+
   .weekRow {
     height: 28px;
   }
@@ -428,7 +780,7 @@
   }
 
   .dayCell {
-    min-height: 54px;
+    min-height: 64px;
   }
 
   .dayCellInner {
@@ -440,9 +792,23 @@
     font-size: 16px;
   }
 
+  .todayCell .dayNumber {
+    width: 28px;
+    height: 28px;
+  }
+
   .eventItem,
   .moreEvents {
     font-size: 9px;
+  }
+
+  .eventTime {
+    font-size: 8px;
+  }
+
+  .eventRepeat,
+  .eventShared {
+    display: none;
   }
 
   .modalOverlay {
@@ -468,6 +834,16 @@
     padding: 16px;
   }
 
+  .sectionHeader,
+  .selectRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customCategoryRow {
+    grid-template-columns: 1fr;
+  }
+
   .dateTimeRow {
     flex-direction: column;
     align-items: stretch;
@@ -481,7 +857,8 @@
     flex-direction: column;
   }
 
-  .timeInput {
+  .timeInput,
+  .selectInput {
     width: 100%;
   }
 }
@@ -503,7 +880,7 @@
   }
 
   .dayCell {
-    min-height: 46px;
+    min-height: 58px;
   }
 }
 
@@ -515,7 +892,128 @@
   }
 
   .dayCell {
-    aspect-ratio: auto;
-    height: 130px;
+    height: 118px;
+  }
+}
+
+.categoryActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.categoryActionButton,
+.categoryDeleteButton,
+.categoryCancelButton,
+.categorySaveButton,
+.addCategoryButton {
+  border: none;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.categoryActionButton {
+  background: rgba(90, 200, 250, 0.16);
+  color: #5ac8fa;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.categoryDeleteButton {
+  background: rgba(255, 69, 58, 0.14);
+  color: #ff453a;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.categoryEditor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 10px;
+  align-items: stretch;
+  padding-top: 4px;
+}
+
+.categoryEditorButtons {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.categoryCancelButton,
+.categorySaveButton,
+.addCategoryButton {
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+}
+
+.categoryCancelButton {
+  background: #3a3a40;
+  color: #f5f5f7;
+}
+
+.categorySaveButton,
+.addCategoryButton {
+  background: #5ac8fa;
+  color: #07151d;
+}
+
+.addCategoryButton {
+  width: 100%;
+  text-align: center;
+}
+
+.categoryOptionSelected {
+  border-color: #5ac8fa;
+  background: rgba(90, 200, 250, 0.16);
+}
+
+.light .categoryOptionSelected {
+  border-color: #5ac8fa;
+  background: rgba(90, 200, 250, 0.14);
+}
+
+.light .categoryActionButton {
+  background: rgba(90, 200, 250, 0.14);
+  color: #007aff;
+}
+
+.light .categoryDeleteButton {
+  background: rgba(235, 87, 87, 0.1);
+  color: #eb5757;
+}
+
+.light .categoryCancelButton {
+  background: #ffffff;
+  color: #202124;
+  border: 1px solid #dfe3ec;
+}
+
+.light .categorySaveButton,
+.light .addCategoryButton {
+  background: #5ac8fa;
+  color: #062338;
+}
+
+@media (max-width: 600px) {
+  .categoryActions {
+    gap: 6px;
+  }
+
+  .categoryActionButton,
+  .categoryDeleteButton {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .categoryEditor {
+    grid-template-columns: 1fr;
   }
 }

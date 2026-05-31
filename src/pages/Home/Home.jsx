@@ -16,6 +16,18 @@ const WEEK_DAYS = [
 ];
 
 const EVENT_STORAGE_KEY = 'calendarEvents';
+const EVENT_CATEGORY_STORAGE_KEY = 'calendarEventCategories';
+
+const DEFAULT_EVENT_CATEGORIES = [
+  { id: 'default', name: '予定', color: '#5ac8fa' },
+];
+
+const REPEAT_OPTIONS = [
+  { value: 'none', label: 'しない' },
+  { value: 'daily', label: '毎日' },
+  { value: 'weekly', label: '毎週' },
+  { value: 'yearly', label: '毎年' },
+];
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -29,7 +41,21 @@ function formatDateKey(year, month, day) {
   return `${year}-${pad(month + 1)}-${pad(day)}`;
 }
 
-function getDefaultEventForm(baseDate = new Date()) {
+function formatMonthKey(year, month) {
+  return `${year}-${pad(month + 1)}`;
+}
+
+function parseDateOnly(dateText) {
+  if (!dateText) return null;
+  const date = new Date(`${dateText}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getDefaultCategory() {
+  return DEFAULT_EVENT_CATEGORIES[0];
+}
+
+function getDefaultEventForm(baseDate = new Date(), category = getDefaultCategory()) {
   const start = new Date(baseDate);
   start.setMinutes(0, 0, 0);
 
@@ -44,8 +70,151 @@ function getDefaultEventForm(baseDate = new Date()) {
     startTime: `${pad(start.getHours())}:00`,
     endDate: formatDateInput(end),
     endTime: `${pad(end.getHours())}:00`,
+    categoryId: category.id,
+    categoryName: category.name,
+    categoryColor: category.color,
+    repeat: 'none',
+    isShared: false,
     notes: '',
   };
+}
+
+function getEventTimeLabel(event) {
+  if (event.allDay) return '終日';
+  if (event.startTime && event.endTime) return `${event.startTime}〜${event.endTime}`;
+  if (event.startTime) return event.startTime;
+  return '';
+}
+
+function getRepeatLabel(repeat) {
+  return REPEAT_OPTIONS.find((option) => option.value === repeat)?.label || 'しない';
+}
+
+function getEventDateTimeValue(date, time, isEnd = false) {
+  const fallbackTime = isEnd ? '23:59' : '00:00';
+  const safeTime = time || fallbackTime;
+  return new Date(`${date}T${safeTime}`);
+}
+
+function normalizeColor(color) {
+  if (typeof color !== 'string') return getDefaultCategory().color;
+  return /^#[0-9A-Fa-f]{6}$/.test(color) ? color : getDefaultCategory().color;
+}
+
+function hexToRgba(hex, alpha) {
+  const safeHex = normalizeColor(hex).replace('#', '');
+  const value = Number.parseInt(safeHex, 16);
+
+  if (Number.isNaN(value)) {
+    return `rgba(90, 200, 250, ${alpha})`;
+  }
+
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getEventColor(event) {
+  return normalizeColor(event.categoryColor || getDefaultCategory().color);
+}
+
+function getEventStyle(event) {
+  const color = getEventColor(event);
+
+  return {
+    '--event-color': color,
+    '--event-bg': hexToRgba(color, 0.16),
+    '--event-hover-bg': hexToRgba(color, 0.24),
+  };
+}
+
+function isEventOnDate(event, dateKey) {
+  if (!event?.startDate || !dateKey) return false;
+
+  const repeat = event.repeat || 'none';
+
+  if (repeat === 'none') {
+    return event.startDate === dateKey;
+  }
+
+  if (dateKey < event.startDate) return false;
+
+  const startDate = parseDateOnly(event.startDate);
+  const targetDate = parseDateOnly(dateKey);
+
+  if (!startDate || !targetDate) return false;
+
+  if (repeat === 'daily') {
+    return true;
+  }
+
+  if (repeat === 'weekly') {
+    return startDate.getDay() === targetDate.getDay();
+  }
+
+  if (repeat === 'yearly') {
+    return (
+      startDate.getMonth() === targetDate.getMonth() &&
+      startDate.getDate() === targetDate.getDate()
+    );
+  }
+
+  return event.startDate === dateKey;
+}
+
+function buildCalendarMonth(year, month, weekStartDay) {
+  const firstDate = new Date(year, month, 1);
+  const lastDate = new Date(year, month + 1, 0);
+  const leadingEmptyCount = (firstDate.getDay() - weekStartDay + 7) % 7;
+  const daysInMonth = lastDate.getDate();
+  const cells = [];
+
+  for (let i = 0; i < leadingEmptyCount; i++) {
+    cells.push({ type: 'empty', key: `empty-${i}` });
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push({
+      type: 'day',
+      key: formatDateKey(year, month, day),
+      day,
+      dateKey: formatDateKey(year, month, day),
+    });
+  }
+
+  return {
+    key: formatMonthKey(year, month),
+    year,
+    month,
+    daysInMonth,
+    leadingEmptyCount,
+    cells,
+  };
+}
+
+function readStoredCategories() {
+  try {
+    const saved = localStorage.getItem(EVENT_CATEGORY_STORAGE_KEY);
+    if (!saved) return DEFAULT_EVENT_CATEGORIES;
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_EVENT_CATEGORIES;
+
+    const cleaned = parsed
+      .filter((category) => category?.id && category?.name && category?.color)
+      .map((category) => ({
+        id: String(category.id),
+        name: String(category.name),
+        color: normalizeColor(category.color),
+      }));
+
+    return cleaned.length > 0 ? cleaned : DEFAULT_EVENT_CATEGORIES;
+  } catch (error) {
+    console.error('failed to load categories', error);
+    return DEFAULT_EVENT_CATEGORIES;
+  }
 }
 
 export default function Home() {
@@ -54,17 +223,30 @@ export default function Home() {
   const [weekStart, setWeekStart] = useState('sunday');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
+  const [eventCategories, setEventCategories] = useState(DEFAULT_EVENT_CATEGORIES);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [eventForm, setEventForm] = useState(getDefaultEventForm());
+  const [eventForm, setEventForm] = useState(() => getDefaultEventForm());
+  const [modalMode, setModalMode] = useState('add');
+  const [editingEventId, setEditingEventId] = useState(null);
+  const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
+  const [categoryDraftMode, setCategoryDraftMode] = useState('add');
+  const [categoryDraft, setCategoryDraft] = useState({
+    id: null,
+    name: '',
+    color: '#5ac8fa',
+  });
 
-  const lastMonthChangeRef = useRef(0);
-  const touchStartYRef = useRef(null);
-  const touchStartXRef = useRef(null);
-  const isSwipeChangingMonthRef = useRef(false);
+  const displayBaseDateRef = useRef(new Date());
+  const hasScrolledToCurrentMonthRef = useRef(false);
+  const monthSectionRefs = useRef({});
 
   const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
   const weekStartDay = weekStart === 'monday' ? 1 : 0;
+
+  const todayMonthKey = useMemo(() => {
+    const today = new Date();
+    return formatMonthKey(today.getFullYear(), today.getMonth());
+  }, []);
 
   useEffect(() => {
     const readLocalWeekStart = () => {
@@ -107,11 +289,16 @@ export default function Home() {
     try {
       const saved = localStorage.getItem(EVENT_STORAGE_KEY);
       if (saved) {
-        setEvents(JSON.parse(saved));
+        const parsedEvents = JSON.parse(saved);
+        setEvents(Array.isArray(parsedEvents) ? parsedEvents : []);
       }
     } catch (error) {
       console.error('failed to load events', error);
     }
+  }, []);
+
+  useEffect(() => {
+    setEventCategories(readStoredCategories());
   }, []);
 
   useEffect(() => {
@@ -122,6 +309,14 @@ export default function Home() {
     }
   }, [events]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(EVENT_CATEGORY_STORAGE_KEY, JSON.stringify(eventCategories));
+    } catch (error) {
+      console.error('failed to save categories', error);
+    }
+  }, [eventCategories]);
+
   const orderedWeekDays = useMemo(() => {
     const startIndex = WEEK_DAYS.findIndex((day) => day.day === weekStartDay);
 
@@ -131,136 +326,184 @@ export default function Home() {
     ];
   }, [weekStartDay]);
 
-  const calendarDays = useMemo(() => {
-    const firstDate = new Date(year, month, 1);
-    const lastDate = new Date(year, month + 1, 0);
+  const calendarMonths = useMemo(() => {
+    const baseDate = displayBaseDateRef.current;
+    const months = [];
 
-    const firstDayOfWeek = (firstDate.getDay() - weekStartDay + 7) % 7;
-    const daysInMonth = lastDate.getDate();
+    for (let offset = -6; offset <= 18; offset++) {
+      const monthDate = new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth() + offset,
+        1,
+      );
 
-    const days = [];
-
-    for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(null);
+      months.push(
+        buildCalendarMonth(
+          monthDate.getFullYear(),
+          monthDate.getMonth(),
+          weekStartDay,
+        ),
+      );
     }
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
+    return months;
+  }, [weekStartDay]);
 
-    return days;
-  }, [year, month, weekStartDay]);
+  useEffect(() => {
+    if (hasScrolledToCurrentMonthRef.current) return;
+
+    const target = monthSectionRefs.current[todayMonthKey];
+    if (!target) return;
+
+    hasScrolledToCurrentMonthRef.current = true;
+
+    const timerId = window.setTimeout(() => {
+      target.scrollIntoView({ block: 'start' });
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
+  }, [calendarMonths, todayMonthKey]);
+
+  useEffect(() => {
+    const sections = calendarMonths
+      .map((monthData) => monthSectionRefs.current[monthData.key])
+      .filter(Boolean);
+
+    if (sections.length === 0) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+      if (visibleEntries.length === 0) return;
+
+      visibleEntries.sort((a, b) => (
+        Math.abs(a.boundingClientRect.top - 110) -
+        Math.abs(b.boundingClientRect.top - 110)
+      ));
+
+      const target = visibleEntries[0].target;
+      const targetYear = Number(target.dataset.year);
+      const targetMonth = Number(target.dataset.month);
+
+      if (Number.isNaN(targetYear) || Number.isNaN(targetMonth)) return;
+
+      setCurrentDate((prev) => {
+        if (prev.getFullYear() === targetYear && prev.getMonth() === targetMonth) {
+          return prev;
+        }
+
+        return new Date(targetYear, targetMonth, 1);
+      });
+    }, {
+      root: null,
+      rootMargin: '-110px 0px -60% 0px',
+      threshold: [0, 0.1, 0.25],
+    });
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [calendarMonths]);
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
 
-    events.forEach((event) => {
-      if (!grouped[event.startDate]) {
-        grouped[event.startDate] = [];
-      }
+    calendarMonths.forEach((monthData) => {
+      for (let day = 1; day <= monthData.daysInMonth; day++) {
+        const dateKey = formatDateKey(monthData.year, monthData.month, day);
+        grouped[dateKey] = [];
 
-      grouped[event.startDate].push(event);
+        events.forEach((event) => {
+          if (!isEventOnDate(event, dateKey)) return;
+
+          grouped[dateKey].push({
+            ...event,
+            occurrenceDate: dateKey,
+          });
+        });
+
+        grouped[dateKey].sort((a, b) => {
+          if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+          return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+        });
+      }
     });
 
     return grouped;
-  }, [events]);
+  }, [events, calendarMonths]);
 
-  const changeMonth = (offset) => {
-    setCurrentDate((prev) => {
-      return new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
-    });
-  };
-
-  const canChangeMonth = () => {
-    const now = Date.now();
-
-    if (now - lastMonthChangeRef.current < 650) {
-      return false;
-    }
-
-    lastMonthChangeRef.current = now;
-    return true;
-  };
-
-  const handleCalendarWheel = (e) => {
-    if (isModalOpen) return;
-    if (Math.abs(e.deltaY) < 40) return;
-    if (!canChangeMonth()) return;
-
-    if (e.deltaY > 0) {
-      changeMonth(1);
-    } else {
-      changeMonth(-1);
-    }
-  };
-
-  const handleTouchStart = (e) => {
-    if (isModalOpen) return;
-
-    touchStartYRef.current = e.touches[0].clientY;
-    touchStartXRef.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e) => {
-    if (isModalOpen) return;
-    if (touchStartYRef.current === null || touchStartXRef.current === null) return;
-
-    const endY = e.changedTouches[0].clientY;
-    const endX = e.changedTouches[0].clientX;
-
-    const diffY = touchStartYRef.current - endY;
-    const diffX = touchStartXRef.current - endX;
-
-    touchStartYRef.current = null;
-    touchStartXRef.current = null;
-
-    if (Math.abs(diffY) < 70) return;
-    if (Math.abs(diffY) < Math.abs(diffX)) return;
-    if (!canChangeMonth()) return;
-
-    isSwipeChangingMonthRef.current = true;
-
-    if (diffY > 0) {
-      changeMonth(1);
-    } else {
-      changeMonth(-1);
-    }
-
-    setTimeout(() => {
-      isSwipeChangingMonthRef.current = false;
-    }, 250);
-  };
-
-  const isWeekend = (day) => {
-    if (day === null) return false;
-
-    const dayOfWeek = new Date(year, month, day).getDay();
+  const isWeekendDate = (targetYear, targetMonth, day) => {
+    const dayOfWeek = new Date(targetYear, targetMonth, day).getDay();
     return dayOfWeek === 0 || dayOfWeek === 6;
   };
 
-  const isToday = (day) => {
-    if (day === null) return false;
-
+  const isTodayDate = (targetYear, targetMonth, day) => {
     const today = new Date();
 
     return (
-      today.getFullYear() === year &&
-      today.getMonth() === month &&
+      today.getFullYear() === targetYear &&
+      today.getMonth() === targetMonth &&
       today.getDate() === day
     );
   };
 
-  const openAddModal = (selectedDay = null) => {
+  const openAddModal = (
+    selectedDay = null,
+    selectedYear = new Date().getFullYear(),
+    selectedMonth = new Date().getMonth(),
+  ) => {
     const baseDate = selectedDay
-      ? new Date(year, month, selectedDay)
-      : new Date(year, month, 1);
+      ? new Date(selectedYear, selectedMonth, selectedDay)
+      : new Date();
+    const defaultCategory = eventCategories[0] || getDefaultCategory();
 
-    setEventForm(getDefaultEventForm(baseDate));
+    setModalMode('add');
+    setEditingEventId(null);
+    setIsCategoryFormOpen(false);
+    setCategoryDraftMode('add');
+    setCategoryDraft({ id: null, name: '', color: defaultCategory.color });
+    setEventForm(getDefaultEventForm(baseDate, defaultCategory));
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (calendarEvent, clickEvent) => {
+    clickEvent.stopPropagation();
+
+    const defaultCategory = eventCategories[0] || getDefaultCategory();
+    const startDate = calendarEvent.startDate || calendarEvent.occurrenceDate || formatDateInput(new Date());
+    const endDate = calendarEvent.endDate || calendarEvent.startDate || calendarEvent.occurrenceDate || formatDateInput(new Date());
+    const startTime = calendarEvent.startTime || '09:00';
+    const endTime = calendarEvent.endTime || calendarEvent.startTime || '10:00';
+    const categoryColor = calendarEvent.categoryColor || defaultCategory.color;
+
+    setModalMode('edit');
+    setEditingEventId(calendarEvent.id);
+    setIsCategoryFormOpen(false);
+    setCategoryDraftMode('add');
+    setCategoryDraft({ id: null, name: '', color: defaultCategory.color });
+    setEventForm({
+      title: calendarEvent.title || '',
+      location: calendarEvent.location || '',
+      allDay: false,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      categoryId: calendarEvent.categoryId || defaultCategory.id,
+      categoryName: calendarEvent.categoryName || defaultCategory.name,
+      categoryColor,
+      repeat: calendarEvent.repeat || 'none',
+      isShared: Boolean(calendarEvent.isShared),
+      notes: calendarEvent.notes || '',
+    });
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setModalMode('add');
+    setEditingEventId(null);
+    setIsCategoryFormOpen(false);
+    setCategoryDraftMode('add');
   };
 
   const handleFormChange = (key, value) => {
@@ -270,51 +513,228 @@ export default function Home() {
     }));
   };
 
-  const handleAddEvent = () => {
+  const handleCategorySelect = (category) => {
+    setEventForm((prev) => ({
+      ...prev,
+      categoryId: category.id,
+      categoryName: category.name,
+      categoryColor: category.color,
+    }));
+  };
+
+  const openAddCategoryForm = () => {
+    setCategoryDraftMode('add');
+    setCategoryDraft({ id: null, name: '', color: '#5ac8fa' });
+    setIsCategoryFormOpen(true);
+  };
+
+  const openEditCategoryForm = (category, e) => {
+    e.stopPropagation();
+    setCategoryDraftMode('edit');
+    setCategoryDraft({
+      id: category.id,
+      name: category.name,
+      color: category.color,
+    });
+    setIsCategoryFormOpen(true);
+  };
+
+  const cancelCategoryForm = () => {
+    setIsCategoryFormOpen(false);
+    setCategoryDraftMode('add');
+    setCategoryDraft({ id: null, name: '', color: '#5ac8fa' });
+  };
+
+  const handleCategoryDraftChange = (key, value) => {
+    setCategoryDraft((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleSaveCategory = () => {
+    const name = categoryDraft.name.trim();
+    const color = normalizeColor(categoryDraft.color);
+
+    if (!name) {
+      alert('用事の名前を入力してください。');
+      return;
+    }
+
+    if (categoryDraftMode === 'edit' && categoryDraft.id) {
+      const updatedCategory = { id: categoryDraft.id, name, color };
+
+      setEventCategories((prev) => (
+        prev.map((category) => (
+          category.id === categoryDraft.id ? updatedCategory : category
+        ))
+      ));
+
+      setEvents((prev) => (
+        prev.map((event) => (
+          event.categoryId === categoryDraft.id
+            ? {
+                ...event,
+                categoryName: name,
+                categoryColor: color,
+              }
+            : event
+        ))
+      ));
+
+      if (eventForm.categoryId === categoryDraft.id) {
+        handleCategorySelect(updatedCategory);
+      }
+
+      cancelCategoryForm();
+      return;
+    }
+
+    const newCategory = {
+      id: `custom-${Date.now()}`,
+      name,
+      color,
+    };
+
+    setEventCategories((prev) => [...prev, newCategory]);
+    handleCategorySelect(newCategory);
+    cancelCategoryForm();
+  };
+
+  const handleDeleteCategory = (category, e) => {
+    e.stopPropagation();
+
+    if (category.id === 'default') {
+      alert('最初の「予定」は削除できません。');
+      return;
+    }
+
+    const ok = window.confirm(`「${category.name}」を削除しますか？\nこの用事を使っている予定は「予定」に戻ります。`);
+    if (!ok) return;
+
+    const defaultCategory = eventCategories[0] || getDefaultCategory();
+
+    setEventCategories((prev) => prev.filter((item) => item.id !== category.id));
+    setEvents((prev) => (
+      prev.map((event) => (
+        event.categoryId === category.id
+          ? {
+              ...event,
+              categoryId: defaultCategory.id,
+              categoryName: defaultCategory.name,
+              categoryColor: defaultCategory.color,
+            }
+          : event
+      ))
+    ));
+
+    if (eventForm.categoryId === category.id) {
+      handleCategorySelect(defaultCategory);
+    }
+  };
+
+  const validateEventForm = () => {
     if (!eventForm.title.trim()) {
       alert('タイトルを入力してください。');
-      return;
+      return false;
     }
 
     if (!eventForm.startDate || !eventForm.endDate) {
       alert('開始日と終了日を入力してください。');
-      return;
+      return false;
     }
 
-    const newEvent = {
-      id: Date.now(),
-      title: eventForm.title.trim(),
-      location: eventForm.location.trim(),
-      allDay: eventForm.allDay,
-      startDate: eventForm.startDate,
-      startTime: eventForm.allDay ? '' : eventForm.startTime,
-      endDate: eventForm.endDate,
-      endTime: eventForm.allDay ? '' : eventForm.endTime,
-      notes: eventForm.notes.trim(),
-    };
+    if (!eventForm.startTime || !eventForm.endTime) {
+      alert('開始時間と終了時間を入力してください。');
+      return false;
+    }
 
-    setEvents((prev) => [...prev, newEvent]);
-    setIsModalOpen(false);
+    if (!eventForm.categoryName.trim()) {
+      alert('用事の名前を入力してください。');
+      return false;
+    }
+
+    const startDateTime = getEventDateTimeValue(
+      eventForm.startDate,
+      eventForm.startTime,
+      false,
+    );
+    const endDateTime = getEventDateTimeValue(
+      eventForm.endDate,
+      eventForm.endTime,
+      true,
+    );
+
+    if (startDateTime > endDateTime) {
+      alert('終了日時は開始日時より後にしてください。');
+      return false;
+    }
+
+    return true;
   };
 
-  const handleDayClick = (day) => {
-    if (!day) return;
+  const buildEventFromForm = (id) => ({
+    id,
+    title: eventForm.title.trim(),
+    location: eventForm.location.trim(),
+    allDay: false,
+    startDate: eventForm.startDate,
+    startTime: eventForm.startTime,
+    endDate: eventForm.endDate,
+    endTime: eventForm.endTime,
+    categoryId: eventForm.categoryId,
+    categoryName: eventForm.categoryName.trim(),
+    categoryColor: normalizeColor(eventForm.categoryColor),
+    repeat: eventForm.repeat || 'none',
+    isShared: Boolean(eventForm.isShared),
+    notes: eventForm.notes.trim(),
+  });
 
-    if (isSwipeChangingMonthRef.current) {
+  const handleSaveEvent = () => {
+    if (!validateEventForm()) {
       return;
     }
 
-    openAddModal(day);
+    if (modalMode === 'edit' && editingEventId !== null) {
+      const updatedEvent = buildEventFromForm(editingEventId);
+
+      setEvents((prev) => (
+        prev.map((event) => (event.id === editingEventId ? updatedEvent : event))
+      ));
+      closeModal();
+      return;
+    }
+
+    const newEvent = buildEventFromForm(Date.now());
+    setEvents((prev) => [...prev, newEvent]);
+    closeModal();
+  };
+
+  const handleDeleteEvent = () => {
+    if (editingEventId === null) return;
+
+    const ok = window.confirm('この予定を削除しますか？\n繰り返し予定の場合は、同じ予定がすべて削除されます。');
+    if (!ok) return;
+
+    setEvents((prev) => prev.filter((event) => event.id !== editingEventId));
+    closeModal();
+  };
+
+  const handleDayClick = (day, targetYear, targetMonth) => {
+    if (!day) return;
+    openAddModal(day, targetYear, targetMonth);
+  };
+
+  const handleDayKeyDown = (e, day, targetYear, targetMonth) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+
+    e.preventDefault();
+    handleDayClick(day, targetYear, targetMonth);
   };
 
   return (
     <div className={styles.home}>
-      <div
-        className={`${styles.calendarPage} ${styles[theme]}`}
-        onWheel={handleCalendarWheel}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div className={`${styles.calendarPage} ${styles[theme]}`}>
         <header className={styles.header}>
           <div className={styles.topRow}>
             <div className={styles.yearArea}>
@@ -349,10 +769,6 @@ export default function Home() {
             </div>
           </div>
 
-          <div className={styles.monthTitleRow}>
-            <h1 className={styles.monthTitle}>{month + 1}月</h1>
-          </div>
-
           <div className={styles.weekRow}>
             {orderedWeekDays.map((day) => (
               <div
@@ -368,46 +784,92 @@ export default function Home() {
         </header>
 
         <main className={styles.main}>
-          <div className={styles.calendarGrid}>
-            {calendarDays.map((day, index) => {
-              const dateKey = day ? formatDateKey(year, month, day) : null;
-              const dayEvents = dateKey ? eventsByDate[dateKey] || [] : [];
+          <div className={styles.connectedCalendar}>
+            {calendarMonths.map((monthData) => (
+              <section
+                key={monthData.key}
+                ref={(element) => {
+                  if (element) {
+                    monthSectionRefs.current[monthData.key] = element;
+                  }
+                }}
+                className={styles.monthSection}
+                data-year={monthData.year}
+                data-month={monthData.month}
+              >
+                <div className={styles.inlineMonthHeader}>
+                  <h2 className={styles.inlineMonthTitle}>{monthData.month + 1}月</h2>
+                </div>
 
-              return (
-                <button
-                  key={`${day}-${index}`}
-                  type="button"
-                  className={[
-                    styles.dayCell,
-                    day === null ? styles.emptyCell : '',
-                    isWeekend(day) ? styles.weekendCell : '',
-                    isToday(day) ? styles.todayCell : '',
-                  ].join(' ')}
-                  disabled={day === null}
-                  onClick={() => handleDayClick(day)}
-                >
-                  {day !== null && (
-                    <div className={styles.dayCellInner}>
-                      <div className={styles.dayNumber}>{day}</div>
+                <div className={styles.calendarGrid}>
+                  {monthData.cells.map((cell, index) => {
+                    if (cell.type === 'empty') {
+                      return (
+                        <div
+                          key={`${monthData.key}-${cell.key}-${index}`}
+                          className={`${styles.dayCell} ${styles.emptyCell}`}
+                          aria-hidden="true"
+                        />
+                      );
+                    }
 
-                      <div className={styles.eventList}>
-                        {dayEvents.slice(0, 2).map((event) => (
-                          <div key={event.id} className={styles.eventItem}>
-                            {event.title}
+                    const dayEvents = eventsByDate[cell.dateKey] || [];
+                    const weekend = isWeekendDate(monthData.year, monthData.month, cell.day);
+                    const today = isTodayDate(monthData.year, monthData.month, cell.day);
+
+                    return (
+                      <div
+                        key={cell.dateKey}
+                        role="button"
+                        tabIndex={0}
+                        className={[
+                          styles.dayCell,
+                          weekend ? styles.weekendCell : '',
+                          today ? styles.todayCell : '',
+                        ].join(' ')}
+                        onClick={() => handleDayClick(cell.day, monthData.year, monthData.month)}
+                        onKeyDown={(e) => handleDayKeyDown(e, cell.day, monthData.year, monthData.month)}
+                      >
+                        <div className={styles.dayCellInner}>
+                          <div className={styles.dayNumber}>{cell.day}</div>
+
+                          <div className={styles.eventList}>
+                            {dayEvents.map((event) => {
+                              const timeLabel = getEventTimeLabel(event);
+                              const repeatLabel = getRepeatLabel(event.repeat);
+
+                              return (
+                                <button
+                                  key={`${event.id}-${event.occurrenceDate}`}
+                                  type="button"
+                                  className={styles.eventItem}
+                                  style={getEventStyle(event)}
+                                  onClick={(e) => openEditModal(event, e)}
+                                  aria-label={`${event.title}を編集`}
+                                >
+                                  <span className={styles.eventMetaRow}>
+                                    {timeLabel && (
+                                      <span className={styles.eventTime}>{timeLabel}</span>
+                                    )}
+                                    {event.repeat && event.repeat !== 'none' && (
+                                      <span className={styles.eventRepeat}>{repeatLabel}</span>
+                                    )}
+                                    {event.isShared && (
+                                      <span className={styles.eventShared}>共有</span>
+                                    )}
+                                  </span>
+                                  <span className={styles.eventTitle}>{event.title}</span>
+                                </button>
+                              );
+                            })}
                           </div>
-                        ))}
-
-                        {dayEvents.length > 2 && (
-                          <div className={styles.moreEvents}>
-                            +{dayEvents.length - 2}件
-                          </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         </main>
 
@@ -426,14 +888,16 @@ export default function Home() {
                   キャンセル
                 </button>
 
-                <h2 className={styles.modalTitle}>新規予定</h2>
+                <h2 className={styles.modalTitle}>
+                  {modalMode === 'edit' ? '予定を編集' : '新規予定'}
+                </h2>
 
                 <button
                   type="button"
                   className={styles.modalPrimaryButton}
-                  onClick={handleAddEvent}
+                  onClick={handleSaveEvent}
                 >
-                  追加
+                  {modalMode === 'edit' ? '保存' : '追加'}
                 </button>
               </div>
 
@@ -457,15 +921,6 @@ export default function Home() {
                 </div>
 
                 <div className={styles.formCard}>
-                  <label className={styles.switchRow}>
-                    <span>終日</span>
-                    <input
-                      type="checkbox"
-                      checked={eventForm.allDay}
-                      onChange={(e) => handleFormChange('allDay', e.target.checked)}
-                    />
-                  </label>
-
                   <div className={styles.dateTimeRow}>
                     <span className={styles.dateTimeLabel}>開始</span>
                     <div className={styles.dateTimeInputs}>
@@ -476,14 +931,12 @@ export default function Home() {
                         onChange={(e) => handleFormChange('startDate', e.target.value)}
                       />
 
-                      {!eventForm.allDay && (
-                        <input
-                          type="time"
-                          className={styles.timeInput}
-                          value={eventForm.startTime}
-                          onChange={(e) => handleFormChange('startTime', e.target.value)}
-                        />
-                      )}
+                      <input
+                        type="time"
+                        className={styles.timeInput}
+                        value={eventForm.startTime}
+                        onChange={(e) => handleFormChange('startTime', e.target.value)}
+                      />
                     </div>
                   </div>
 
@@ -497,16 +950,164 @@ export default function Home() {
                         onChange={(e) => handleFormChange('endDate', e.target.value)}
                       />
 
-                      {!eventForm.allDay && (
-                        <input
-                          type="time"
-                          className={styles.timeInput}
-                          value={eventForm.endTime}
-                          onChange={(e) => handleFormChange('endTime', e.target.value)}
-                        />
-                      )}
+                      <input
+                        type="time"
+                        className={styles.timeInput}
+                        value={eventForm.endTime}
+                        onChange={(e) => handleFormChange('endTime', e.target.value)}
+                      />
                     </div>
                   </div>
+                </div>
+
+                <div className={styles.formCard}>
+                  <div className={styles.sectionHeader}>
+                    <span className={styles.sectionTitle}>用事を追加</span>
+                    <span className={styles.sectionSubText}>{eventForm.categoryName}</span>
+                  </div>
+
+                  <div className={styles.categoryList}>
+                    {eventCategories.map((category) => {
+                      const isSelected = eventForm.categoryId === category.id;
+
+                      return (
+                        <div
+                          key={category.id}
+                          role="button"
+                          tabIndex={0}
+                          className={`${styles.categoryOption} ${
+                            isSelected ? styles.categoryOptionSelected : ''
+                          }`}
+                          onClick={() => handleCategorySelect(category)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleCategorySelect(category);
+                            }
+                          }}
+                        >
+                          <span
+                            className={styles.categoryColorDot}
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span className={styles.categoryName}>{category.name}</span>
+
+                          <span className={styles.categoryActions}>
+                            <button
+                              type="button"
+                              className={styles.categoryActionButton}
+                              onClick={(e) => openEditCategoryForm(category, e)}
+                            >
+                              編集
+                            </button>
+
+                            {category.id !== 'default' && (
+                              <button
+                                type="button"
+                                className={styles.categoryDeleteButton}
+                                onClick={(e) => handleDeleteCategory(category, e)}
+                              >
+                                削除
+                              </button>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {isCategoryFormOpen ? (
+                    <div className={styles.categoryEditor}>
+                      <input
+                        type="text"
+                        className={styles.textInput}
+                        placeholder="用事の名前"
+                        value={categoryDraft.name}
+                        onChange={(e) => handleCategoryDraftChange('name', e.target.value)}
+                      />
+
+                      <label className={styles.colorPickerLabel}>
+                        <span>色</span>
+                        <input
+                          type="color"
+                          className={styles.colorPicker}
+                          value={categoryDraft.color}
+                          onChange={(e) => handleCategoryDraftChange('color', e.target.value)}
+                        />
+                      </label>
+
+                      <div className={styles.categoryEditorButtons}>
+                        <button
+                          type="button"
+                          className={styles.categoryCancelButton}
+                          onClick={cancelCategoryForm}
+                        >
+                          やめる
+                        </button>
+
+                        <button
+                          type="button"
+                          className={styles.categorySaveButton}
+                          onClick={handleSaveCategory}
+                        >
+                          {categoryDraftMode === 'edit' ? '更新' : '追加'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.addCategoryButton}
+                      onClick={openAddCategoryForm}
+                    >
+                      ＋ 用事を追加
+                    </button>
+                  )}
+                </div>
+
+                <div className={styles.formCard}>
+                  <div className={styles.selectRow}>
+                    <div className={styles.selectTextGroup}>
+                      <span className={styles.sectionTitle}>繰り返し</span>
+                      <span className={styles.sectionSubText}>毎日・毎週・毎年から選択</span>
+                    </div>
+
+                    <select
+                      className={styles.selectInput}
+                      value={eventForm.repeat}
+                      onChange={(e) => handleFormChange('repeat', e.target.value)}
+                    >
+                      {REPEAT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {eventForm.repeat !== 'none' && (
+                    <p className={styles.repeatHelpText}>
+                      繰り返し予定は開始日以降の同じ条件の日に表示されます。
+                    </p>
+                  )}
+
+                  <label className={styles.switchRow}>
+                    <span className={styles.switchTextGroup}>
+                      <span className={styles.switchTitle}>共有する</span>
+                      <span className={styles.switchDescription}>
+                        オンにすると共有予定として保存します
+                      </span>
+                    </span>
+
+                    <span className={styles.toggleSwitch}>
+                      <input
+                        type="checkbox"
+                        checked={eventForm.isShared}
+                        onChange={(e) => handleFormChange('isShared', e.target.checked)}
+                      />
+                      <span className={styles.toggleTrack} />
+                    </span>
+                  </label>
                 </div>
 
                 <div className={styles.formCard}>
@@ -518,6 +1119,18 @@ export default function Home() {
                     onChange={(e) => handleFormChange('notes', e.target.value)}
                   />
                 </div>
+
+                {modalMode === 'edit' && (
+                  <div className={styles.modalFooter}>
+                    <button
+                      type="button"
+                      className={styles.modalDangerButton}
+                      onClick={handleDeleteEvent}
+                    >
+                      この予定を削除
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
