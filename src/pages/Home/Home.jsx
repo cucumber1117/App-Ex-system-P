@@ -48,6 +48,19 @@ function getDefaultEventForm(baseDate = new Date()) {
   };
 }
 
+function getEventTimeLabel(event) {
+  if (event.allDay) return '終日';
+  if (event.startTime && event.endTime) return `${event.startTime}〜${event.endTime}`;
+  if (event.startTime) return event.startTime;
+  return '';
+}
+
+function getEventDateTimeValue(date, time, allDay, isEnd = false) {
+  const fallbackTime = isEnd ? '23:59' : '00:00';
+  const safeTime = allDay ? fallbackTime : time || fallbackTime;
+  return new Date(`${date}T${safeTime}`);
+}
+
 export default function Home() {
   const { theme } = useTheme();
 
@@ -56,6 +69,8 @@ export default function Home() {
   const [events, setEvents] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [eventForm, setEventForm] = useState(getDefaultEventForm());
+  const [modalMode, setModalMode] = useState('add');
+  const [editingEventId, setEditingEventId] = useState(null);
 
   const lastMonthChangeRef = useRef(0);
   const touchStartYRef = useRef(null);
@@ -107,7 +122,8 @@ export default function Home() {
     try {
       const saved = localStorage.getItem(EVENT_STORAGE_KEY);
       if (saved) {
-        setEvents(JSON.parse(saved));
+        const parsedEvents = JSON.parse(saved);
+        setEvents(Array.isArray(parsedEvents) ? parsedEvents : []);
       }
     } catch (error) {
       console.error('failed to load events', error);
@@ -160,6 +176,13 @@ export default function Home() {
       }
 
       grouped[event.startDate].push(event);
+    });
+
+    Object.values(grouped).forEach((dayEvents) => {
+      dayEvents.sort((a, b) => {
+        if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+        return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+      });
     });
 
     return grouped;
@@ -255,12 +278,34 @@ export default function Home() {
       ? new Date(year, month, selectedDay)
       : new Date(year, month, 1);
 
+    setModalMode('add');
+    setEditingEventId(null);
     setEventForm(getDefaultEventForm(baseDate));
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (calendarEvent, clickEvent) => {
+    clickEvent.stopPropagation();
+
+    setModalMode('edit');
+    setEditingEventId(calendarEvent.id);
+    setEventForm({
+      title: calendarEvent.title || '',
+      location: calendarEvent.location || '',
+      allDay: Boolean(calendarEvent.allDay),
+      startDate: calendarEvent.startDate || formatDateInput(new Date()),
+      startTime: calendarEvent.startTime || '09:00',
+      endDate: calendarEvent.endDate || calendarEvent.startDate || formatDateInput(new Date()),
+      endTime: calendarEvent.endTime || calendarEvent.startTime || '10:00',
+      notes: calendarEvent.notes || '',
+    });
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setModalMode('add');
+    setEditingEventId(null);
   };
 
   const handleFormChange = (key, value) => {
@@ -270,31 +315,83 @@ export default function Home() {
     }));
   };
 
-  const handleAddEvent = () => {
+  const validateEventForm = () => {
     if (!eventForm.title.trim()) {
       alert('タイトルを入力してください。');
-      return;
+      return false;
     }
 
     if (!eventForm.startDate || !eventForm.endDate) {
       alert('開始日と終了日を入力してください。');
+      return false;
+    }
+
+    if (!eventForm.allDay && (!eventForm.startTime || !eventForm.endTime)) {
+      alert('開始時間と終了時間を入力してください。');
+      return false;
+    }
+
+    const startDateTime = getEventDateTimeValue(
+      eventForm.startDate,
+      eventForm.startTime,
+      eventForm.allDay,
+      false,
+    );
+    const endDateTime = getEventDateTimeValue(
+      eventForm.endDate,
+      eventForm.endTime,
+      eventForm.allDay,
+      true,
+    );
+
+    if (startDateTime > endDateTime) {
+      alert('終了日時は開始日時より後にしてください。');
+      return false;
+    }
+
+    return true;
+  };
+
+  const buildEventFromForm = (id) => ({
+    id,
+    title: eventForm.title.trim(),
+    location: eventForm.location.trim(),
+    allDay: eventForm.allDay,
+    startDate: eventForm.startDate,
+    startTime: eventForm.allDay ? '' : eventForm.startTime,
+    endDate: eventForm.endDate,
+    endTime: eventForm.allDay ? '' : eventForm.endTime,
+    notes: eventForm.notes.trim(),
+  });
+
+  const handleSaveEvent = () => {
+    if (!validateEventForm()) {
       return;
     }
 
-    const newEvent = {
-      id: Date.now(),
-      title: eventForm.title.trim(),
-      location: eventForm.location.trim(),
-      allDay: eventForm.allDay,
-      startDate: eventForm.startDate,
-      startTime: eventForm.allDay ? '' : eventForm.startTime,
-      endDate: eventForm.endDate,
-      endTime: eventForm.allDay ? '' : eventForm.endTime,
-      notes: eventForm.notes.trim(),
-    };
+    if (modalMode === 'edit' && editingEventId !== null) {
+      const updatedEvent = buildEventFromForm(editingEventId);
 
+      setEvents((prev) => (
+        prev.map((event) => (event.id === editingEventId ? updatedEvent : event))
+      ));
+      closeModal();
+      return;
+    }
+
+    const newEvent = buildEventFromForm(Date.now());
     setEvents((prev) => [...prev, newEvent]);
-    setIsModalOpen(false);
+    closeModal();
+  };
+
+  const handleDeleteEvent = () => {
+    if (editingEventId === null) return;
+
+    const ok = window.confirm('この予定を削除しますか？');
+    if (!ok) return;
+
+    setEvents((prev) => prev.filter((event) => event.id !== editingEventId));
+    closeModal();
   };
 
   const handleDayClick = (day) => {
@@ -305,6 +402,13 @@ export default function Home() {
     }
 
     openAddModal(day);
+  };
+
+  const handleDayKeyDown = (e, day) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+
+    e.preventDefault();
+    handleDayClick(day);
   };
 
   return (
@@ -374,38 +478,47 @@ export default function Home() {
               const dayEvents = dateKey ? eventsByDate[dateKey] || [] : [];
 
               return (
-                <button
+                <div
                   key={`${day}-${index}`}
-                  type="button"
+                  role={day === null ? undefined : 'button'}
+                  tabIndex={day === null ? -1 : 0}
+                  aria-disabled={day === null}
                   className={[
                     styles.dayCell,
                     day === null ? styles.emptyCell : '',
                     isWeekend(day) ? styles.weekendCell : '',
                     isToday(day) ? styles.todayCell : '',
                   ].join(' ')}
-                  disabled={day === null}
                   onClick={() => handleDayClick(day)}
+                  onKeyDown={(e) => handleDayKeyDown(e, day)}
                 >
                   {day !== null && (
                     <div className={styles.dayCellInner}>
                       <div className={styles.dayNumber}>{day}</div>
 
                       <div className={styles.eventList}>
-                        {dayEvents.slice(0, 2).map((event) => (
-                          <div key={event.id} className={styles.eventItem}>
-                            {event.title}
-                          </div>
-                        ))}
+                        {dayEvents.map((event) => {
+                          const timeLabel = getEventTimeLabel(event);
 
-                        {dayEvents.length > 2 && (
-                          <div className={styles.moreEvents}>
-                            +{dayEvents.length - 2}件
-                          </div>
-                        )}
+                          return (
+                            <button
+                              key={event.id}
+                              type="button"
+                              className={styles.eventItem}
+                              onClick={(e) => openEditModal(event, e)}
+                              aria-label={`${event.title}を編集`}
+                            >
+                              {timeLabel && (
+                                <span className={styles.eventTime}>{timeLabel}</span>
+                              )}
+                              <span className={styles.eventTitle}>{event.title}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -426,14 +539,16 @@ export default function Home() {
                   キャンセル
                 </button>
 
-                <h2 className={styles.modalTitle}>新規予定</h2>
+                <h2 className={styles.modalTitle}>
+                  {modalMode === 'edit' ? '予定を編集' : '新規予定'}
+                </h2>
 
                 <button
                   type="button"
                   className={styles.modalPrimaryButton}
-                  onClick={handleAddEvent}
+                  onClick={handleSaveEvent}
                 >
-                  追加
+                  {modalMode === 'edit' ? '保存' : '追加'}
                 </button>
               </div>
 
@@ -518,6 +633,18 @@ export default function Home() {
                     onChange={(e) => handleFormChange('notes', e.target.value)}
                   />
                 </div>
+
+                {modalMode === 'edit' && (
+                  <div className={styles.modalFooter}>
+                    <button
+                      type="button"
+                      className={styles.modalDangerButton}
+                      onClick={handleDeleteEvent}
+                    >
+                      この予定を削除
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
