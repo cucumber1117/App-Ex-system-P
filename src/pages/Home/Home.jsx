@@ -70,6 +70,7 @@ function getDefaultEventForm(baseDate = new Date(), category = getDefaultCategor
     categoryName: category.name,
     categoryColor: category.color,
     repeat: 'none',
+    isShared: false,
     notes: '',
   };
 }
@@ -462,6 +463,7 @@ export default function Home() {
       categoryName: calendarEvent.categoryName || defaultCategory.name,
       categoryColor,
       repeat: calendarEvent.repeat || 'none',
+      isShared: Boolean(calendarEvent.isShared),
       notes: calendarEvent.notes || '',
     });
     setIsModalOpen(true);
@@ -578,7 +580,7 @@ export default function Home() {
       return;
     }
 
-    const ok = window.confirm(`「${category.name}」を削除しますか？\nこの色を使っている予定は「予定」に戻ります。`);
+    const ok = window.confirm(`「${category.name}」を削除しますか？\nこの用事を使っている予定は「予定」に戻ります。`);
     if (!ok) return;
 
     const defaultCategory = eventCategories[0] || getDefaultCategory();
@@ -655,6 +657,7 @@ export default function Home() {
     categoryName: eventForm.categoryName.trim(),
     categoryColor: normalizeColor(eventForm.categoryColor),
     repeat: eventForm.repeat || 'none',
+    isShared: Boolean(eventForm.isShared),
     notes: eventForm.notes.trim(),
   });
 
@@ -811,6 +814,9 @@ export default function Home() {
                                 {event.repeat && event.repeat !== 'none' && (
                                   <span className={styles.eventRepeat}>{repeatLabel}</span>
                                 )}
+                                {event.isShared && (
+                                  <span className={styles.eventShared}>共有</span>
+                                )}
                               </span>
                               <span className={styles.eventTitle}>{event.title}</span>
                             </button>
@@ -914,7 +920,7 @@ export default function Home() {
 
                 <div className={styles.formCard}>
                   <div className={styles.sectionHeader}>
-                    <span className={styles.sectionTitle}>予定の色</span>
+                    <span className={styles.sectionTitle}>用事を追加</span>
                     <span className={styles.sectionSubText}>{eventForm.categoryName}</span>
                   </div>
 
@@ -1012,7 +1018,7 @@ export default function Home() {
                       className={styles.addCategoryButton}
                       onClick={openAddCategoryForm}
                     >
-                      + 用事を追加
+                      ＋ 用事を追加
                     </button>
                   )}
                 </div>
@@ -1042,6 +1048,24 @@ export default function Home() {
                       繰り返し予定は開始日以降の同じ条件の日に表示されます。
                     </p>
                   )}
+
+                  <label className={styles.switchRow}>
+                    <span className={styles.switchTextGroup}>
+                      <span className={styles.switchTitle}>共有する</span>
+                      <span className={styles.switchDescription}>
+                        オンにすると共有予定として保存します
+                      </span>
+                    </span>
+
+                    <span className={styles.toggleSwitch}>
+                      <input
+                        type="checkbox"
+                        checked={eventForm.isShared}
+                        onChange={(e) => handleFormChange('isShared', e.target.checked)}
+                      />
+                      <span className={styles.toggleTrack} />
+                    </span>
+                  </label>
                 </div>
 
                 <div className={styles.formCard}>

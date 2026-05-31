@@ -197,13 +197,19 @@
   white-space: nowrap;
 }
 
-.eventRepeat {
+.eventRepeat,
+.eventShared {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.16);
   font-size: 8px;
   line-height: 1;
   padding: 2px 4px;
   white-space: nowrap;
+}
+
+.eventShared {
+  background: rgba(52, 199, 89, 0.18);
+  color: #34c759;
 }
 
 .eventTitle {
@@ -608,6 +614,11 @@
   background: rgba(255, 255, 255, 0.72);
 }
 
+.light .eventShared {
+  background: rgba(52, 199, 89, 0.14);
+  color: #248a3d;
+}
+
 .light .modalDangerButton {
   border-color: rgba(235, 87, 87, 0.45);
   background: rgba(235, 87, 87, 0.1);
@@ -725,7 +736,8 @@
     font-size: 8px;
   }
 
-  .eventRepeat {
+  .eventRepeat,
+  .eventShared {
     display: none;
   }
 
