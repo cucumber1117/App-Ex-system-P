@@ -41,6 +41,10 @@ function formatDateKey(year, month, day) {
   return `${year}-${pad(month + 1)}-${pad(day)}`;
 }
 
+function formatMonthKey(year, month) {
+  return `${year}-${pad(month + 1)}`;
+}
+
 function parseDateOnly(dateText) {
   if (!dateText) return null;
   const date = new Date(`${dateText}T00:00:00`);
@@ -160,6 +164,36 @@ function isEventOnDate(event, dateKey) {
   return event.startDate === dateKey;
 }
 
+function buildCalendarMonth(year, month, weekStartDay) {
+  const firstDate = new Date(year, month, 1);
+  const lastDate = new Date(year, month + 1, 0);
+  const leadingEmptyCount = (firstDate.getDay() - weekStartDay + 7) % 7;
+  const daysInMonth = lastDate.getDate();
+  const cells = [];
+
+  for (let i = 0; i < leadingEmptyCount; i++) {
+    cells.push({ type: 'empty', key: `empty-${i}` });
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push({
+      type: 'day',
+      key: formatDateKey(year, month, day),
+      day,
+      dateKey: formatDateKey(year, month, day),
+    });
+  }
+
+  return {
+    key: formatMonthKey(year, month),
+    year,
+    month,
+    daysInMonth,
+    leadingEmptyCount,
+    cells,
+  };
+}
+
 function readStoredCategories() {
   try {
     const saved = localStorage.getItem(EVENT_CATEGORY_STORAGE_KEY);
@@ -202,14 +236,17 @@ export default function Home() {
     color: '#5ac8fa',
   });
 
-  const lastMonthChangeRef = useRef(0);
-  const touchStartYRef = useRef(null);
-  const touchStartXRef = useRef(null);
-  const isSwipeChangingMonthRef = useRef(false);
+  const displayBaseDateRef = useRef(new Date());
+  const hasScrolledToCurrentMonthRef = useRef(false);
+  const monthSectionRefs = useRef({});
 
   const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
   const weekStartDay = weekStart === 'monday' ? 1 : 0;
+
+  const todayMonthKey = useMemo(() => {
+    const today = new Date();
+    return formatMonthKey(today.getFullYear(), today.getMonth());
+  }, []);
 
   useEffect(() => {
     const readLocalWeekStart = () => {
@@ -289,141 +326,133 @@ export default function Home() {
     ];
   }, [weekStartDay]);
 
-  const calendarDays = useMemo(() => {
-    const firstDate = new Date(year, month, 1);
-    const lastDate = new Date(year, month + 1, 0);
+  const calendarMonths = useMemo(() => {
+    const baseDate = displayBaseDateRef.current;
+    const months = [];
 
-    const firstDayOfWeek = (firstDate.getDay() - weekStartDay + 7) % 7;
-    const daysInMonth = lastDate.getDate();
+    for (let offset = -6; offset <= 18; offset++) {
+      const monthDate = new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth() + offset,
+        1,
+      );
 
-    const days = [];
-
-    for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(null);
+      months.push(
+        buildCalendarMonth(
+          monthDate.getFullYear(),
+          monthDate.getMonth(),
+          weekStartDay,
+        ),
+      );
     }
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
+    return months;
+  }, [weekStartDay]);
 
-    return days;
-  }, [year, month, weekStartDay]);
+  useEffect(() => {
+    if (hasScrolledToCurrentMonthRef.current) return;
+
+    const target = monthSectionRefs.current[todayMonthKey];
+    if (!target) return;
+
+    hasScrolledToCurrentMonthRef.current = true;
+
+    const timerId = window.setTimeout(() => {
+      target.scrollIntoView({ block: 'start' });
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
+  }, [calendarMonths, todayMonthKey]);
+
+  useEffect(() => {
+    const sections = calendarMonths
+      .map((monthData) => monthSectionRefs.current[monthData.key])
+      .filter(Boolean);
+
+    if (sections.length === 0) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+      if (visibleEntries.length === 0) return;
+
+      visibleEntries.sort((a, b) => (
+        Math.abs(a.boundingClientRect.top - 110) -
+        Math.abs(b.boundingClientRect.top - 110)
+      ));
+
+      const target = visibleEntries[0].target;
+      const targetYear = Number(target.dataset.year);
+      const targetMonth = Number(target.dataset.month);
+
+      if (Number.isNaN(targetYear) || Number.isNaN(targetMonth)) return;
+
+      setCurrentDate((prev) => {
+        if (prev.getFullYear() === targetYear && prev.getMonth() === targetMonth) {
+          return prev;
+        }
+
+        return new Date(targetYear, targetMonth, 1);
+      });
+    }, {
+      root: null,
+      rootMargin: '-110px 0px -60% 0px',
+      threshold: [0, 0.1, 0.25],
+    });
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [calendarMonths]);
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
-    const lastDate = new Date(year, month + 1, 0);
-    const daysInMonth = lastDate.getDate();
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateKey = formatDateKey(year, month, day);
-      grouped[dateKey] = [];
+    calendarMonths.forEach((monthData) => {
+      for (let day = 1; day <= monthData.daysInMonth; day++) {
+        const dateKey = formatDateKey(monthData.year, monthData.month, day);
+        grouped[dateKey] = [];
 
-      events.forEach((event) => {
-        if (!isEventOnDate(event, dateKey)) return;
+        events.forEach((event) => {
+          if (!isEventOnDate(event, dateKey)) return;
 
-        grouped[dateKey].push({
-          ...event,
-          occurrenceDate: dateKey,
+          grouped[dateKey].push({
+            ...event,
+            occurrenceDate: dateKey,
+          });
         });
-      });
 
-      grouped[dateKey].sort((a, b) => {
-        if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
-        return String(a.startTime || '').localeCompare(String(b.startTime || ''));
-      });
-    }
+        grouped[dateKey].sort((a, b) => {
+          if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+          return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+        });
+      }
+    });
 
     return grouped;
-  }, [events, year, month]);
+  }, [events, calendarMonths]);
 
-  const changeMonth = (offset) => {
-    setCurrentDate((prev) => {
-      return new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
-    });
-  };
-
-  const canChangeMonth = () => {
-    const now = Date.now();
-
-    if (now - lastMonthChangeRef.current < 650) {
-      return false;
-    }
-
-    lastMonthChangeRef.current = now;
-    return true;
-  };
-
-  const handleCalendarWheel = (e) => {
-    if (isModalOpen) return;
-    if (Math.abs(e.deltaY) < 40) return;
-    if (!canChangeMonth()) return;
-
-    if (e.deltaY > 0) {
-      changeMonth(1);
-    } else {
-      changeMonth(-1);
-    }
-  };
-
-  const handleTouchStart = (e) => {
-    if (isModalOpen) return;
-
-    touchStartYRef.current = e.touches[0].clientY;
-    touchStartXRef.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e) => {
-    if (isModalOpen) return;
-    if (touchStartYRef.current === null || touchStartXRef.current === null) return;
-
-    const endY = e.changedTouches[0].clientY;
-    const endX = e.changedTouches[0].clientX;
-
-    const diffY = touchStartYRef.current - endY;
-    const diffX = touchStartXRef.current - endX;
-
-    touchStartYRef.current = null;
-    touchStartXRef.current = null;
-
-    if (Math.abs(diffY) < 70) return;
-    if (Math.abs(diffY) < Math.abs(diffX)) return;
-    if (!canChangeMonth()) return;
-
-    isSwipeChangingMonthRef.current = true;
-
-    if (diffY > 0) {
-      changeMonth(1);
-    } else {
-      changeMonth(-1);
-    }
-
-    setTimeout(() => {
-      isSwipeChangingMonthRef.current = false;
-    }, 250);
-  };
-
-  const isWeekend = (day) => {
-    if (day === null) return false;
-
-    const dayOfWeek = new Date(year, month, day).getDay();
+  const isWeekendDate = (targetYear, targetMonth, day) => {
+    const dayOfWeek = new Date(targetYear, targetMonth, day).getDay();
     return dayOfWeek === 0 || dayOfWeek === 6;
   };
 
-  const isToday = (day) => {
-    if (day === null) return false;
-
+  const isTodayDate = (targetYear, targetMonth, day) => {
     const today = new Date();
 
     return (
-      today.getFullYear() === year &&
-      today.getMonth() === month &&
+      today.getFullYear() === targetYear &&
+      today.getMonth() === targetMonth &&
       today.getDate() === day
     );
   };
 
-  const openAddModal = (selectedDay = null) => {
+  const openAddModal = (
+    selectedDay = null,
+    selectedYear = new Date().getFullYear(),
+    selectedMonth = new Date().getMonth(),
+  ) => {
     const baseDate = selectedDay
-      ? new Date(year, month, selectedDay)
+      ? new Date(selectedYear, selectedMonth, selectedDay)
       : new Date();
     const defaultCategory = eventCategories[0] || getDefaultCategory();
 
@@ -440,8 +469,8 @@ export default function Home() {
     clickEvent.stopPropagation();
 
     const defaultCategory = eventCategories[0] || getDefaultCategory();
-    const startDate = calendarEvent.startDate || formatDateInput(new Date());
-    const endDate = calendarEvent.endDate || calendarEvent.startDate || formatDateInput(new Date());
+    const startDate = calendarEvent.startDate || calendarEvent.occurrenceDate || formatDateInput(new Date());
+    const endDate = calendarEvent.endDate || calendarEvent.startDate || calendarEvent.occurrenceDate || formatDateInput(new Date());
     const startTime = calendarEvent.startTime || '09:00';
     const endTime = calendarEvent.endTime || calendarEvent.startTime || '10:00';
     const categoryColor = calendarEvent.categoryColor || defaultCategory.color;
@@ -691,31 +720,21 @@ export default function Home() {
     closeModal();
   };
 
-  const handleDayClick = (day) => {
+  const handleDayClick = (day, targetYear, targetMonth) => {
     if (!day) return;
-
-    if (isSwipeChangingMonthRef.current) {
-      return;
-    }
-
-    openAddModal(day);
+    openAddModal(day, targetYear, targetMonth);
   };
 
-  const handleDayKeyDown = (e, day) => {
+  const handleDayKeyDown = (e, day, targetYear, targetMonth) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
 
     e.preventDefault();
-    handleDayClick(day);
+    handleDayClick(day, targetYear, targetMonth);
   };
 
   return (
     <div className={styles.home}>
-      <div
-        className={`${styles.calendarPage} ${styles[theme]}`}
-        onWheel={handleCalendarWheel}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div className={`${styles.calendarPage} ${styles[theme]}`}>
         <header className={styles.header}>
           <div className={styles.topRow}>
             <div className={styles.yearArea}>
@@ -750,10 +769,6 @@ export default function Home() {
             </div>
           </div>
 
-          <div className={styles.monthTitleRow}>
-            <h1 className={styles.monthTitle}>{month + 1}月</h1>
-          </div>
-
           <div className={styles.weekRow}>
             {orderedWeekDays.map((day) => (
               <div
@@ -769,65 +784,92 @@ export default function Home() {
         </header>
 
         <main className={styles.main}>
-          <div className={styles.calendarGrid}>
-            {calendarDays.map((day, index) => {
-              const dateKey = day ? formatDateKey(year, month, day) : null;
-              const dayEvents = dateKey ? eventsByDate[dateKey] || [] : [];
-
-              return (
-                <div
-                  key={`${day}-${index}`}
-                  role={day === null ? undefined : 'button'}
-                  tabIndex={day === null ? -1 : 0}
-                  aria-disabled={day === null}
-                  className={[
-                    styles.dayCell,
-                    day === null ? styles.emptyCell : '',
-                    isWeekend(day) ? styles.weekendCell : '',
-                    isToday(day) ? styles.todayCell : '',
-                  ].join(' ')}
-                  onClick={() => handleDayClick(day)}
-                  onKeyDown={(e) => handleDayKeyDown(e, day)}
-                >
-                  {day !== null && (
-                    <div className={styles.dayCellInner}>
-                      <div className={styles.dayNumber}>{day}</div>
-
-                      <div className={styles.eventList}>
-                        {dayEvents.map((event) => {
-                          const timeLabel = getEventTimeLabel(event);
-                          const repeatLabel = getRepeatLabel(event.repeat);
-
-                          return (
-                            <button
-                              key={`${event.id}-${event.occurrenceDate}`}
-                              type="button"
-                              className={styles.eventItem}
-                              style={getEventStyle(event)}
-                              onClick={(e) => openEditModal(event, e)}
-                              aria-label={`${event.title}を編集`}
-                            >
-                              <span className={styles.eventMetaRow}>
-                                {timeLabel && (
-                                  <span className={styles.eventTime}>{timeLabel}</span>
-                                )}
-                                {event.repeat && event.repeat !== 'none' && (
-                                  <span className={styles.eventRepeat}>{repeatLabel}</span>
-                                )}
-                                {event.isShared && (
-                                  <span className={styles.eventShared}>共有</span>
-                                )}
-                              </span>
-                              <span className={styles.eventTitle}>{event.title}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+          <div className={styles.connectedCalendar}>
+            {calendarMonths.map((monthData) => (
+              <section
+                key={monthData.key}
+                ref={(element) => {
+                  if (element) {
+                    monthSectionRefs.current[monthData.key] = element;
+                  }
+                }}
+                className={styles.monthSection}
+                data-year={monthData.year}
+                data-month={monthData.month}
+              >
+                <div className={styles.inlineMonthHeader}>
+                  <h2 className={styles.inlineMonthTitle}>{monthData.month + 1}月</h2>
                 </div>
-              );
-            })}
+
+                <div className={styles.calendarGrid}>
+                  {monthData.cells.map((cell, index) => {
+                    if (cell.type === 'empty') {
+                      return (
+                        <div
+                          key={`${monthData.key}-${cell.key}-${index}`}
+                          className={`${styles.dayCell} ${styles.emptyCell}`}
+                          aria-hidden="true"
+                        />
+                      );
+                    }
+
+                    const dayEvents = eventsByDate[cell.dateKey] || [];
+                    const weekend = isWeekendDate(monthData.year, monthData.month, cell.day);
+                    const today = isTodayDate(monthData.year, monthData.month, cell.day);
+
+                    return (
+                      <div
+                        key={cell.dateKey}
+                        role="button"
+                        tabIndex={0}
+                        className={[
+                          styles.dayCell,
+                          weekend ? styles.weekendCell : '',
+                          today ? styles.todayCell : '',
+                        ].join(' ')}
+                        onClick={() => handleDayClick(cell.day, monthData.year, monthData.month)}
+                        onKeyDown={(e) => handleDayKeyDown(e, cell.day, monthData.year, monthData.month)}
+                      >
+                        <div className={styles.dayCellInner}>
+                          <div className={styles.dayNumber}>{cell.day}</div>
+
+                          <div className={styles.eventList}>
+                            {dayEvents.map((event) => {
+                              const timeLabel = getEventTimeLabel(event);
+                              const repeatLabel = getRepeatLabel(event.repeat);
+
+                              return (
+                                <button
+                                  key={`${event.id}-${event.occurrenceDate}`}
+                                  type="button"
+                                  className={styles.eventItem}
+                                  style={getEventStyle(event)}
+                                  onClick={(e) => openEditModal(event, e)}
+                                  aria-label={`${event.title}を編集`}
+                                >
+                                  <span className={styles.eventMetaRow}>
+                                    {timeLabel && (
+                                      <span className={styles.eventTime}>{timeLabel}</span>
+                                    )}
+                                    {event.repeat && event.repeat !== 'none' && (
+                                      <span className={styles.eventRepeat}>{repeatLabel}</span>
+                                    )}
+                                    {event.isShared && (
+                                      <span className={styles.eventShared}>共有</span>
+                                    )}
+                                  </span>
+                                  <span className={styles.eventTitle}>{event.title}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         </main>
 
