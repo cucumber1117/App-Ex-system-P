@@ -3,13 +3,14 @@ import { db } from '../firebaseConfig';
 
 const groupsCol = collection(db, 'groups');
 
-export async function createGroup(name, creatorUid) {
+export async function createGroup(name, detail, creatorUid) {
   const groupRef = doc(groupsCol);
   const batch = writeBatch(db);
 
   batch.set(groupRef, {
     groupId: groupRef.id,
     name,
+    detail,
     ...(creatorUid ? { createdBy: creatorUid } : {}),
     createdAt: serverTimestamp(),
     memberCount: creatorUid ? 1 : 0,

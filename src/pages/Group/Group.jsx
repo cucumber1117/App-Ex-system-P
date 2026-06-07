@@ -12,6 +12,7 @@ const Group = () => {
   const [name, setName] = useState('');
   const [groups, setGroups] = useState([]);
   const [search, setSearch] = useState('');
+  const [detail, setDetail] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -35,7 +36,7 @@ const Group = () => {
     (async () => {
       try {
         setLoading(true);
-        const groupId = await createGroup(name, currentUser?.uid);
+        const groupId = await createGroup(name, detail, currentUser?.uid);
         setCreatedGroupId(groupId);
         if (currentUser) {
           await refreshJoinedGroups(currentUser.uid);
@@ -46,6 +47,7 @@ const Group = () => {
           setGroups(items);
         }
         setName('');
+        setDetail('');
       } catch (err) {
         console.error(err);
       } finally {
@@ -300,6 +302,10 @@ const Group = () => {
                       <strong>{g.memberCount ?? 0}</strong>
                     </p>
 
+                    <p className={styles.detailItem}>
+                      説明:<strong>{g.detail || "説明はありません"}</strong>
+                    </p>
+
                     <div className={styles.joinedActions}>
                       <div className={styles.joinedLabel}>
                         参加済み
@@ -310,7 +316,7 @@ const Group = () => {
                       </button>
                     </div>
 
-                    <from className = {styles.inviteForm} onSubmit = {handleInvite} onClick = {(e) => e.stopPropagation()}>
+                    <form className = {styles.inviteForm} onSubmit = {handleInvite} onClick = {(e) => e.stopPropagation()}>
                       <select className= {styles.inviteSelect} value={inviteFriendId} onChange={(e) => setInviteFriendId(e.target.value)} required>
                         <option value="">フレンドを選択</option>
 
@@ -324,7 +330,7 @@ const Group = () => {
                       <button className={styles.inviteBtn} type="submit" disabled={friends.length === 0}>
                         招待
                       </button>
-                    </from>
+                    </form>
 
                     {friends.length === 0 && (
                       <p className={styles.noresult}>
@@ -379,6 +385,7 @@ const Group = () => {
                 <h2 className={styles.detailTitle}>{selectedDetails.name}</h2>
                 <p className={styles.detailItem}>グループID: <strong>{selectedDetails.groupId || selectedDetails.id}</strong></p>
                 <p className={styles.detailItem}>メンバー数: <strong>{selectedDetails.memberCount ?? 0}</strong></p>
+                <p className={styles.detailItem}>説明:<strong>{selectedDetails.detail || "説明はありません"}</strong></p>
                 <p className={styles.detailItem}>作成日: {selectedDetails.createdAt?.toDate ? selectedDetails.createdAt.toDate().toLocaleString() : '-'}</p>
                 {currentUser ? (
                   isJoined ? (
@@ -432,6 +439,8 @@ const Group = () => {
 
         <form onSubmit={handleSubmit}>
           <input className={styles.createInput} placeholder="グループ名を入力" value={name} onChange={(e)=>setName(e.target.value)} required />
+
+          <textarea className={styles.createInput} placeholder="グループの説明を入力" value={detail} onChange={(e) => setDetail(e.target.value)}/>
 
           <button className={styles.createBtn} type="submit">作成する</button>
           {createdGroupId && (
