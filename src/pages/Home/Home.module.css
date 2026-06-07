@@ -6,7 +6,7 @@
 }
 
 .calendarPage {
-  --calendar-header-height: clamp(100px, 13vw, 125px);
+  --calendar-header-height: clamp(150px, 20vw, 210px);
   min-height: 100dvh;
   padding-top: var(--calendar-header-height);
   background: #000;
@@ -25,6 +25,18 @@
 
 .dark {
   background: #000;
+  color: #f5f5f7;
+}
+
+.dark .currentMonthText {
+  color: #f5f5f7;
+}
+
+.dark .currentDateText {
+  color: #a1a1aa;
+}
+
+.dark .dateStripItem {
   color: #f5f5f7;
 }
 
@@ -55,10 +67,32 @@
   min-width: 0;
 }
 
+.dateSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .yearText {
-  color: #ff453a;
+  color: #5ac8fa;
   font-size: clamp(18px, 5vw, 28px);
-  font-weight: 500;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.currentMonthText {
+  color: #202124;
+  font-size: clamp(24px, 6vw, 34px);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.currentDateText {
+  color: #7a8190;
+  font-size: clamp(13px, 3.4vw, 17px);
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -72,7 +106,7 @@
 .iconButton {
   border: none;
   background: transparent;
-  color: #ff453a;
+  color: #5ac8fa;
   font-size: clamp(24px, 8vw, 38px);
   line-height: 1;
   padding: 0;
@@ -94,11 +128,66 @@
   letter-spacing: -1.5px;
 }
 
-.weekRow {
+.dateStrip {
+  padding: 10px clamp(10px, 3vw, 22px) 8px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dateStripItem {
+  min-width: 0;
+  border-radius: 20px;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  color: #202124;
+}
+
+.dateStripItemSelected {
+  background: rgba(90, 200, 250, 0.18);
+}
+
+.dateStripItemToday .dateStripNumber {
+  box-shadow: 0 0 0 2px rgba(90, 200, 250, 0.28);
+}
+
+.dateStripWeekend {
+  color: #8e8e93;
+}
+
+.dateStripWeekday {
+  font-size: clamp(12px, 3vw, 14px);
+  font-weight: 700;
+}
+
+.dateStripNumber {
+  min-width: 34px;
   height: 34px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(16px, 3.6vw, 22px);
+  font-weight: 800;
+}
+
+.dateStripItemSelected .dateStripNumber {
+  background: #5ac8fa;
+  color: #062338;
+}
+
+.weekRow {
+  height: 28px;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   align-items: center;
+  padding: 0 clamp(8px, 2vw, 24px);
 }
 
 .weekDay {
@@ -174,7 +263,7 @@
 }
 
 .dayCell:focus-visible {
-  outline: 2px solid #ff453a;
+  outline: 2px solid #5ac8fa;
   outline-offset: -2px;
 }
 
@@ -205,9 +294,9 @@
 .eventItem {
   width: 100%;
   border: none;
-  border-left: 4px solid var(--event-color, #ff453a);
-  background: var(--event-bg, rgba(255, 69, 58, 0.16));
-  color: var(--event-color, #ff453a);
+  border-left: 4px solid var(--event-color, #5ac8fa);
+  background: var(--event-bg, rgba(90, 200, 250, 0.16));
+  color: var(--event-color, #5ac8fa);
   font-family: inherit;
   font-size: 11px;
   font-weight: 700;
@@ -224,7 +313,7 @@
 
 .eventItem:hover,
 .eventItem:focus-visible {
-  background: var(--event-hover-bg, rgba(255, 69, 58, 0.24));
+  background: var(--event-hover-bg, rgba(90, 200, 250, 0.24));
   outline: none;
 }
 
@@ -278,7 +367,7 @@
   height: 32px;
   margin: 0 auto;
   border-radius: 999px;
-  background: #ff453a;
+  background: #5ac8fa;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -338,7 +427,7 @@
 .modalTextButton {
   border: none;
   background: transparent;
-  color: #ff453a;
+  color: #5ac8fa;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -347,8 +436,8 @@
 
 .modalPrimaryButton {
   border: none;
-  background: #ff453a;
-  color: white;
+  background: #5ac8fa;
+  color: #062338;
   font-size: 15px;
   font-weight: 700;
   border-radius: 10px;
@@ -364,9 +453,9 @@
 
 .modalDangerButton {
   width: 100%;
-  border: 1px solid rgba(255, 69, 58, 0.5);
-  background: rgba(255, 69, 58, 0.12);
-  color: #ff453a;
+  border: 1px solid rgba(90, 200, 250, 0.45);
+  background: rgba(90, 200, 250, 0.12);
+  color: #5ac8fa;
   font-size: 16px;
   font-weight: 800;
   border-radius: 14px;
@@ -376,7 +465,7 @@
 
 .modalDangerButton:hover,
 .modalDangerButton:focus-visible {
-  background: rgba(255, 69, 58, 0.2);
+  background: rgba(90, 200, 250, 0.2);
   outline: none;
 }
 
@@ -634,6 +723,26 @@
   color: #2f80ed;
 }
 
+.light .currentMonthText {
+  color: #202124;
+}
+
+.light .currentDateText {
+  color: #7a8190;
+}
+
+.light .dateStripItem {
+  color: #202124;
+}
+
+.light .dateStripItemSelected {
+  background: rgba(90, 200, 250, 0.18);
+}
+
+.light .dateStripWeekend {
+  color: #7a8190;
+}
+
 .light .monthTitle,
 .light .weekDay,
 .light .dayCell,
@@ -782,8 +891,24 @@
     font-size: 18px;
   }
 
-  .weekRow {
+  .dateStrip {
+    gap: 4px;
+    padding: 8px 8px 6px;
+  }
+
+  .dateStripItem {
+    padding: 6px 2px;
+    border-radius: 16px;
+  }
+
+  .dateStripNumber {
+    min-width: 28px;
     height: 28px;
+    font-size: 16px;
+  }
+
+  .weekRow {
+    height: 24px;
   }
 
   .main {
@@ -1025,6 +1150,291 @@
   }
 
   .categoryEditor {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* view switching header */
+.monthViewPage {
+  --calendar-header-height: 118px;
+}
+
+.yearViewPage {
+  --calendar-header-height: 92px;
+}
+
+.dayViewPage {
+  --calendar-header-height: 178px;
+}
+
+.headerTitleButton {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.headerTitleButton:disabled {
+  cursor: default;
+}
+
+.headerTitleText {
+  color: #5ac8fa;
+  font-size: clamp(26px, 6vw, 42px);
+  font-weight: 800;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.headerSubText {
+  color: #7a8190;
+  font-size: clamp(14px, 3vw, 18px);
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.light .headerTitleText {
+  color: #2f80ed;
+}
+
+.dark .headerSubText {
+  color: #a1a1aa;
+}
+
+.dateStripItem {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.yearOverview {
+  padding: 24px clamp(18px, 4vw, 48px) 48px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(28px, 5vw, 58px) clamp(24px, 5vw, 56px);
+}
+
+.yearMonthCard {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.yearMonthCard:focus-visible {
+  outline: 2px solid #5ac8fa;
+  outline-offset: 8px;
+  border-radius: 12px;
+}
+
+.yearMonthTitle {
+  margin: 0 0 12px;
+  color: #202124;
+  font-size: clamp(24px, 4vw, 42px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dark .yearMonthTitle {
+  color: #f5f5f7;
+}
+
+.miniMonthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px 8px;
+}
+
+.miniMonthDay,
+.miniMonthEmpty {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #202124;
+  font-size: clamp(13px, 2vw, 20px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dark .miniMonthDay {
+  color: #f5f5f7;
+}
+
+.miniMonthSelectedDay,
+.miniMonthToday {
+  border-radius: 999px;
+  background: #5ac8fa;
+  color: #062338;
+}
+
+.dayView {
+  background: transparent;
+  color: inherit;
+}
+
+.dayViewTitleRow {
+  position: sticky;
+  top: var(--calendar-header-height);
+  z-index: 20;
+  background: inherit;
+  border-bottom: 1px solid rgba(122, 129, 144, 0.22);
+  padding: 12px clamp(12px, 4vw, 24px);
+}
+
+.dayViewTitle {
+  margin: 0;
+  font-size: clamp(20px, 4vw, 28px);
+  font-weight: 800;
+  text-align: center;
+}
+
+.dayAllDayRow {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  border-bottom: 1px solid rgba(122, 129, 144, 0.22);
+  min-height: 58px;
+}
+
+.dayAllDayLabel {
+  color: #8e8e93;
+  font-size: 14px;
+  padding: 18px 12px;
+}
+
+.dayAllDayContent {
+  border-left: 1px solid rgba(122, 129, 144, 0.22);
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dayTimeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.hourRow {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  min-height: 62px;
+}
+
+.hourLabel {
+  color: #8e8e93;
+  font-size: 14px;
+  padding: 8px 12px 0;
+  text-align: right;
+}
+
+.hourContent {
+  border-left: 1px solid rgba(122, 129, 144, 0.22);
+  border-top: 1px solid rgba(122, 129, 144, 0.22);
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dayEventItem {
+  border: none;
+  border-left: 4px solid var(--event-color, #5ac8fa);
+  background: var(--event-bg, rgba(90, 200, 250, 0.16));
+  color: var(--event-color, #5ac8fa);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: left;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: min(260px, 100%);
+}
+
+.dayEventTime {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.dayEventTitle {
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .monthViewPage {
+    --calendar-header-height: 104px;
+  }
+
+  .yearViewPage {
+    --calendar-header-height: 82px;
+  }
+
+  .dayViewPage {
+    --calendar-header-height: 154px;
+  }
+
+  .headerTitleText {
+    font-size: 28px;
+  }
+
+  .headerSubText {
+    font-size: 14px;
+  }
+
+  .yearOverview {
+    padding: 20px 18px 36px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 34px 24px;
+  }
+
+  .miniMonthGrid {
+    gap: 6px 5px;
+  }
+
+  .miniMonthDay,
+  .miniMonthEmpty {
+    min-height: 20px;
+    font-size: 13px;
+  }
+
+  .dayViewTitleRow {
+    top: var(--calendar-header-height);
+    padding: 10px 12px;
+  }
+
+  .dayAllDayRow,
+  .hourRow {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .dayAllDayLabel,
+  .hourLabel {
+    font-size: 12px;
+    padding-left: 6px;
+    padding-right: 8px;
+  }
+
+  .hourRow {
+    min-height: 56px;
+  }
+}
+
+@media (max-width: 390px) {
+  .yearOverview {
     grid-template-columns: 1fr;
   }
 }
