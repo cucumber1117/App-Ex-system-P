@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { UserRound, UserRoundPlus } from 'lucide-react';
+import { Check, Copy, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
 import { addFriend, listFriends } from '../../Firebase/auth/friends';
@@ -14,6 +14,7 @@ export default function Friends() {
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [failedAvatarIds, setFailedAvatarIds] = useState({});
+  const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -66,6 +67,32 @@ export default function Friends() {
     }
   };
 
+  const handleCopyFriendCode = async () => {
+    if (!currentUser?.uid) return;
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(currentUser.uid);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = currentUser.uid;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copiedSuccessfully = document.execCommand('copy');
+        textarea.remove();
+        if (!copiedSuccessfully) throw new Error('copy failed');
+      }
+
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error(err);
+      setError('フレンドコードをコピーできませんでした');
+    }
+  };
+
   return (
     <main className={`${styles.container} ${styles[theme]}`}>
       <h1 className={styles.title}>フレンド</h1>
@@ -76,7 +103,24 @@ export default function Friends() {
           <p className={styles.note}>ログインするとフレンドを追加できます。</p>
         ) : (
           <>
-            <p className={styles.ownId}>自分のID: {currentUser.uid}</p>
+            <div className={styles.friendCode}>
+              <div className={styles.friendCodeText}>
+                <span className={styles.friendCodeLabel}>自分のフレンドコード</span>
+                <code className={styles.ownId}>{currentUser.uid}</code>
+              </div>
+              <button
+                className={`${styles.copyBtn} ${copied ? styles.copied : ''}`}
+                type="button"
+                onClick={handleCopyFriendCode}
+                aria-label="フレンドコードをコピー"
+              >
+                {copied ? <Check size={17} /> : <Copy size={17} />}
+                <span>{copied ? 'コピー済み' : 'コピー'}</span>
+              </button>
+            </div>
+            <span className={styles.copyStatus} aria-live="polite">
+              {copied ? 'フレンドコードをコピーしました' : ''}
+            </span>
             <form className={styles.addForm} onSubmit={handleAddFriend}>
               <input
                 className={styles.input}
@@ -129,7 +173,6 @@ export default function Friends() {
                   )}
                   <div className={styles.friendMeta}>
                     <strong className={styles.friendName}>{friendName}</strong>
-                    {friend.email && <span className={styles.friendEmail}>{friend.email}</span>}
                     <span className={styles.friendId}>ID: {friend.id}</span>
                   </div>
                 </li>

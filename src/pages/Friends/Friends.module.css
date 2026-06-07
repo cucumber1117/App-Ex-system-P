@@ -39,11 +39,66 @@
   gap: 10px;
 }
 
-.ownId {
-  margin: 0 0 12px;
+.friendCode {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.friendCodeText {
+  min-width: 0;
+  flex: 1;
+}
+
+.friendCodeLabel {
+  display: block;
+  margin-bottom: 5px;
   color: #777;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ownId {
+  display: block;
+  color: inherit;
   font-size: 13px;
   overflow-wrap: anywhere;
+}
+
+.copyBtn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid #bfdbfe;
+  border-radius: 11px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.copyBtn.copied {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.copyStatus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 
 .input {
@@ -140,7 +195,6 @@
 }
 
 .friendName,
-.friendEmail,
 .friendId {
   display: block;
 }
@@ -149,7 +203,6 @@
   font-size: 16px;
 }
 
-.friendEmail,
 .friendId {
   margin-top: 3px;
   color: #777;
@@ -157,6 +210,7 @@
   overflow-wrap: anywhere;
 }
 
+.dark .friendCode,
 .dark .input,
 .dark .friendItem {
   border-color: rgba(255, 255, 255, .08);
@@ -164,10 +218,21 @@
 }
 
 .dark .note,
-.dark .ownId,
-.dark .friendEmail,
+.dark .friendCodeLabel,
 .dark .friendId {
   color: #b7bdc8;
+}
+
+.dark .copyBtn {
+  border-color: rgba(96, 165, 250, .35);
+  background: rgba(47, 128, 237, .18);
+  color: #bfdbfe;
+}
+
+.dark .copyBtn.copied {
+  border-color: rgba(74, 222, 128, .35);
+  background: rgba(22, 163, 74, .16);
+  color: #bbf7d0;
 }
 
 .dark .avatarFallback {
@@ -176,6 +241,15 @@
 }
 
 @media (max-width: 560px) {
+  .friendCode {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .copyBtn {
+    width: 100%;
+  }
+
   .addForm {
     flex-direction: column;
   }
