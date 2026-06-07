@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import styles from './Home.module.css';
 import { useTheme } from '../../contexts/ThemeContext';
 import { auth } from '../../Firebase/firebaseConfig';
@@ -17,6 +17,12 @@ const WEEK_DAYS = [
 
 const EVENT_STORAGE_KEY = 'calendarEvents';
 const EVENT_CATEGORY_STORAGE_KEY = 'calendarEventCategories';
+const CALENDAR_MAX_RANGE_YEARS = 100;
+const CALENDAR_EDGE_LOAD_MONTHS = 12;
+const INITIAL_PAST_MONTHS = 3;
+const INITIAL_FUTURE_MONTHS = 12;
+const MIN_MONTH_OFFSET = -CALENDAR_MAX_RANGE_YEARS * 12;
+const MAX_MONTH_OFFSET = CALENDAR_MAX_RANGE_YEARS * 12;
 
 const DEFAULT_EVENT_CATEGORIES = [
   { id: 'default', name: '予定', color: '#5ac8fa' },
@@ -235,17 +241,24 @@ export default function Home() {
     name: '',
     color: '#5ac8fa',
   });
+  const [monthRange, setMonthRange] = useState({
+    startOffset: -INITIAL_PAST_MONTHS,
+    endOffset: INITIAL_FUTURE_MONTHS,
+  });
 
   const displayBaseDateRef = useRef(new Date());
   const hasScrolledToCurrentMonthRef = useRef(false);
   const monthSectionRefs = useRef({});
+  const topLoadRef = useRef(null);
+  const bottomLoadRef = useRef(null);
+  const preserveScrollHeightRef = useRef(null);
 
   const year = currentDate.getFullYear();
   const weekStartDay = weekStart === 'monday' ? 1 : 0;
 
-  const todayMonthKey = useMemo(() => {
-    const today = new Date();
-    return formatMonthKey(today.getFullYear(), today.getMonth());
+  const landingMonthKey = useMemo(() => {
+    const landingDate = displayBaseDateRef.current;
+    return formatMonthKey(landingDate.getFullYear(), landingDate.getMonth());
   }, []);
 
   useEffect(() => {
@@ -330,7 +343,7 @@ export default function Home() {
     const baseDate = displayBaseDateRef.current;
     const months = [];
 
-    for (let offset = -6; offset <= 18; offset++) {
+    for (let offset = monthRange.startOffset; offset <= monthRange.endOffset; offset++) {
       const monthDate = new Date(
         baseDate.getFullYear(),
         baseDate.getMonth() + offset,
@@ -347,22 +360,94 @@ export default function Home() {
     }
 
     return months;
-  }, [weekStartDay]);
+  }, [monthRange, weekStartDay]);
+
+  const loadPreviousMonths = useCallback(() => {
+    setMonthRange((prev) => {
+      if (prev.startOffset <= MIN_MONTH_OFFSET) return prev;
+
+      if (typeof document !== 'undefined') {
+        preserveScrollHeightRef.current = document.documentElement.scrollHeight;
+      }
+
+      return {
+        ...prev,
+        startOffset: Math.max(prev.startOffset - CALENDAR_EDGE_LOAD_MONTHS, MIN_MONTH_OFFSET),
+      };
+    });
+  }, []);
+
+  const loadNextMonths = useCallback(() => {
+    setMonthRange((prev) => {
+      if (prev.endOffset >= MAX_MONTH_OFFSET) return prev;
+
+      return {
+        ...prev,
+        endOffset: Math.min(prev.endOffset + CALENDAR_EDGE_LOAD_MONTHS, MAX_MONTH_OFFSET),
+      };
+    });
+  }, []);
 
   useEffect(() => {
     if (hasScrolledToCurrentMonthRef.current) return;
 
-    const target = monthSectionRefs.current[todayMonthKey];
+    const target = monthSectionRefs.current[landingMonthKey];
     if (!target) return;
-
-    hasScrolledToCurrentMonthRef.current = true;
 
     const timerId = window.setTimeout(() => {
       target.scrollIntoView({ block: 'start' });
+      hasScrolledToCurrentMonthRef.current = true;
     }, 0);
 
     return () => window.clearTimeout(timerId);
-  }, [calendarMonths, todayMonthKey]);
+  }, [calendarMonths, landingMonthKey]);
+
+  useLayoutEffect(() => {
+    if (preserveScrollHeightRef.current === null) return;
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const previousHeight = preserveScrollHeightRef.current;
+    const currentHeight = document.documentElement.scrollHeight;
+    const heightDiff = currentHeight - previousHeight;
+
+    if (heightDiff > 0) {
+      window.scrollBy(0, heightDiff);
+    }
+
+    preserveScrollHeightRef.current = null;
+  }, [calendarMonths.length]);
+
+  useEffect(() => {
+    const topTarget = topLoadRef.current;
+    const bottomTarget = bottomLoadRef.current;
+
+    if (!topTarget && !bottomTarget) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!hasScrolledToCurrentMonthRef.current) return;
+
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+
+        if (entry.target === topTarget) {
+          loadPreviousMonths();
+        }
+
+        if (entry.target === bottomTarget) {
+          loadNextMonths();
+        }
+      });
+    }, {
+      root: null,
+      rootMargin: '720px 0px',
+      threshold: 0,
+    });
+
+    if (topTarget) observer.observe(topTarget);
+    if (bottomTarget) observer.observe(bottomTarget);
+
+    return () => observer.disconnect();
+  }, [loadPreviousMonths, loadNextMonths, monthRange.startOffset, monthRange.endOffset]);
 
   useEffect(() => {
     const sections = calendarMonths
@@ -759,7 +844,7 @@ export default function Home() {
               </button>
 
               <button
-                className={styles.iconButton}
+                className={`${styles.iconButton} ${styles.addIconButton}`}
                 type="button"
                 aria-label="追加"
                 onClick={() => openAddModal()}
@@ -785,6 +870,8 @@ export default function Home() {
 
         <main className={styles.main}>
           <div className={styles.connectedCalendar}>
+            <div ref={topLoadRef} className={styles.loadSentinel} aria-hidden="true" />
+
             {calendarMonths.map((monthData) => (
               <section
                 key={monthData.key}
@@ -797,17 +884,13 @@ export default function Home() {
                 data-year={monthData.year}
                 data-month={monthData.month}
               >
-                <div className={styles.inlineMonthHeader}>
-                  <h2 className={styles.inlineMonthTitle}>{monthData.month + 1}月</h2>
-                </div>
-
                 <div className={styles.calendarGrid}>
                   {monthData.cells.map((cell, index) => {
                     if (cell.type === 'empty') {
                       return (
                         <div
                           key={`${monthData.key}-${cell.key}-${index}`}
-                          className={`${styles.dayCell} ${styles.emptyCell}`}
+                          className={`${styles.dayCell} ${styles.emptyCell} ${index < 7 ? styles.firstWeekCell : ''}`}
                           aria-hidden="true"
                         />
                       );
@@ -824,6 +907,7 @@ export default function Home() {
                         tabIndex={0}
                         className={[
                           styles.dayCell,
+                          index < 7 ? styles.firstWeekCell : '',
                           weekend ? styles.weekendCell : '',
                           today ? styles.todayCell : '',
                         ].join(' ')}
@@ -831,6 +915,10 @@ export default function Home() {
                         onKeyDown={(e) => handleDayKeyDown(e, cell.day, monthData.year, monthData.month)}
                       >
                         <div className={styles.dayCellInner}>
+                          {cell.day === 1 && (
+                            <div className={styles.monthMarker}>{monthData.month + 1}月</div>
+                          )}
+
                           <div className={styles.dayNumber}>{cell.day}</div>
 
                           <div className={styles.eventList}>
@@ -870,6 +958,8 @@ export default function Home() {
                 </div>
               </section>
             ))}
+
+            <div ref={bottomLoadRef} className={styles.loadSentinel} aria-hidden="true" />
           </div>
         </main>
 
