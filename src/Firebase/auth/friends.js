@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, serverTimestamp, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 function getFriendProfile(data = {}) {
@@ -67,4 +67,17 @@ export async function addFriend(uid, friendUid) {
   await batch.commit();
 
   return { id: friendUserSnap.id, ...friendUserSnap.data(), ...friendProfile };
+}
+
+export async function deleteFriend(uid, friendUid) {
+  if (!uid) throw new Error('ログインが必要です');
+  if (!friendUid)throw new Error('フレンドIDが無効です');
+
+  const batch = writeBatch(db);
+
+  batch.delete(doc(db, 'users', uid, 'friend', friendUid));
+  batch.delete(doc(db, 'users', friendUid, 'friends', uid));
+
+  await batch.commit();
+  
 }

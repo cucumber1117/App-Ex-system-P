@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Copy, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
-import { addFriend, listFriends } from '../../Firebase/auth/friends';
+import { addFriend, listFriends, deleteFriend} from '../../Firebase/auth/friends';
 import { useTheme } from '../../contexts/ThemeContext';
 import styles from './Friends.module.css';
 
@@ -93,6 +93,28 @@ export default function Friends() {
     }
   };
 
+  const handleDeleteFriend = async (friendUid) => {
+      if (!currentUser) return;
+
+      const confirmed = window.confirm('このフレンドを削除しますか？');
+
+      if (!confirmed) return;
+
+      try {
+        setError('');
+        setMessage('');
+
+        await deleteFriend(currentUser.uid, friendUid);
+        await refreshFriends(currentUser.uid);
+
+        setMessage('フレンドを削除しました');
+      }
+      catch(err) {
+        console.error(err);
+        setError('フレンドを削除できませんでした');
+      }
+    };
+
   return (
     <main className={`${styles.container} ${styles[theme]}`}>
       <h1 className={styles.title}>フレンド</h1>
@@ -175,6 +197,9 @@ export default function Friends() {
                     <strong className={styles.friendName}>{friendName}</strong>
                     <span className={styles.friendId}>ID: {friend.id}</span>
                   </div>
+                  <button type="button" className={styles.deleteBtn} onClick={() => handleDeleteFriend(friend.id)}>
+                      削除
+                  </button>
                 </li>
               );
             })}

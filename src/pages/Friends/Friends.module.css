@@ -93,6 +93,21 @@
   color: #15803d;
 }
 
+.deleteBtn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #ef4444;
+  color: white;
+  font-size: 0.9rem;
+  transition: 0.2s;
+}
+
+.deleteBtn:hover {
+  opacity: 0.85;
+}
+
 .copyStatus {
   position: absolute;
   width: 1px;
