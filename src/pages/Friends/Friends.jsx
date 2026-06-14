@@ -2,13 +2,19 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Copy, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
-import { addFriend, listFriends, deleteFriend} from '../../Firebase/auth/friends';
+import {
+  addFriend,
+  deleteFriend,
+  getOrCreateFriendId,
+  listFriends,
+} from '../../Firebase/auth/friends';
 import { useTheme } from '../../contexts/ThemeContext';
 import styles from './Friends.module.css';
 
 export default function Friends() {
   const { theme } = useTheme();
   const [currentUser, setCurrentUser] = useState(null);
+  const [ownFriendId, setOwnFriendId] = useState('');
   const [friendId, setFriendId] = useState('');
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,9 +46,20 @@ export default function Friends() {
   }, []);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      setOwnFriendId('');
       refreshFriends(user?.uid);
+
+      if (!user) return;
+
+      try {
+        const issuedFriendId = await getOrCreateFriendId(user.uid);
+        setOwnFriendId(issuedFriendId);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || 'フレンドIDを読み込めませんでした');
+      }
     });
     return () => unsub();
   }, [refreshFriends]);
@@ -68,14 +85,14 @@ export default function Friends() {
   };
 
   const handleCopyFriendCode = async () => {
-    if (!currentUser?.uid) return;
+    if (!ownFriendId) return;
 
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(currentUser.uid);
+        await navigator.clipboard.writeText(ownFriendId);
       } else {
         const textarea = document.createElement('textarea');
-        textarea.value = currentUser.uid;
+        textarea.value = ownFriendId;
         textarea.style.position = 'fixed';
         textarea.style.opacity = '0';
         document.body.appendChild(textarea);
@@ -127,13 +144,16 @@ export default function Friends() {
           <>
             <div className={styles.friendCode}>
               <div className={styles.friendCodeText}>
-                <span className={styles.friendCodeLabel}>自分のフレンドコード</span>
-                <code className={styles.ownId}>{currentUser.uid}</code>
+                <span className={styles.friendCodeLabel}>自分のフレンドID</span>
+                <code className={styles.ownId}>
+                  {ownFriendId || '発行中...'}
+                </code>
               </div>
               <button
                 className={`${styles.copyBtn} ${copied ? styles.copied : ''}`}
                 type="button"
                 onClick={handleCopyFriendCode}
+                disabled={!ownFriendId}
                 aria-label="フレンドコードをコピー"
               >
                 {copied ? <Check size={17} /> : <Copy size={17} />}
@@ -147,8 +167,13 @@ export default function Friends() {
               <input
                 className={styles.input}
                 value={friendId}
-                onChange={(e) => setFriendId(e.target.value)}
-                placeholder="フレンドIDを入力"
+                onChange={(e) => setFriendId(e.target.value.toLowerCase())}
+                placeholder="j-00000"
+                maxLength={7}
+                pattern="[a-z]-[0-9]{5}"
+                title="半角英字1文字、ハイフン、数字5桁で入力してください"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
               />
               <button className={styles.addBtn} type="submit" disabled={adding}>
@@ -195,7 +220,9 @@ export default function Friends() {
                   )}
                   <div className={styles.friendMeta}>
                     <strong className={styles.friendName}>{friendName}</strong>
-                    <span className={styles.friendId}>ID: {friend.id}</span>
+                    <span className={styles.friendId}>
+                      ID: {friend.friendId || '未発行'}
+                    </span>
                   </div>
                   <button type="button" className={styles.deleteBtn} onClick={() => handleDeleteFriend(friend.id)}>
                       削除
