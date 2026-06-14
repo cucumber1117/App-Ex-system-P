@@ -275,6 +275,12 @@ export default function Home() {
   const displayBaseDateRef = useRef(new Date());
   const hasScrolledToCurrentMonthRef = useRef(false);
   const monthSectionRefs = useRef({});
+  const headerRef = useRef(null);
+  const scrollRafRef = useRef(null);
+  const activeMonthKeyRef = useRef(formatMonthKey(
+    displayBaseDateRef.current.getFullYear(),
+    displayBaseDateRef.current.getMonth(),
+  ));
   const topLoadRef = useRef(null);
   const bottomLoadRef = useRef(null);
   const preserveScrollHeightRef = useRef(null);
@@ -315,7 +321,10 @@ export default function Home() {
   }, [getMonthOffsetFromBase]);
 
   const openMonthView = useCallback((targetYear, targetMonth) => {
-    pendingScrollMonthKeyRef.current = formatMonthKey(targetYear, targetMonth);
+    const targetKey = formatMonthKey(targetYear, targetMonth);
+
+    pendingScrollMonthKeyRef.current = targetKey;
+    activeMonthKeyRef.current = targetKey;
     ensureMonthLoaded(targetYear, targetMonth);
     setCalendarView('month');
   }, [ensureMonthLoaded]);
@@ -522,48 +531,90 @@ export default function Home() {
     return () => observer.disconnect();
   }, [loadPreviousMonths, loadNextMonths, monthRange.startOffset, monthRange.endOffset, calendarView]);
 
+  const syncCurrentMonthWithScroll = useCallback(() => {
+    if (calendarView !== 'month') return;
+    if (!hasScrolledToCurrentMonthRef.current) return;
+    if (pendingScrollMonthKeyRef.current) return;
+    if (typeof window === 'undefined') return;
+
+    const headerHeight = headerRef.current?.getBoundingClientRect().height || 110;
+    const anchorY = headerHeight + 8;
+    let activeSection = null;
+    let activeDistance = Number.POSITIVE_INFINITY;
+
+    calendarMonths.forEach((monthData) => {
+      const section = monthSectionRefs.current[monthData.key];
+      if (!section) return;
+
+      const rect = section.getBoundingClientRect();
+      if (rect.height <= 0) return;
+
+      const isRelevant = rect.bottom >= anchorY && rect.top <= window.innerHeight;
+      if (!isRelevant) return;
+
+      let distance = 0;
+      if (rect.top <= anchorY && rect.bottom > anchorY) {
+        distance = 0;
+      } else if (rect.top > anchorY) {
+        distance = rect.top - anchorY;
+      } else {
+        distance = anchorY - rect.bottom;
+      }
+
+      if (distance < activeDistance) {
+        activeDistance = distance;
+        activeSection = section;
+      }
+    });
+
+    if (!activeSection) return;
+
+    const targetYear = Number(activeSection.dataset.year);
+    const targetMonth = Number(activeSection.dataset.month);
+
+    if (Number.isNaN(targetYear) || Number.isNaN(targetMonth)) return;
+
+    const activeKey = formatMonthKey(targetYear, targetMonth);
+    if (activeMonthKeyRef.current === activeKey) return;
+
+    activeMonthKeyRef.current = activeKey;
+
+    setCurrentDate((prev) => {
+      if (prev.getFullYear() === targetYear && prev.getMonth() === targetMonth) {
+        return prev;
+      }
+
+      const nextDay = Math.min(prev.getDate(), getDaysInMonth(targetYear, targetMonth));
+      return new Date(targetYear, targetMonth, nextDay);
+    });
+  }, [calendarMonths, calendarView]);
+
   useEffect(() => {
     if (calendarView !== 'month') return undefined;
 
-    const sections = calendarMonths
-      .map((monthData) => monthSectionRefs.current[monthData.key])
-      .filter(Boolean);
+    const handleScroll = () => {
+      if (scrollRafRef.current !== null) return;
 
-    if (sections.length === 0) return undefined;
-
-    const observer = new IntersectionObserver((entries) => {
-      const visibleEntries = entries.filter((entry) => entry.isIntersecting);
-      if (visibleEntries.length === 0) return;
-
-      visibleEntries.sort((a, b) => (
-        Math.abs(a.boundingClientRect.top - 110) -
-        Math.abs(b.boundingClientRect.top - 110)
-      ));
-
-      const target = visibleEntries[0].target;
-      const targetYear = Number(target.dataset.year);
-      const targetMonth = Number(target.dataset.month);
-
-      if (Number.isNaN(targetYear) || Number.isNaN(targetMonth)) return;
-
-      setCurrentDate((prev) => {
-        if (prev.getFullYear() === targetYear && prev.getMonth() === targetMonth) {
-          return prev;
-        }
-
-        const nextDay = Math.min(prev.getDate(), getDaysInMonth(targetYear, targetMonth));
-        return new Date(targetYear, targetMonth, nextDay);
+      scrollRafRef.current = window.requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        syncCurrentMonthWithScroll();
       });
-    }, {
-      root: null,
-      rootMargin: '-110px 0px -60% 0px',
-      threshold: [0, 0.1, 0.25],
-    });
+    };
 
-    sections.forEach((section) => observer.observe(section));
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
 
-    return () => observer.disconnect();
-  }, [calendarMonths, calendarView]);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+
+      if (scrollRafRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+    };
+  }, [syncCurrentMonthWithScroll, calendarView]);
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
@@ -953,7 +1004,7 @@ export default function Home() {
   return (
     <div className={styles.home}>
       <div className={`${styles.calendarPage} ${styles[theme]} ${styles[`${calendarView}ViewPage`]}`}>
-        <header className={styles.header}>
+        <header ref={headerRef} className={styles.header}>
           <div className={styles.topRow}>
             <div className={styles.yearArea}>
               <button
