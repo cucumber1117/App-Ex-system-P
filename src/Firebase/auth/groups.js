@@ -55,6 +55,18 @@ export async function isMember(groupId, uid) {
   return m.exists();
 }
 
+export async function listGroupMembers(groupId) {
+  if (!groupId) return [];
+
+  const snapshot = await getDocs(collection(db, 'groups', groupId, 'members'));
+  return snapshot.docs
+    .map((memberDoc) => ({
+      id: memberDoc.id,
+      ...memberDoc.data(),
+    }))
+    .filter((member) => member.uid || member.id);
+}
+
 export async function listJoinedGroups(uid) {
   if (!uid) return [];
 

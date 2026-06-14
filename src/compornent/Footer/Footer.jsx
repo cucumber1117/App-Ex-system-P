@@ -46,6 +46,17 @@ const Footer = () => {
 			</button>
 
 			<button
+				className={`${styles.item} ${location.pathname === '/shared' ? styles.active : ''}`}
+				onClick={() => navigate('/shared')}
+				aria-label="予定共有"
+			>
+				<svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M8 12h8M13 9l3 3-3 3M19 5H9a2 2 0 0 0-2 2v2M5 19h10a2 2 0 0 0 2-2v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+				</svg>
+				<span className={styles.label}>共有</span>
+			</button>
+
+			<button
 				className={`${styles.item} ${location.pathname === '/settings' ? styles.active : ''}`}
 				onClick={handleSettings}
 				aria-label="設定"
