@@ -190,6 +190,12 @@ function buildCalendarMonth(year, month, weekStartDay) {
     });
   }
 
+  const trailingEmptyCount = (7 - (cells.length % 7)) % 7;
+
+  for (let i = 0; i < trailingEmptyCount; i++) {
+    cells.push({ type: 'empty', key: `trailing-empty-${i}` });
+  }
+
   return {
     key: formatMonthKey(year, month),
     year,
@@ -1219,13 +1225,17 @@ export default function Home() {
                   data-year={monthData.year}
                   data-month={monthData.month}
                 >
+                  <div className={styles.monthSectionHeader}>
+                    <div className={styles.monthSectionLabel}>{monthData.month + 1}月</div>
+                  </div>
+
                   <div className={styles.calendarGrid}>
                     {monthData.cells.map((cell, index) => {
                       if (cell.type === 'empty') {
                         return (
                           <div
                             key={`${monthData.key}-${cell.key}-${index}`}
-                            className={`${styles.dayCell} ${styles.emptyCell} ${index < 7 ? styles.firstWeekCell : ''}`}
+                            className={`${styles.dayCell} ${styles.emptyCell}`}
                             aria-hidden="true"
                           />
                         );
@@ -1242,7 +1252,6 @@ export default function Home() {
                           tabIndex={0}
                           className={[
                             styles.dayCell,
-                            index < 7 ? styles.firstWeekCell : '',
                             weekend ? styles.weekendCell : '',
                             today ? styles.todayCell : '',
                           ].join(' ')}
@@ -1250,10 +1259,6 @@ export default function Home() {
                           onKeyDown={(e) => handleDayKeyDown(e, cell.day, monthData.year, monthData.month)}
                         >
                           <div className={styles.dayCellInner}>
-                            {cell.day === 1 && (
-                              <div className={styles.monthMarker}>{monthData.month + 1}月</div>
-                            )}
-
                             <div className={styles.dayNumber}>{cell.day}</div>
 
                             <div className={styles.eventList}>
