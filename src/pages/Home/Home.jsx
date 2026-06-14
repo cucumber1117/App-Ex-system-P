@@ -259,6 +259,7 @@ export default function Home() {
 
   const [weekStart, setWeekStart] = useState('sunday');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [now, setNow] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [eventCategories, setEventCategories] = useState(DEFAULT_EVENT_CATEGORIES);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -300,12 +301,25 @@ export default function Home() {
     () => getWeekDates(currentDate, weekStartDay),
     [currentDate, weekStartDay],
   );
-  const headerTitle = calendarView === 'day' ? currentMonthLabel : `${year}年`;
+  const currentWeekLabel = useMemo(() => {
+    if (currentWeekDates.length === 0) return '';
+
+    const first = currentWeekDates[0];
+    const last = currentWeekDates[currentWeekDates.length - 1];
+    return `${first.getMonth() + 1}月${first.getDate()}日〜${last.getMonth() + 1}月${last.getDate()}日`;
+  }, [currentWeekDates]);
+  const currentHour = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const headerTitle = calendarView === 'day' || calendarView === 'week'
+    ? currentMonthLabel
+    : `${year}年`;
   const headerSubText = calendarView === 'day'
     ? currentDateLabel
-    : calendarView === 'month'
-      ? currentMonthLabel
-      : '年間表示';
+    : calendarView === 'week'
+      ? currentWeekLabel
+      : calendarView === 'month'
+        ? currentMonthLabel
+        : '年間表示';
 
   const landingMonthKey = useMemo(() => {
     const landingDate = displayBaseDateRef.current;
@@ -370,6 +384,14 @@ export default function Home() {
       unsub();
       window.removeEventListener('focus', handleFocus);
     };
+  }, []);
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setNow(new Date());
+    }, 60000);
+
+    return () => window.clearInterval(timerId);
   }, []);
 
   useEffect(() => {
@@ -671,6 +693,29 @@ export default function Home() {
     return dayEvents;
   }, [events, currentDateKey]);
 
+  const currentWeekEventsByDate = useMemo(() => {
+    const grouped = {};
+
+    currentWeekDates.forEach((date) => {
+      const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+      const dayEvents = events
+        .filter((event) => isEventOnDate(event, dateKey))
+        .map((event) => ({
+          ...event,
+          occurrenceDate: dateKey,
+        }));
+
+      dayEvents.sort((a, b) => {
+        if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+        return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+      });
+
+      grouped[dateKey] = dayEvents;
+    });
+
+    return grouped;
+  }, [events, currentWeekDates]);
+
   const isWeekendDate = (targetYear, targetMonth, day) => {
     const dayOfWeek = new Date(targetYear, targetMonth, day).getDay();
     return dayOfWeek === 0 || dayOfWeek === 6;
@@ -684,6 +729,11 @@ export default function Home() {
       today.getMonth() === targetMonth &&
       today.getDate() === day
     );
+  };
+
+  const formatWeekColumnTitle = (date) => {
+    const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+    return `${date.getMonth() + 1}月${date.getDate()}日・${weekdayLabels[date.getDay()]}`;
   };
 
   const openAddModal = (
@@ -961,7 +1011,7 @@ export default function Home() {
   };
 
   const handleHeaderTitleClick = () => {
-    if (calendarView === 'day') {
+    if (calendarView === 'day' || calendarView === 'week') {
       openMonthView(currentDate.getFullYear(), currentDate.getMonth());
       return;
     }
@@ -969,6 +1019,15 @@ export default function Home() {
     if (calendarView === 'month') {
       setCalendarView('year');
     }
+  };
+
+  const handleViewToggle = () => {
+    setCalendarView((prev) => {
+      if (prev === 'year') return 'month';
+      if (prev === 'month') return 'week';
+      if (prev === 'week') return 'month';
+      return 'month';
+    });
   };
 
   const handleYearMonthClick = (targetMonth) => {
@@ -991,13 +1050,12 @@ export default function Home() {
 
   const handleDateStripClick = (date) => {
     setCurrentDate(new Date(date.getFullYear(), date.getMonth(), date.getDate()));
-    setCalendarView('day');
   };
 
   const handleDayClick = (day, targetYear, targetMonth) => {
     if (!day) return;
     setCurrentDate(new Date(targetYear, targetMonth, day));
-    setCalendarView('day');
+    setCalendarView('week');
   };
 
   const handleDayKeyDown = (e, day, targetYear, targetMonth) => {
@@ -1029,6 +1087,7 @@ export default function Home() {
                 className={styles.iconButton}
                 type="button"
                 aria-label="表示切替"
+                onClick={handleViewToggle}
               >
                 ▤
               </button>
@@ -1052,7 +1111,7 @@ export default function Home() {
             </div>
           </div>
 
-          {calendarView === 'day' && (
+          {(calendarView === 'day' || calendarView === 'week') && (
             <div className={styles.dateStrip}>
               {currentWeekDates.map((date) => {
                 const isSelected = (
@@ -1070,14 +1129,26 @@ export default function Home() {
                     type="button"
                     className={[
                       styles.dateStripItem,
+                      calendarView === 'week' ? styles.weekDateStripItem : '',
                       isSelected ? styles.dateStripItemSelected : '',
                       isToday ? styles.dateStripItemToday : '',
+                      isToday ? styles.weekDateStripItemToday : '',
                       isWeekend ? styles.dateStripWeekend : '',
                     ].join(' ')}
                     onClick={() => handleDateStripClick(date)}
                   >
                     <span className={styles.dateStripWeekday}>{weekDayLabel}</span>
-                    <span className={styles.dateStripNumber}>{date.getDate()}</span>
+                    <span
+                      className={[
+                        styles.dateStripNumber,
+                        isSelected ? styles.weekDateStripNumberSelected : '',
+                        isToday ? styles.weekDateStripNumberToday : '',
+                        isWeekend ? styles.weekDateStripNumberWeekend : '',
+                      ].join(' ')}
+                    >
+                      {date.getDate()}
+                      {isToday && <span className={styles.weekTodayMarker} aria-hidden="true" />}
+                    </span>
                   </button>
                 );
               })}
@@ -1154,57 +1225,99 @@ export default function Home() {
             </div>
           )}
 
-          {calendarView === 'day' && (
-            <div className={styles.dayView}>
-              <div className={styles.dayViewTitleRow}>
-                <h2 className={styles.dayViewTitle}>{currentDateLabel}</h2>
-              </div>
+          {calendarView === 'week' && (
+            <div className={styles.weekView}>
+              <div className={styles.weekTimelineWrapper}>
+                <div
+                  className={styles.weekTimelineGrid}
+                  style={{
+                    gridTemplateColumns: `72px repeat(${currentWeekDates.length}, minmax(0, 1fr))`,
+                  }}
+                >
+                  <div className={styles.weekTimelineCorner} />
 
-              <div className={styles.dayAllDayRow}>
-                <span className={styles.dayAllDayLabel}>終日</span>
-                <div className={styles.dayAllDayContent}>
-                  {currentDayEvents.filter((event) => event.allDay).map((event) => (
-                    <button
-                      key={`all-day-${event.id}-${event.occurrenceDate}`}
-                      type="button"
-                      className={styles.dayEventItem}
-                      style={getEventStyle(event)}
-                      onClick={(e) => openEditModal(event, e)}
-                    >
-                      {event.title}
-                    </button>
+                  {currentWeekDates.map((date) => {
+                    const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+                    const isSelected = (
+                      date.getFullYear() === currentDate.getFullYear() &&
+                      date.getMonth() === currentDate.getMonth() &&
+                      date.getDate() === currentDate.getDate()
+                    );
+                    const allDayEvents = (currentWeekEventsByDate[dateKey] || []).filter((event) => event.allDay);
+
+                    return (
+                      <div
+                        key={`week-header-${dateKey}`}
+                        className={[
+                          styles.weekDayHeader,
+                          isSelected ? styles.weekDayHeaderSelected : '',
+                        ].join(' ')}
+                      >
+                        <div className={styles.weekDayHeaderText}>{formatWeekColumnTitle(date)}</div>
+
+                        {allDayEvents.length > 0 && (
+                          <div className={styles.weekHeaderAllDayList}>
+                            {allDayEvents.map((event) => (
+                              <button
+                                key={`week-all-day-${event.id}-${event.occurrenceDate}`}
+                                type="button"
+                                className={`${styles.dayEventItem} ${styles.weekEventItem}`}
+                                style={getEventStyle(event)}
+                                onClick={(e) => openEditModal(event, e)}
+                              >
+                                {event.title}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <React.Fragment key={`week-hour-${hour}`}>
+                      <div className={styles.weekTimeLabel}>{pad(hour)}:00</div>
+
+                      {currentWeekDates.map((date) => {
+                        const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+                        const hourEvents = (currentWeekEventsByDate[dateKey] || []).filter((event) => {
+                          if (event.allDay) return false;
+                          const eventHour = Number(String(event.startTime || '00:00').split(':')[0]);
+                          return eventHour === hour;
+                        });
+
+                        const isTodayColumn = isTodayDate(date.getFullYear(), date.getMonth(), date.getDate());
+
+                        return (
+                          <div key={`${dateKey}-${hour}`} className={styles.weekHourCell}>
+                            {isTodayColumn && hour === currentHour && (
+                              <div
+                                className={styles.currentTimeLine}
+                                style={{ top: `${(currentMinutes / 60) * 100}%` }}
+                                aria-hidden="true"
+                              >
+                                <span className={styles.currentTimeDot} />
+                              </div>
+                            )}
+
+                            {hourEvents.map((event) => (
+                              <button
+                                key={`${event.id}-${event.occurrenceDate}-${hour}`}
+                                type="button"
+                                className={`${styles.dayEventItem} ${styles.weekEventItem}`}
+                                style={getEventStyle(event)}
+                                onClick={(e) => openEditModal(event, e)}
+                              >
+                                <span className={styles.dayEventTime}>{getEventTimeLabel(event)}</span>
+                                <span className={styles.dayEventTitle}>{event.title}</span>
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
                   ))}
                 </div>
-              </div>
-
-              <div className={styles.dayTimeline}>
-                {Array.from({ length: 24 }, (_, hour) => {
-                  const hourEvents = currentDayEvents.filter((event) => {
-                    if (event.allDay) return false;
-                    const eventHour = Number(String(event.startTime || '00:00').split(':')[0]);
-                    return eventHour === hour;
-                  });
-
-                  return (
-                    <div key={hour} className={styles.hourRow}>
-                      <div className={styles.hourLabel}>{pad(hour)}:00</div>
-                      <div className={styles.hourContent}>
-                        {hourEvents.map((event) => (
-                          <button
-                            key={`${event.id}-${event.occurrenceDate}-${hour}`}
-                            type="button"
-                            className={styles.dayEventItem}
-                            style={getEventStyle(event)}
-                            onClick={(e) => openEditModal(event, e)}
-                          >
-                            <span className={styles.dayEventTime}>{getEventTimeLabel(event)}</span>
-                            <span className={styles.dayEventTitle}>{event.title}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </div>
           )}
