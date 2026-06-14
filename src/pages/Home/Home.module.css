@@ -1177,7 +1177,7 @@
 }
 
 .weekViewPage {
-  --calendar-header-height: 210px;
+  --calendar-header-height: 148px;
 }
 
 .dayViewPage {
@@ -1566,7 +1566,7 @@
   }
 
   .weekViewPage {
-    --calendar-header-height: 178px;
+    --calendar-header-height: 126px;
   }
 
   .dayViewPage {
@@ -1860,4 +1860,11 @@
   .weekViewPage .weekDateStripItem.dateStripItemSelected .weekTodayMarker {
     bottom: -7px;
   }
+}
+
+
+/* remove duplicate week date row above timeline */
+.weekTimelineCorner,
+.weekDayHeader {
+  display: none !important;
 }

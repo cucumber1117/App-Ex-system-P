@@ -1234,46 +1234,6 @@ export default function Home() {
                     gridTemplateColumns: `72px repeat(${currentWeekDates.length}, minmax(0, 1fr))`,
                   }}
                 >
-                  <div className={styles.weekTimelineCorner} />
-
-                  {currentWeekDates.map((date) => {
-                    const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
-                    const isSelected = (
-                      date.getFullYear() === currentDate.getFullYear() &&
-                      date.getMonth() === currentDate.getMonth() &&
-                      date.getDate() === currentDate.getDate()
-                    );
-                    const allDayEvents = (currentWeekEventsByDate[dateKey] || []).filter((event) => event.allDay);
-
-                    return (
-                      <div
-                        key={`week-header-${dateKey}`}
-                        className={[
-                          styles.weekDayHeader,
-                          isSelected ? styles.weekDayHeaderSelected : '',
-                        ].join(' ')}
-                      >
-                        <div className={styles.weekDayHeaderText}>{formatWeekColumnTitle(date)}</div>
-
-                        {allDayEvents.length > 0 && (
-                          <div className={styles.weekHeaderAllDayList}>
-                            {allDayEvents.map((event) => (
-                              <button
-                                key={`week-all-day-${event.id}-${event.occurrenceDate}`}
-                                type="button"
-                                className={`${styles.dayEventItem} ${styles.weekEventItem}`}
-                                style={getEventStyle(event)}
-                                onClick={(e) => openEditModal(event, e)}
-                              >
-                                {event.title}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
                   {Array.from({ length: 24 }, (_, hour) => (
                     <React.Fragment key={`week-hour-${hour}`}>
                       <div className={styles.weekTimeLabel}>{pad(hour)}:00</div>
