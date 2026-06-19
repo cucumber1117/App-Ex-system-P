@@ -30,6 +30,7 @@ const Group = () => {
   const [inviteFriendId, setInviteFriendId] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteError, setInviteError] = useState('');
+  const [openedDescriptionId, setOpenedDescriptionId] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -302,9 +303,27 @@ const Group = () => {
                       <strong>{g.memberCount ?? 0}</strong>
                     </p>
 
-                    <p className={styles.detailItem}>
-                      説明:<strong>{g.detail || "説明はありません"}</strong>
-                    </p>
+                    
+                    <div className={styles.detailItem}>
+                      <div className = {styles.descriptionRow}>
+                        <span className={styles.descriptionLabel}>説明</span>
+
+                        <button className={styles.showDesBtn} onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenedDescriptionId(
+                            openedDescriptionId === g.id ? null : g.id
+                          );
+                        }}
+                        >
+                          {openedDescriptionId === g.id ? "非表示" : "表示"}
+                        </button>
+                    </div>
+                    {openedDescriptionId === g.id && (
+                      <p className= {styles.descriptionText}>
+                        {g.detail || "説明はありません"}
+                      </p>
+                    )}
+                    </div>
 
                     <div className={styles.joinedActions}>
                       <div className={styles.joinedLabel}>
