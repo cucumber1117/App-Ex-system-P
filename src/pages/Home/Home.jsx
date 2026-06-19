@@ -290,6 +290,35 @@ function buildEventFromGroupShare(share) {
   };
 }
 
+function getSharedScheduleKey(share) {
+  const schedule = share.schedule || {};
+  const sourceId = share.sourceEventId || schedule.id || '';
+
+  if (sourceId) {
+    return `${share.groupId || ''}:${share.senderUid || ''}:${sourceId}`;
+  }
+
+  return [
+    share.groupId || '',
+    share.senderUid || '',
+    schedule.title || '',
+    schedule.startDate || '',
+    schedule.startTime || '',
+    schedule.endDate || '',
+    schedule.endTime || '',
+  ].join('|');
+}
+
+function dedupeSharedSchedules(shares) {
+  const sharesByKey = new Map();
+
+  shares.forEach((share) => {
+    sharesByKey.set(getSharedScheduleKey(share), share);
+  });
+
+  return [...sharesByKey.values()];
+}
+
 export default function Home() {
   const { theme } = useTheme();
 
@@ -1038,17 +1067,18 @@ export default function Home() {
   }, [calendarView, calendarYears, syncCurrentYearWithScroll]);
 
   const visibleEvents = useMemo(() => {
-    if (!selectedSharedGroupId) return events;
-
-    const selectedGroupShares = receivedGroupShares.filter((share) => (
-      share.groupId === selectedSharedGroupId
-    ));
+    const targetGroupShares = selectedSharedGroupId
+      ? receivedGroupShares.filter((share) => share.groupId === selectedSharedGroupId)
+      : receivedGroupShares;
+    const selectedGroupShares = dedupeSharedSchedules(targetGroupShares);
     const selectedShareIds = new Set(selectedGroupShares.map((share) => share.id));
-    const ownSharedEvents = events.filter((event) => (
-      event.isShared && event.shareTargetGroupId === selectedSharedGroupId
-    ) || (
-      event.sharedScheduleId && selectedShareIds.has(event.sharedScheduleId)
-    ));
+    const ownSharedEvents = selectedSharedGroupId
+      ? events.filter((event) => (
+        event.isShared && event.shareTargetGroupId === selectedSharedGroupId
+      ) || (
+        event.sharedScheduleId && selectedShareIds.has(event.sharedScheduleId)
+      ))
+      : events;
     const importedShareIds = new Set(
       events
         .map((event) => event.sharedScheduleId)

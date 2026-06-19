@@ -12,6 +12,7 @@ import { db } from '../firebaseConfig';
 import { isMember, listGroupMembers } from './groups';
 
 const SHAREABLE_EVENT_FIELDS = [
+  'id',
   'title',
   'location',
   'allDay',
@@ -33,6 +34,11 @@ function normalizeEvent(event = {}) {
     }
     return result;
   }, {});
+}
+
+function getGroupShareDocId(senderUid, event = {}) {
+  const sourceId = event.id || `${event.title || 'event'}-${event.startDate || ''}-${event.startTime || ''}`;
+  return `${senderUid}-${sourceId}`.replace(/[^A-Za-z0-9_-]/g, '_');
 }
 
 function mapShare(documentSnapshot) {
@@ -106,9 +112,10 @@ export async function shareScheduleToGroup({
   const senderName = sender.displayName || sender.email || '名前未設定';
   const groupName = group.name || '名前未設定のグループ';
   const sharedAt = serverTimestamp();
-  const groupShareRef = doc(collection(db, 'groups', group.id, 'sharedSchedules'));
+  const groupShareRef = doc(db, 'groups', group.id, 'sharedSchedules', getGroupShareDocId(sender.uid, event));
   const groupShareData = {
     shareId: groupShareRef.id,
+    sourceEventId: event.id || '',
     senderUid: sender.uid,
     senderName,
     targetType: 'group',
