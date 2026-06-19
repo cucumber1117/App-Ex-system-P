@@ -328,7 +328,9 @@ export default function Home() {
   const monthTransitionLockRef = useRef(false);
   const monthTransitionTimerRef = useRef(null);
   const weekTouchStartRef = useRef({ x: 0, y: 0, moved: false });
+  const weekPointerStartRef = useRef({ x: 0, y: 0, active: false, moved: false });
   const weekNavigateLockRef = useRef(false);
+  const weekTimelineWrapperRef = useRef(null);
   const yearTouchStartRef = useRef({ x: 0, y: 0, moved: false });
   const yearNavigateLockRef = useRef(false);
   const yearSectionRefs = useRef({});
@@ -1528,6 +1530,68 @@ export default function Home() {
     weekTouchStartRef.current = { x: 0, y: 0, moved: false };
   }, []);
 
+  const handleWeekPointerDown = useCallback((event) => {
+    if (event.pointerType === 'touch') return;
+
+    weekPointerStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      active: true,
+      moved: false,
+    };
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }, []);
+
+  const handleWeekPointerMove = useCallback((event) => {
+    const start = weekPointerStartRef.current;
+    if (!start.active || start.moved) return;
+
+    const diffX = event.clientX - start.x;
+    const diffY = event.clientY - start.y;
+
+    if (Math.abs(diffX) < 64 || Math.abs(diffX) <= Math.abs(diffY)) return;
+
+    weekPointerStartRef.current = {
+      ...start,
+      moved: true,
+    };
+
+    handleWeekSwipeNavigate(diffX < 0 ? 'next' : 'prev');
+  }, [handleWeekSwipeNavigate]);
+
+  const handleWeekPointerEnd = useCallback((event) => {
+    weekPointerStartRef.current = { x: 0, y: 0, active: false, moved: false };
+
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (calendarView !== 'week') return undefined;
+
+    const target = weekTimelineWrapperRef.current;
+    if (!target) return undefined;
+
+    const handleNativeWheel = (event) => {
+      const horizontalDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+        ? event.deltaX
+        : (event.shiftKey ? event.deltaY : 0);
+
+      if (Math.abs(horizontalDelta) < 32) return;
+
+      event.preventDefault();
+      handleWeekSwipeNavigate(horizontalDelta > 0 ? 'next' : 'prev');
+    };
+
+    target.addEventListener('wheel', handleNativeWheel, { passive: false });
+
+    return () => {
+      target.removeEventListener('wheel', handleNativeWheel);
+    };
+  }, [calendarView, handleWeekSwipeNavigate]);
+
   const moveYearBy = useCallback((yearOffset) => {
     setCurrentDate((prev) => {
       const nextYear = prev.getFullYear() + yearOffset;
@@ -1834,14 +1898,18 @@ export default function Home() {
           )}
 
           {calendarView === 'week' && (
-            <div
-              className={styles.weekView}
-              onWheel={handleWeekWheel}
-              onTouchStart={handleWeekTouchStart}
-              onTouchMove={handleWeekTouchMove}
-              onTouchEnd={handleWeekTouchEnd}
-            >
-              <div className={styles.weekTimelineWrapper}>
+            <div className={styles.weekView}>
+              <div
+                ref={weekTimelineWrapperRef}
+                className={styles.weekTimelineWrapper}
+                onTouchStart={handleWeekTouchStart}
+                onTouchMove={handleWeekTouchMove}
+                onTouchEnd={handleWeekTouchEnd}
+                onPointerDown={handleWeekPointerDown}
+                onPointerMove={handleWeekPointerMove}
+                onPointerUp={handleWeekPointerEnd}
+                onPointerCancel={handleWeekPointerEnd}
+              >
                 <div
                   className={styles.weekTimelineGrid}
                   style={{

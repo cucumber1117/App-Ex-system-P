@@ -1982,3 +1982,22 @@
   background: transparent !important;
   color: inherit !important;
 }
+
+
+/* week navigation re-added after conflict resolution */
+.weekView {
+  width: 100%;
+  touch-action: pan-y;
+}
+
+.weekTimelineWrapper {
+  overflow-x: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.weekTimelineWrapper:active {
+  cursor: grabbing;
+}
