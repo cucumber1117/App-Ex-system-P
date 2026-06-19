@@ -280,6 +280,67 @@ textarea.createInput{
 	transition: transform 0.1s;
 }
 
+.renameBtn {
+	margin-left: auto;
+	padding: 10px 16px;
+	border: none;
+	border-radius: 12px;
+	background: #eaf2ff;
+	color: #2f80ed;
+	font-size: 14px;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.renameBtn + .leaveBtn {
+	margin-left: 0;
+}
+
+.renameForm {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.renameInput {
+	min-width: 0;
+	padding: 10px 12px;
+	border: 1px solid #dfe3ec;
+	border-radius: 12px;
+	background: #ffffff;
+	color: #333;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.renameSaveBtn,
+.renameCancelBtn {
+	padding: 10px 12px;
+	border: none;
+	border-radius: 12px;
+	font-weight: 800;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.renameSaveBtn {
+	background: #2f80ed;
+	color: #ffffff;
+}
+
+.renameSaveBtn:disabled {
+	cursor: not-allowed;
+	opacity: .6;
+}
+
+.renameCancelBtn {
+	background: #eef1f5;
+	color: #555;
+}
+
 .createCard{
 	margin-top: 32px;
 	padding: 20px;
@@ -401,6 +462,22 @@ textarea.createInput{
 	color: #fecaca;
 }
 
+.dark .renameBtn {
+	background: rgba(47, 128, 237, 0.18);
+	color: #9cc8ff;
+}
+
+.dark .renameInput {
+	background: #111827;
+	color: #ffffff;
+	border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .renameCancelBtn {
+	background: #273244;
+	color: #e5e7eb;
+}
+
 .dark .createCard {
 	background: linear-gradient(135deg, #3b4fd1, #5b4de6);
 
@@ -464,6 +541,12 @@ textarea.createInput{
 		align-items: stretch;
 	}
 
+	.renameForm {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+	}
+
 	.inviteActions {
 		width: 100%;
 	}
@@ -500,6 +583,7 @@ textarea.createInput{
 
 .joinBtn:active,
 .leaveBtn:active,
+.renameBtn:active,
 .createBtn:active,
 .acceptBtn:active,
 .declineBtn:active,

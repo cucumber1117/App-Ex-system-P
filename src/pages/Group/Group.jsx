@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import styles from './Group.module.css';
-import { createGroup, listGroups, listJoinedGroups, getGroupDetails, isMember, joinGroup, leaveGroup, inviteFriendToGroup, listGroupInvites, acceptGroupInvite, declineGroupInvite } from '../../Firebase/auth/groups';
+import { createGroup, listGroups, listJoinedGroups, getGroupDetails, isMember, joinGroup, leaveGroup, inviteFriendToGroup, listGroupInvites, acceptGroupInvite, declineGroupInvite, updateGroupName } from '../../Firebase/auth/groups';
 import { listFriends } from '../../Firebase/auth/friends';
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -32,6 +32,9 @@ const Group = () => {
   const [inviteError, setInviteError] = useState('');
   const [openedDescriptionId, setOpenedDescriptionId] = useState(null);
   const [selectedFriends, setSelectedFriends] = useState([]);
+  const [editingGroupId, setEditingGroupId] = useState('');
+  const [editingGroupName, setEditingGroupName] = useState('');
+  const [savingGroupName, setSavingGroupName] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -169,21 +172,74 @@ const Group = () => {
     }
   };
 
-  const handleLeave = async () => {
-    if (!currentUser || !selectedId) return;
+  const handleLeave = async (groupId = selectedId) => {
+    if (!currentUser || !groupId) return;
     try {
       setLoadingDetails(true);
-      await leaveGroup(selectedId, currentUser.uid);
-      const details = await getGroupDetails(selectedId);
-      setSelectedDetails(details);
-      setIsJoined(false);
-      setJoinedGroups((prev) => prev.filter((group) => group.id !== selectedId));
-      setGroups((prev) => prev.map((group) => (group.id === selectedId && details ? details : group)));
+      await leaveGroup(groupId, currentUser.uid);
+      const details = await getGroupDetails(groupId);
+      if (selectedId === groupId) {
+        setSelectedDetails(details);
+        setIsJoined(false);
+      }
+      setJoinedGroups((prev) => prev.filter((group) => group.id !== groupId));
+      setGroups((prev) => prev.map((group) => (group.id === groupId && details ? details : group)));
       await refreshJoinedGroups(currentUser.uid);
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const startEditingGroupName = (group, e) => {
+    e.stopPropagation();
+    setEditingGroupId(group.id);
+    setEditingGroupName(group.name || '');
+    setInviteError('');
+    setInviteMessage('');
+  };
+
+  const cancelEditingGroupName = (e) => {
+    e.stopPropagation();
+    setEditingGroupId('');
+    setEditingGroupName('');
+  };
+
+  const handleUpdateGroupName = async (e, groupId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentUser || !groupId) return;
+
+    try {
+      setSavingGroupName(true);
+      setInviteError('');
+      setInviteMessage('');
+      const nextName = await updateGroupName(groupId, currentUser.uid, editingGroupName);
+      const applyName = (group) => (
+        group.id === groupId ? { ...group, name: nextName } : group
+      );
+
+      setJoinedGroups((prev) => prev.map(applyName));
+      setGroups((prev) => prev.map(applyName));
+      setGroupInvites((prev) => prev.map((invite) => (
+        invite.group?.id === groupId
+          ? { ...invite, group: { ...invite.group, name: nextName } }
+          : invite
+      )));
+
+      if (selectedDetails?.id === groupId) {
+        setSelectedDetails((prev) => prev ? { ...prev, name: nextName } : prev);
+      }
+
+      setEditingGroupId('');
+      setEditingGroupName('');
+      setInviteMessage('グループ名を変更しました');
+    } catch (err) {
+      console.error(err);
+      setInviteError(err.message || 'グループ名を変更できませんでした');
+    } finally {
+      setSavingGroupName(false);
     }
   };
 
@@ -196,7 +252,6 @@ const Group = () => {
       setInviteMessage('');
       await inviteFriendToGroup(groupId, currentUser.uid, inviteFriendId);
       setInviteFriendId('');
-      setInviteMessage('招待を送りました');
     } catch (err) {
       console.error(err);
       setInviteError(err.message || '招待を送れませんでした');
@@ -296,9 +351,31 @@ const Group = () => {
                 className={styles.joinedItem}
                 onClick={() => setOpenedJoinedGroupId(openedJoinedGroupId === g.id ? null : g.id)}
               >
-                <span className={styles.groupName}>
-                  {g.name}
-                </span>
+                {editingGroupId === g.id ? (
+                  <form
+                    className={styles.renameForm}
+                    onSubmit={(e) => handleUpdateGroupName(e, g.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      className={styles.renameInput}
+                      value={editingGroupName}
+                      onChange={(e) => setEditingGroupName(e.target.value)}
+                      autoFocus
+                      required
+                    />
+                    <button className={styles.renameSaveBtn} type="submit" disabled={savingGroupName}>
+                      {savingGroupName ? '保存中' : '保存'}
+                    </button>
+                    <button className={styles.renameCancelBtn} type="button" onClick={cancelEditingGroupName}>
+                      やめる
+                    </button>
+                  </form>
+                ) : (
+                  <span className={styles.groupName}>
+                    {g.name}
+                  </span>
+                )}
 
                 <span className={styles.groupId}>
                   ID: {g.groupId || g.id}
@@ -339,12 +416,16 @@ const Group = () => {
                         参加済み
                       </div>
 
-                      <button className={styles.leaveBtn} onClick={(e) => {e.stopPropagation(); handleLeave()}}>
+                      <button className={styles.renameBtn} onClick={(e) => startEditingGroupName(g, e)}>
+                        名前変更
+                      </button>
+
+                      <button className={styles.leaveBtn} onClick={(e) => {e.stopPropagation(); handleLeave(g.id)}}>
                         脱退
                       </button>
                     </div>
 
-                    <form className = {styles.inviteForm} onSubmit = {handleInvite} onClick = {(e) => e.stopPropagation()}>
+                    <form className = {styles.inviteForm} onSubmit = {(e) => handleInvite(e, g.id)} onClick = {(e) => e.stopPropagation()}>
                       <select className= {styles.inviteSelect} value={inviteFriendId} onChange={(e) => setInviteFriendId(e.target.value)} required>
                         <option value="">フレンドを選択</option>
 
@@ -411,6 +492,26 @@ const Group = () => {
           {!loadingDetails && selectedDetails && (
               <div>
                 <h2 className={styles.detailTitle}>{selectedDetails.name}</h2>
+                {editingGroupId === selectedDetails.id && (
+                  <form
+                    className={styles.renameForm}
+                    onSubmit={(e) => handleUpdateGroupName(e, selectedDetails.id)}
+                  >
+                    <input
+                      className={styles.renameInput}
+                      value={editingGroupName}
+                      onChange={(e) => setEditingGroupName(e.target.value)}
+                      autoFocus
+                      required
+                    />
+                    <button className={styles.renameSaveBtn} type="submit" disabled={savingGroupName}>
+                      {savingGroupName ? '保存中' : '保存'}
+                    </button>
+                    <button className={styles.renameCancelBtn} type="button" onClick={cancelEditingGroupName}>
+                      やめる
+                    </button>
+                  </form>
+                )}
                 <p className={styles.detailItem}>グループID: <strong>{selectedDetails.groupId || selectedDetails.id}</strong></p>
                 <p className={styles.detailItem}>メンバー数: <strong>{selectedDetails.memberCount ?? 0}</strong></p>
                 <p className={styles.detailItem}>説明:<strong>{selectedDetails.detail || "説明はありません"}</strong></p>
@@ -420,9 +521,10 @@ const Group = () => {
                     <>
                       <div className={styles.joinedActions}>
                         <div className={styles.joinedLabel}>参加済み</div>
-                        <button className={styles.leaveBtn} onClick={handleLeave}>脱退</button>
+                        <button className={styles.renameBtn} onClick={(e) => startEditingGroupName(selectedDetails, e)}>名前変更</button>
+                        <button className={styles.leaveBtn} onClick={() => handleLeave(selectedDetails.id)}>脱退</button>
                       </div>
-                      <form className={styles.inviteForm} onSubmit={(e) => handleInvite(e, g.id)}>
+                      <form className={styles.inviteForm} onSubmit={(e) => handleInvite(e, selectedDetails.id)}>
                         <select
                           className={styles.inviteSelect}
                           value={inviteFriendId}

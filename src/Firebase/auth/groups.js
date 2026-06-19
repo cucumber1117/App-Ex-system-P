@@ -80,6 +80,24 @@ export async function getGroupDetails(groupId) {
   return { id: d.id, ...data, memberCount };
 }
 
+export async function updateGroupName(groupId, uid, name) {
+  const nextName = String(name || '').trim();
+
+  if (!groupId) throw new Error('グループが選択されていません');
+  if (!uid) throw new Error('ログインが必要です');
+  if (!nextName) throw new Error('グループ名を入力してください');
+  if (!(await isMember(groupId, uid))) {
+    throw new Error('参加中のグループのみ編集できます');
+  }
+
+  await updateDoc(doc(db, 'groups', groupId), {
+    name: nextName,
+    updatedAt: serverTimestamp(),
+  });
+
+  return nextName;
+}
+
 export async function isMember(groupId, uid) {
   if (!uid) return false;
   const m = await getDoc(doc(db, 'groups', groupId, 'members', uid));
