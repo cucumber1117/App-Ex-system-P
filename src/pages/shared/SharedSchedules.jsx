@@ -13,21 +13,12 @@ import {
   shareSchedule,
   shareScheduleToGroup,
 } from '../../Firebase/auth/sharedSchedules';
+import {
+  listCalendarEvents,
+  saveCalendarEvent,
+} from '../../Firebase/auth/calendarEvents';
 import { useTheme } from '../../contexts/ThemeContext';
 import styles from './SharedSchedules.module.css';
-
-const EVENT_STORAGE_KEY = 'calendarEvents';
-
-function readLocalEvents() {
-  try {
-    const saved = localStorage.getItem(EVENT_STORAGE_KEY);
-    const events = saved ? JSON.parse(saved) : [];
-    return Array.isArray(events) ? events : [];
-  } catch (error) {
-    console.error('read local events', error);
-    return [];
-  }
-}
 
 function formatScheduleDate(schedule = {}) {
   if (!schedule.startDate) return '日時未設定';
@@ -55,7 +46,7 @@ function statusLabel(status) {
 export default function SharedSchedules() {
   const { theme } = useTheme();
   const [currentUser, setCurrentUser] = useState(null);
-  const [localEvents, setLocalEvents] = useState(() => readLocalEvents());
+  const [calendarEvents, setCalendarEvents] = useState([]);
   const [friends, setFriends] = useState([]);
   const [groups, setGroups] = useState([]);
   const [received, setReceived] = useState([]);
@@ -72,6 +63,7 @@ export default function SharedSchedules() {
     if (!uid) {
       setFriends([]);
       setGroups([]);
+      setCalendarEvents([]);
       setReceived([]);
       setSent([]);
       return;
@@ -81,14 +73,16 @@ export default function SharedSchedules() {
     setError('');
 
     try {
-      const [friendItems, groupItems, receivedItems, sentItems] = await Promise.all([
+      const [friendItems, groupItems, eventItems, receivedItems, sentItems] = await Promise.all([
         listFriends(uid),
         listJoinedGroups(uid),
+        listCalendarEvents(uid),
         listReceivedSchedules(uid),
         listSentSchedules(uid),
       ]);
       setFriends(friendItems);
       setGroups(groupItems);
+      setCalendarEvents(eventItems);
       setReceived(receivedItems);
       setSent(sentItems);
     } catch (err) {
@@ -102,7 +96,6 @@ export default function SharedSchedules() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      setLocalEvents(readLocalEvents());
       refreshData(user?.uid);
     });
 
@@ -110,8 +103,8 @@ export default function SharedSchedules() {
   }, [refreshData]);
 
   const selectedEvent = useMemo(
-    () => localEvents.find((event) => String(event.id) === selectedEventId),
-    [localEvents, selectedEventId]
+    () => calendarEvents.find((event) => String(event.id) === selectedEventId),
+    [calendarEvents, selectedEventId]
   );
   const selectedFriend = useMemo(
     () => {
@@ -173,8 +166,8 @@ export default function SharedSchedules() {
     setError('');
 
     try {
-      const events = readLocalEvents();
-      const alreadyImported = events.some(
+      const latestEvents = await listCalendarEvents(currentUser.uid);
+      const alreadyImported = latestEvents.some(
         (event) => event.sharedScheduleId === share.id
       );
 
@@ -187,15 +180,11 @@ export default function SharedSchedules() {
           sharedByUid: share.senderUid,
           sharedByName: share.senderName,
         };
-        localStorage.setItem(
-          EVENT_STORAGE_KEY,
-          JSON.stringify([...events, importedEvent])
-        );
+        await saveCalendarEvent(currentUser.uid, importedEvent);
       }
 
       await acceptSharedSchedule(currentUser.uid, share);
       await markSharedScheduleImported(currentUser.uid, share.id);
-      setLocalEvents(readLocalEvents());
       setMessage(alreadyImported ? 'この予定は追加済みです' : '予定表に追加しました');
       await refreshData(currentUser.uid);
     } catch (err) {
@@ -247,7 +236,7 @@ export default function SharedSchedules() {
               <div className={styles.panelIcon}><Send size={20} /></div>
               <div>
                 <h2>予定を送る</h2>
-                <p>端末に保存されている予定をフレンドまたはグループへ共有します。</p>
+                <p>予定表に保存されている予定をフレンドまたはグループへ共有します。</p>
               </div>
             </div>
 
@@ -260,7 +249,7 @@ export default function SharedSchedules() {
                   required
                 >
                   <option value="">予定を選択</option>
-                  {localEvents.map((event) => (
+                  {calendarEvents.map((event) => (
                     <option key={event.id} value={String(event.id)}>
                       {event.startDate || '日付なし'} {event.title}
                     </option>
@@ -302,7 +291,7 @@ export default function SharedSchedules() {
                 type="submit"
                 disabled={
                   sending
-                  || localEvents.length === 0
+                  || calendarEvents.length === 0
                   || (friends.length === 0 && groups.length === 0)
                 }
               >
@@ -311,7 +300,7 @@ export default function SharedSchedules() {
               </button>
             </form>
 
-            {localEvents.length === 0 && (
+            {calendarEvents.length === 0 && (
               <p className={styles.helper}>共有できる予定がありません。ホームで予定を作成してください。</p>
             )}
             {friends.length === 0 && groups.length === 0 && (

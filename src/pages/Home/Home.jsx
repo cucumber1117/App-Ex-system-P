@@ -4,6 +4,14 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserSettings } from '../../Firebase/auth/users';
+import { listJoinedGroups } from '../../Firebase/auth/groups';
+import { shareScheduleToGroup } from '../../Firebase/auth/sharedSchedules';
+import {
+  deleteCalendarEvent,
+  listCalendarEvents,
+  saveCalendarEvent,
+  saveCalendarEvents,
+} from '../../Firebase/auth/calendarEvents';
 
 const WEEK_DAYS = [
   { label: '日', day: 0 },
@@ -81,6 +89,7 @@ function getDefaultEventForm(baseDate = new Date(), category = getDefaultCategor
     categoryColor: category.color,
     repeat: 'none',
     isShared: false,
+    shareTargetGroupId: '',
     notes: '',
   };
 }
@@ -254,13 +263,26 @@ function readStoredCategories() {
   }
 }
 
+function readStoredEvents() {
+  try {
+    const saved = localStorage.getItem(EVENT_STORAGE_KEY);
+    if (!saved) return [];
+
+    const parsedEvents = JSON.parse(saved);
+    return Array.isArray(parsedEvents) ? parsedEvents : [];
+  } catch (error) {
+    console.error('failed to load events', error);
+    return [];
+  }
+}
+
 export default function Home() {
   const { theme } = useTheme();
 
   const [weekStart, setWeekStart] = useState('sunday');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [now, setNow] = useState(new Date());
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState(() => readStoredEvents());
   const [eventCategories, setEventCategories] = useState(DEFAULT_EVENT_CATEGORIES);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [eventForm, setEventForm] = useState(() => getDefaultEventForm());
@@ -285,6 +307,10 @@ export default function Home() {
     };
   });
   const [calendarView, setCalendarView] = useState('month');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [joinedGroups, setJoinedGroups] = useState([]);
+  const [isLoadingShareGroups, setIsLoadingShareGroups] = useState(false);
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
 
   const displayBaseDateRef = useRef(new Date());
   const hasScrolledToCurrentMonthRef = useRef(false);
@@ -427,16 +453,42 @@ export default function Home() {
     setWeekStart(readLocalWeekStart());
 
     const unsub = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+
       if (!user) {
         setWeekStart(readLocalWeekStart());
+        setJoinedGroups([]);
+        setIsLoadingShareGroups(false);
+        setEvents(readStoredEvents());
         return;
       }
 
       try {
-        const settings = await getUserSettings(user.uid);
+        setIsLoadingShareGroups(true);
+        const [settings, groupItems, firebaseEvents] = await Promise.all([
+          getUserSettings(user.uid),
+          listJoinedGroups(user.uid),
+          listCalendarEvents(user.uid),
+        ]);
+        const localEvents = readStoredEvents();
+        const localEventsToMigrate = localEvents.filter((localEvent) => (
+          localEvent?.id && !firebaseEvents.some((event) => String(event.id) === String(localEvent.id))
+        ));
+
+        if (localEventsToMigrate.length > 0) {
+          await saveCalendarEvents(user.uid, localEventsToMigrate);
+        }
+
         setWeekStart(settings.weekStart || readLocalWeekStart());
+        setJoinedGroups(groupItems);
+        setEvents([...firebaseEvents, ...localEventsToMigrate]);
+        localStorage.removeItem(EVENT_STORAGE_KEY);
       } catch (err) {
-        console.error('load week start', err);
+        console.error('load home data', err);
+        setJoinedGroups([]);
+        setEvents(readStoredEvents());
+      } finally {
+        setIsLoadingShareGroups(false);
       }
     });
 
@@ -458,28 +510,18 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(EVENT_STORAGE_KEY);
-      if (saved) {
-        const parsedEvents = JSON.parse(saved);
-        setEvents(Array.isArray(parsedEvents) ? parsedEvents : []);
-      }
-    } catch (error) {
-      console.error('failed to load events', error);
-    }
-  }, []);
-
-  useEffect(() => {
     setEventCategories(readStoredCategories());
   }, []);
 
   useEffect(() => {
+    if (currentUser) return;
+
     try {
       localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events));
     } catch (error) {
       console.error('failed to save events', error);
     }
-  }, [events]);
+  }, [currentUser, events]);
 
   useEffect(() => {
     try {
@@ -1094,6 +1136,8 @@ export default function Home() {
       categoryColor,
       repeat: calendarEvent.repeat || 'none',
       isShared: Boolean(calendarEvent.isShared),
+      shareTargetGroupId: calendarEvent.shareTargetGroupId || '',
+      shareTargetGroupName: calendarEvent.shareTargetGroupName || '',
       notes: calendarEvent.notes || '',
     });
     setIsModalOpen(true);
@@ -1153,7 +1197,7 @@ export default function Home() {
     }));
   };
 
-  const handleSaveCategory = () => {
+  const handleSaveCategory = async () => {
     const name = categoryDraft.name.trim();
     const color = normalizeColor(categoryDraft.color);
 
@@ -1164,6 +1208,25 @@ export default function Home() {
 
     if (categoryDraftMode === 'edit' && categoryDraft.id) {
       const updatedCategory = { id: categoryDraft.id, name, color };
+      const updatedEvents = events.map((event) => (
+        event.categoryId === categoryDraft.id
+          ? {
+              ...event,
+              categoryName: name,
+              categoryColor: color,
+            }
+          : event
+      ));
+
+      if (currentUser) {
+        try {
+          await saveCalendarEvents(currentUser.uid, updatedEvents);
+        } catch (err) {
+          console.error(err);
+          alert('予定の更新を保存できませんでした。');
+          return;
+        }
+      }
 
       setEventCategories((prev) => (
         prev.map((category) => (
@@ -1171,17 +1234,7 @@ export default function Home() {
         ))
       ));
 
-      setEvents((prev) => (
-        prev.map((event) => (
-          event.categoryId === categoryDraft.id
-            ? {
-                ...event,
-                categoryName: name,
-                categoryColor: color,
-              }
-            : event
-        ))
-      ));
+      setEvents(updatedEvents);
 
       if (eventForm.categoryId === categoryDraft.id) {
         handleCategorySelect(updatedCategory);
@@ -1202,7 +1255,7 @@ export default function Home() {
     cancelCategoryForm();
   };
 
-  const handleDeleteCategory = (category, e) => {
+  const handleDeleteCategory = async (category, e) => {
     e.stopPropagation();
 
     if (category.id === 'default') {
@@ -1214,20 +1267,29 @@ export default function Home() {
     if (!ok) return;
 
     const defaultCategory = eventCategories[0] || getDefaultCategory();
+    const updatedEvents = events.map((event) => (
+      event.categoryId === category.id
+        ? {
+            ...event,
+            categoryId: defaultCategory.id,
+            categoryName: defaultCategory.name,
+            categoryColor: defaultCategory.color,
+          }
+        : event
+    ));
+
+    if (currentUser) {
+      try {
+        await saveCalendarEvents(currentUser.uid, updatedEvents);
+      } catch (err) {
+        console.error(err);
+        alert('予定の更新を保存できませんでした。');
+        return;
+      }
+    }
 
     setEventCategories((prev) => prev.filter((item) => item.id !== category.id));
-    setEvents((prev) => (
-      prev.map((event) => (
-        event.categoryId === category.id
-          ? {
-              ...event,
-              categoryId: defaultCategory.id,
-              categoryName: defaultCategory.name,
-              categoryColor: defaultCategory.color,
-            }
-          : event
-      ))
-    ));
+    setEvents(updatedEvents);
 
     if (eventForm.categoryId === category.id) {
       handleCategorySelect(defaultCategory);
@@ -1255,6 +1317,13 @@ export default function Home() {
       return false;
     }
 
+    if (eventForm.isShared && eventForm.shareTargetGroupId) {
+      if (!currentUser) {
+        alert('予定を共有するにはログインしてください。');
+        return false;
+      }
+    }
+
     const startDateTime = getEventDateTimeValue(
       eventForm.startDate,
       eventForm.startTime,
@@ -1274,51 +1343,99 @@ export default function Home() {
     return true;
   };
 
-  const buildEventFromForm = (id) => ({
-    id,
-    title: eventForm.title.trim(),
-    location: eventForm.location.trim(),
-    allDay: false,
-    startDate: eventForm.startDate,
-    startTime: eventForm.startTime,
-    endDate: eventForm.endDate,
-    endTime: eventForm.endTime,
-    categoryId: eventForm.categoryId,
-    categoryName: eventForm.categoryName.trim(),
-    categoryColor: normalizeColor(eventForm.categoryColor),
-    repeat: eventForm.repeat || 'none',
-    isShared: Boolean(eventForm.isShared),
-    notes: eventForm.notes.trim(),
-  });
+  const buildEventFromForm = (id) => {
+    const selectedGroup = joinedGroups.find((group) => group.id === eventForm.shareTargetGroupId);
 
-  const handleSaveEvent = () => {
+    return {
+      id,
+      title: eventForm.title.trim(),
+      location: eventForm.location.trim(),
+      allDay: false,
+      startDate: eventForm.startDate,
+      startTime: eventForm.startTime,
+      endDate: eventForm.endDate,
+      endTime: eventForm.endTime,
+      categoryId: eventForm.categoryId,
+      categoryName: eventForm.categoryName.trim(),
+      categoryColor: normalizeColor(eventForm.categoryColor),
+      repeat: eventForm.repeat || 'none',
+      isShared: Boolean(eventForm.isShared),
+      shareTargetGroupId: eventForm.isShared ? eventForm.shareTargetGroupId : '',
+      shareTargetGroupName: eventForm.isShared ? (selectedGroup?.name || '') : '',
+      notes: eventForm.notes.trim(),
+    };
+  };
+
+  const shareEventToSelectedGroup = async (calendarEvent) => {
+    if (!calendarEvent.isShared || !eventForm.shareTargetGroupId) return;
+
+    const selectedGroup = joinedGroups.find((group) => group.id === eventForm.shareTargetGroupId);
+    if (!selectedGroup) {
+      throw new Error('共有するグループを選択してください。');
+    }
+
+    const recipientCount = await shareScheduleToGroup({
+      sender: currentUser,
+      group: selectedGroup,
+      event: calendarEvent,
+    });
+
+    window.alert(`${selectedGroup.name || 'グループ'}のメンバー${recipientCount}人に予定を共有しました。`);
+  };
+
+  const handleSaveEvent = async () => {
     if (!validateEventForm()) {
       return;
     }
 
-    if (modalMode === 'edit' && editingEventId !== null) {
-      const updatedEvent = buildEventFromForm(editingEventId);
+    setIsSavingEvent(true);
 
-      setEvents((prev) => (
-        prev.map((event) => (event.id === editingEventId ? updatedEvent : event))
-      ));
+    try {
+      if (modalMode === 'edit' && editingEventId !== null) {
+        const updatedEvent = buildEventFromForm(editingEventId);
+
+        if (currentUser) {
+          await saveCalendarEvent(currentUser.uid, updatedEvent);
+        }
+        setEvents((prev) => (
+          prev.map((event) => (event.id === editingEventId ? updatedEvent : event))
+        ));
+        await shareEventToSelectedGroup(updatedEvent);
+        closeModal();
+        return;
+      }
+
+      const newEvent = buildEventFromForm(Date.now());
+      await shareEventToSelectedGroup(newEvent);
+      if (currentUser) {
+        await saveCalendarEvent(currentUser.uid, newEvent);
+      }
+      setEvents((prev) => [...prev, newEvent]);
       closeModal();
-      return;
+    } catch (err) {
+      console.error(err);
+      alert(err.message || '予定を共有できませんでした。');
+    } finally {
+      setIsSavingEvent(false);
     }
-
-    const newEvent = buildEventFromForm(Date.now());
-    setEvents((prev) => [...prev, newEvent]);
-    closeModal();
   };
 
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (editingEventId === null) return;
 
     const ok = window.confirm('この予定を削除しますか？\n繰り返し予定の場合は、同じ予定がすべて削除されます。');
     if (!ok) return;
 
-    setEvents((prev) => prev.filter((event) => event.id !== editingEventId));
-    closeModal();
+    try {
+      if (currentUser) {
+        await deleteCalendarEvent(currentUser.uid, editingEventId);
+      }
+      setEvents((prev) => prev.filter((event) => event.id !== editingEventId));
+      closeModal();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || '予定を削除できませんでした。');
+    }
   };
 
   const handleHeaderTitleClick = () => {
@@ -1897,8 +2014,9 @@ export default function Home() {
                   type="button"
                   className={styles.modalPrimaryButton}
                   onClick={handleSaveEvent}
+                  disabled={isSavingEvent}
                 >
-                  {modalMode === 'edit' ? '保存' : '追加'}
+                  {isSavingEvent ? '保存中...' : modalMode === 'edit' ? '保存' : '追加'}
                 </button>
               </div>
 
@@ -2096,7 +2214,7 @@ export default function Home() {
                     <span className={styles.switchTextGroup}>
                       <span className={styles.switchTitle}>共有する</span>
                       <span className={styles.switchDescription}>
-                        オンにすると共有予定として保存します
+                        オンにすると参加中のグループへ共有できます
                       </span>
                     </span>
 
@@ -2104,11 +2222,53 @@ export default function Home() {
                       <input
                         type="checkbox"
                         checked={eventForm.isShared}
-                        onChange={(e) => handleFormChange('isShared', e.target.checked)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEventForm((prev) => ({
+                            ...prev,
+                            isShared: checked,
+                            shareTargetGroupId: checked ? prev.shareTargetGroupId : '',
+                          }));
+                        }}
                       />
                       <span className={styles.toggleTrack} />
                     </span>
                   </label>
+
+                  {eventForm.isShared && (
+                    <div className={styles.shareTargetBlock}>
+                      <label className={styles.shareTargetLabel} htmlFor="shareTargetGroup">
+                        共有するグループ
+                      </label>
+
+                      <select
+                        id="shareTargetGroup"
+                        className={`${styles.selectInput} ${styles.shareTargetSelect}`}
+                        value={eventForm.shareTargetGroupId}
+                        onChange={(e) => handleFormChange('shareTargetGroupId', e.target.value)}
+                        disabled={!currentUser || isLoadingShareGroups}
+                      >
+                        <option value="">
+                          {currentUser
+                            ? isLoadingShareGroups
+                              ? '読み込み中...'
+                              : 'グループを選択'
+                            : 'ログインしてください'}
+                        </option>
+                        {joinedGroups.map((group) => (
+                          <option key={group.id} value={group.id}>
+                            {group.name || '名前未設定のグループ'}（{Math.max((group.memberCount || 1) - 1, 0)}人へ共有）
+                          </option>
+                        ))}
+                      </select>
+
+                      {currentUser && !isLoadingShareGroups && joinedGroups.length === 0 && (
+                        <p className={styles.repeatHelpText}>
+                          参加中のグループがありません。
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className={styles.formCard}>

@@ -446,6 +446,11 @@
   white-space: nowrap;
 }
 
+.modalPrimaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .modalFooter {
   display: flex;
   justify-content: center;
@@ -708,6 +713,22 @@
   line-height: 1.5;
 }
 
+.shareTargetBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shareTargetLabel {
+  color: #f5f5f7;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.shareTargetSelect {
+  width: 100%;
+}
+
 /* light mode */
 .light .header {
   background: linear-gradient(180deg, #ffffff 0%, #f4f6fb 100%);
@@ -838,6 +859,7 @@
 
 .light .sectionSubText,
 .light .switchDescription,
+.light .shareTargetLabel,
 .light .repeatHelpText {
   color: #7a8190;
 }
