@@ -277,6 +277,13 @@ export default function Home() {
     startOffset: -INITIAL_PAST_MONTHS,
     endOffset: INITIAL_FUTURE_MONTHS,
   });
+  const [yearRange, setYearRange] = useState(() => {
+    const baseYear = new Date().getFullYear();
+    return {
+      startYear: baseYear - 2,
+      endYear: baseYear + 3,
+    };
+  });
   const [calendarView, setCalendarView] = useState('month');
 
   const displayBaseDateRef = useRef(new Date());
@@ -292,6 +299,24 @@ export default function Home() {
   const bottomLoadRef = useRef(null);
   const preserveScrollHeightRef = useRef(null);
   const pendingScrollMonthKeyRef = useRef(null);
+  const monthTransitionLockRef = useRef(false);
+  const monthTransitionTimerRef = useRef(null);
+  const weekTouchStartRef = useRef({ x: 0, y: 0, moved: false });
+  const weekNavigateLockRef = useRef(false);
+  const yearTouchStartRef = useRef({ x: 0, y: 0, moved: false });
+  const yearNavigateLockRef = useRef(false);
+  const yearSectionRefs = useRef({});
+  const yearTopLoadRef = useRef(null);
+  const yearBottomLoadRef = useRef(null);
+  const preserveYearScrollHeightRef = useRef(null);
+  const hasScrolledToCurrentYearRef = useRef(false);
+  const yearScrollRafRef = useRef(null);
+  const activeYearRef = useRef(new Date().getFullYear());
+  const pendingYearScrollRef = useRef(null);
+  const yearTransitionLockRef = useRef(false);
+  const yearTransitionTimerRef = useRef(null);
+  const yearTransitionRafRef = useRef(null);
+  const yearTransitionStableFramesRef = useRef(0);
 
   const year = currentDate.getFullYear();
   const weekStartDay = weekStart === 'monday' ? 1 : 0;
@@ -310,6 +335,18 @@ export default function Home() {
   }, [currentWeekDates]);
   const currentHour = now.getHours();
   const currentMinutes = now.getMinutes();
+<<<<<<< HEAD
+=======
+  const calendarYears = useMemo(() => {
+    const years = [];
+
+    for (let targetYear = yearRange.startYear; targetYear <= yearRange.endYear; targetYear++) {
+      years.push(targetYear);
+    }
+
+    return years;
+  }, [yearRange]);
+>>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
   const headerTitle = calendarView === 'day' || calendarView === 'week'
     ? currentMonthLabel
     : `${year}年`;
@@ -343,11 +380,45 @@ export default function Home() {
   const openMonthView = useCallback((targetYear, targetMonth) => {
     const targetKey = formatMonthKey(targetYear, targetMonth);
 
+<<<<<<< HEAD
     pendingScrollMonthKeyRef.current = targetKey;
     activeMonthKeyRef.current = targetKey;
+=======
+    if (monthTransitionTimerRef.current !== null) {
+      window.clearTimeout(monthTransitionTimerRef.current);
+      monthTransitionTimerRef.current = null;
+    }
+
+    monthTransitionLockRef.current = true;
+    hasScrolledToCurrentMonthRef.current = false;
+    pendingScrollMonthKeyRef.current = targetKey;
+    activeMonthKeyRef.current = targetKey;
+
+    setCurrentDate((prev) => {
+      const nextDay = Math.min(prev.getDate(), getDaysInMonth(targetYear, targetMonth));
+      if (
+        prev.getFullYear() === targetYear &&
+        prev.getMonth() === targetMonth &&
+        prev.getDate() === nextDay
+      ) {
+        return prev;
+      }
+      return new Date(targetYear, targetMonth, nextDay);
+    });
+
+>>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
     ensureMonthLoaded(targetYear, targetMonth);
     setCalendarView('month');
   }, [ensureMonthLoaded]);
+
+  useEffect(() => () => {
+    if (monthTransitionTimerRef.current !== null) {
+      window.clearTimeout(monthTransitionTimerRef.current);
+    }
+    if (yearTransitionTimerRef.current !== null) {
+      window.clearTimeout(yearTransitionTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const readLocalWeekStart = () => {
@@ -394,6 +465,16 @@ export default function Home() {
     return () => window.clearInterval(timerId);
   }, []);
 
+<<<<<<< HEAD
+=======
+
+  useEffect(() => () => {
+    if (yearTransitionTimerRef.current !== null) {
+      window.clearTimeout(yearTransitionTimerRef.current);
+    }
+  }, []);
+
+>>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
   useEffect(() => {
     try {
       const saved = localStorage.getItem(EVENT_STORAGE_KEY);
@@ -495,19 +576,40 @@ export default function Home() {
     const target = monthSectionRefs.current[scrollKey];
     if (!target) return undefined;
 
-    const timerId = window.setTimeout(() => {
-      target.scrollIntoView({ block: 'start' });
+    monthTransitionLockRef.current = true;
+    activeMonthKeyRef.current = scrollKey;
 
-      if (scrollKey === landingMonthKey) {
+    let secondFrameId = null;
+    const firstFrameId = window.requestAnimationFrame(() => {
+      secondFrameId = window.requestAnimationFrame(() => {
+        const headerHeight = headerRef.current?.getBoundingClientRect().height || 0;
+        const targetTop = window.scrollY + target.getBoundingClientRect().top - headerHeight - 2;
+
+        window.scrollTo({
+          top: Math.max(0, targetTop),
+          behavior: 'auto',
+        });
+
         hasScrolledToCurrentMonthRef.current = true;
-      }
 
-      if (pendingScrollMonthKeyRef.current === scrollKey) {
-        pendingScrollMonthKeyRef.current = null;
-      }
-    }, 0);
+        if (monthTransitionTimerRef.current !== null) {
+          window.clearTimeout(monthTransitionTimerRef.current);
+        }
 
-    return () => window.clearTimeout(timerId);
+        monthTransitionTimerRef.current = window.setTimeout(() => {
+          if (pendingScrollMonthKeyRef.current === scrollKey) {
+            pendingScrollMonthKeyRef.current = null;
+          }
+          monthTransitionLockRef.current = false;
+          monthTransitionTimerRef.current = null;
+        }, 360);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrameId);
+      if (secondFrameId !== null) window.cancelAnimationFrame(secondFrameId);
+    };
   }, [calendarMonths, landingMonthKey, calendarView]);
 
   useLayoutEffect(() => {
@@ -535,6 +637,7 @@ export default function Home() {
 
     const observer = new IntersectionObserver((entries) => {
       if (!hasScrolledToCurrentMonthRef.current) return;
+      if (monthTransitionLockRef.current) return;
 
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
@@ -562,6 +665,10 @@ export default function Home() {
   const syncCurrentMonthWithScroll = useCallback(() => {
     if (calendarView !== 'month') return;
     if (!hasScrolledToCurrentMonthRef.current) return;
+<<<<<<< HEAD
+=======
+    if (monthTransitionLockRef.current) return;
+>>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
     if (pendingScrollMonthKeyRef.current) return;
     if (typeof window === 'undefined') return;
 
@@ -626,6 +733,15 @@ export default function Home() {
       scrollRafRef.current = window.requestAnimationFrame(() => {
         scrollRafRef.current = null;
         syncCurrentMonthWithScroll();
+<<<<<<< HEAD
+      });
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+
+=======
       });
     };
 
@@ -643,6 +759,242 @@ export default function Home() {
       }
     };
   }, [syncCurrentMonthWithScroll, calendarView]);
+
+
+  const loadPreviousYears = useCallback(() => {
+    setYearRange((prev) => {
+      if (typeof document !== 'undefined') {
+        preserveYearScrollHeightRef.current = document.documentElement.scrollHeight;
+      }
+
+      return {
+        ...prev,
+        startYear: prev.startYear - 3,
+      };
+    });
+  }, []);
+
+  const loadNextYears = useCallback(() => {
+    setYearRange((prev) => ({
+      ...prev,
+      endYear: prev.endYear + 3,
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (calendarView !== 'year') {
+      hasScrolledToCurrentYearRef.current = false;
+      yearTransitionLockRef.current = false;
+      pendingYearScrollRef.current = null;
+      yearTransitionStableFramesRef.current = 0;
+
+      if (yearTransitionTimerRef.current !== null) {
+        window.clearTimeout(yearTransitionTimerRef.current);
+        yearTransitionTimerRef.current = null;
+      }
+
+      if (yearTransitionRafRef.current !== null) {
+        window.cancelAnimationFrame(yearTransitionRafRef.current);
+        yearTransitionRafRef.current = null;
+      }
+
+      return undefined;
+    }
+
+    const targetYear = pendingYearScrollRef.current ?? currentDate.getFullYear();
+    const target = yearSectionRefs.current[targetYear];
+    if (!target || hasScrolledToCurrentYearRef.current) return undefined;
+
+    yearTransitionLockRef.current = true;
+    activeYearRef.current = targetYear;
+    yearTransitionStableFramesRef.current = 0;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 45;
+
+    const alignAndCheck = () => {
+      if (cancelled) return;
+
+      const latestTarget = yearSectionRefs.current[targetYear];
+      if (!latestTarget) {
+        yearTransitionRafRef.current = window.requestAnimationFrame(alignAndCheck);
+        return;
+      }
+
+      const headerHeight = headerRef.current?.getBoundingClientRect().height || 0;
+      const desiredTop = headerHeight + 2;
+      const rect = latestTarget.getBoundingClientRect();
+      const distance = rect.top - desiredTop;
+
+      if (Math.abs(distance) > 1.5) {
+        window.scrollBy({ top: distance, behavior: 'auto' });
+        yearTransitionStableFramesRef.current = 0;
+      } else {
+        yearTransitionStableFramesRef.current += 1;
+      }
+
+      attempts += 1;
+
+      if (yearTransitionStableFramesRef.current >= 4 || attempts >= maxAttempts) {
+        hasScrolledToCurrentYearRef.current = true;
+        pendingYearScrollRef.current = null;
+        yearTransitionLockRef.current = false;
+        yearTransitionRafRef.current = null;
+        return;
+      }
+
+      yearTransitionRafRef.current = window.requestAnimationFrame(alignAndCheck);
+    };
+
+    yearTransitionRafRef.current = window.requestAnimationFrame(() => {
+      yearTransitionRafRef.current = window.requestAnimationFrame(alignAndCheck);
+    });
+
+    return () => {
+      cancelled = true;
+
+      if (yearTransitionRafRef.current !== null) {
+        window.cancelAnimationFrame(yearTransitionRafRef.current);
+        yearTransitionRafRef.current = null;
+      }
+    };
+  }, [calendarView, calendarYears, currentDate]);
+
+  useLayoutEffect(() => {
+    if (preserveYearScrollHeightRef.current === null) return;
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const previousHeight = preserveYearScrollHeightRef.current;
+    const currentHeight = document.documentElement.scrollHeight;
+    const heightDiff = currentHeight - previousHeight;
+
+    if (heightDiff > 0) {
+      window.scrollBy(0, heightDiff);
+    }
+
+    preserveYearScrollHeightRef.current = null;
+  }, [calendarYears.length]);
+
+  useEffect(() => {
+    if (calendarView !== 'year') return undefined;
+
+    const topTarget = yearTopLoadRef.current;
+    const bottomTarget = yearBottomLoadRef.current;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (
+          !entry.isIntersecting ||
+          !hasScrolledToCurrentYearRef.current ||
+          yearTransitionLockRef.current
+        ) return;
+
+        if (entry.target === topTarget) {
+          loadPreviousYears();
+        }
+
+        if (entry.target === bottomTarget) {
+          loadNextYears();
+        }
+      });
+    }, {
+      root: null,
+      rootMargin: '700px 0px',
+      threshold: 0,
+    });
+
+    if (topTarget) observer.observe(topTarget);
+    if (bottomTarget) observer.observe(bottomTarget);
+
+    return () => observer.disconnect();
+  }, [calendarView, yearRange.startYear, yearRange.endYear, loadPreviousYears, loadNextYears]);
+
+  const syncCurrentYearWithScroll = useCallback(() => {
+    if (calendarView !== 'year') return;
+    if (!hasScrolledToCurrentYearRef.current) return;
+    if (yearTransitionLockRef.current) return;
+
+    const headerHeight = headerRef.current?.getBoundingClientRect().height || 0;
+    const anchorY = headerHeight + 8;
+    const sections = calendarYears
+      .map((targetYear) => yearSectionRefs.current[targetYear])
+      .filter(Boolean);
+
+    if (sections.length === 0) return;
+
+    let selectedSection = sections[0];
+
+    for (const section of sections) {
+      const rect = section.getBoundingClientRect();
+
+      if (rect.top <= anchorY) {
+        selectedSection = section;
+      }
+
+      if (rect.top <= anchorY && rect.bottom > anchorY) {
+        selectedSection = section;
+        break;
+      }
+
+      if (rect.top > anchorY) {
+        break;
+      }
+    }
+
+    const targetYear = Number(selectedSection.dataset.year);
+    if (Number.isNaN(targetYear) || activeYearRef.current === targetYear) return;
+
+    activeYearRef.current = targetYear;
+
+    setCurrentDate((prev) => {
+      if (prev.getFullYear() === targetYear) return prev;
+
+      const nextDay = Math.min(
+        prev.getDate(),
+        getDaysInMonth(targetYear, prev.getMonth()),
+      );
+
+      return new Date(targetYear, prev.getMonth(), nextDay);
+    });
+  }, [calendarView, calendarYears]);
+
+  useEffect(() => {
+    if (calendarView !== 'year') return undefined;
+
+    const handleScroll = () => {
+      if (yearScrollRafRef.current !== null) return;
+
+      yearScrollRafRef.current = window.requestAnimationFrame(() => {
+        yearScrollRafRef.current = null;
+        syncCurrentYearWithScroll();
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+    handleScroll();
+
+>>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+
+<<<<<<< HEAD
+      if (scrollRafRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+    };
+  }, [syncCurrentMonthWithScroll, calendarView]);
+=======
+      if (yearScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(yearScrollRafRef.current);
+        yearScrollRafRef.current = null;
+      }
+    };
+  }, [calendarView, calendarYears, syncCurrentYearWithScroll]);
+>>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
@@ -1017,10 +1369,28 @@ export default function Home() {
     }
 
     if (calendarView === 'month') {
+      const targetYear = currentDate.getFullYear();
+
+      if (yearScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(yearScrollRafRef.current);
+        yearScrollRafRef.current = null;
+      }
+
+      if (yearTransitionRafRef.current !== null) {
+        window.cancelAnimationFrame(yearTransitionRafRef.current);
+        yearTransitionRafRef.current = null;
+      }
+
+      pendingYearScrollRef.current = targetYear;
+      activeYearRef.current = targetYear;
+      hasScrolledToCurrentYearRef.current = false;
+      yearTransitionStableFramesRef.current = 0;
+      yearTransitionLockRef.current = true;
       setCalendarView('year');
     }
   };
 
+<<<<<<< HEAD
   const handleViewToggle = () => {
     setCalendarView((prev) => {
       if (prev === 'year') return 'month';
@@ -1031,13 +1401,158 @@ export default function Home() {
   };
 
   const handleYearMonthClick = (targetMonth) => {
+=======
+  const moveWeekBy = useCallback((weekOffset) => {
+    setCurrentDate((prev) => {
+      const next = new Date(prev);
+      next.setDate(next.getDate() + weekOffset * 7);
+      return next;
+    });
+  }, []);
+
+  const unlockWeekNavigation = useCallback(() => {
+    window.setTimeout(() => {
+      weekNavigateLockRef.current = false;
+    }, 220);
+  }, []);
+
+  const handleWeekSwipeNavigate = useCallback((direction) => {
+    if (weekNavigateLockRef.current) return;
+
+    weekNavigateLockRef.current = true;
+    moveWeekBy(direction === 'next' ? 1 : -1);
+    unlockWeekNavigation();
+  }, [moveWeekBy, unlockWeekNavigation]);
+
+  const handleWeekWheel = useCallback((event) => {
+    const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+      ? event.deltaX
+      : (event.shiftKey ? event.deltaY : 0);
+
+    if (Math.abs(dominantDelta) < 32) return;
+
+    event.preventDefault();
+    handleWeekSwipeNavigate(dominantDelta > 0 ? 'next' : 'prev');
+  }, [handleWeekSwipeNavigate]);
+
+  const handleWeekTouchStart = useCallback((event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    weekTouchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      moved: false,
+    };
+  }, []);
+
+  const handleWeekTouchMove = useCallback((event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    const diffX = touch.clientX - weekTouchStartRef.current.x;
+    const diffY = touch.clientY - weekTouchStartRef.current.y;
+
+    if (weekTouchStartRef.current.moved) return;
+    if (Math.abs(diffX) < 56 || Math.abs(diffX) <= Math.abs(diffY)) return;
+
+    weekTouchStartRef.current.moved = true;
+    handleWeekSwipeNavigate(diffX < 0 ? 'next' : 'prev');
+  }, [handleWeekSwipeNavigate]);
+
+  const handleWeekTouchEnd = useCallback(() => {
+    weekTouchStartRef.current = { x: 0, y: 0, moved: false };
+  }, []);
+
+  const moveYearBy = useCallback((yearOffset) => {
+    setCurrentDate((prev) => {
+      const nextYear = prev.getFullYear() + yearOffset;
+      const nextMonth = prev.getMonth();
+      const nextDay = Math.min(prev.getDate(), getDaysInMonth(nextYear, nextMonth));
+      return new Date(nextYear, nextMonth, nextDay);
+    });
+  }, []);
+
+  const unlockYearNavigation = useCallback(() => {
+    window.setTimeout(() => {
+      yearNavigateLockRef.current = false;
+    }, 220);
+  }, []);
+
+  const handleYearSwipeNavigate = useCallback((direction) => {
+    if (yearNavigateLockRef.current) return;
+
+    yearNavigateLockRef.current = true;
+    moveYearBy(direction === 'next' ? 1 : -1);
+    unlockYearNavigation();
+  }, [moveYearBy, unlockYearNavigation]);
+
+  const handleYearWheel = useCallback((event) => {
+    const dominantDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+      ? event.deltaY
+      : event.deltaX;
+
+    if (Math.abs(dominantDelta) < 36) return;
+
+    event.preventDefault();
+    handleYearSwipeNavigate(dominantDelta > 0 ? 'next' : 'prev');
+  }, [handleYearSwipeNavigate]);
+
+  const handleYearTouchStart = useCallback((event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    yearTouchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      moved: false,
+    };
+  }, []);
+
+  const handleYearTouchMove = useCallback((event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    const diffX = touch.clientX - yearTouchStartRef.current.x;
+    const diffY = touch.clientY - yearTouchStartRef.current.y;
+
+    if (yearTouchStartRef.current.moved) return;
+    if (Math.abs(diffY) < 56 || Math.abs(diffY) <= Math.abs(diffX)) return;
+
+    yearTouchStartRef.current.moved = true;
+    handleYearSwipeNavigate(diffY < 0 ? 'next' : 'prev');
+  }, [handleYearSwipeNavigate]);
+
+  const handleYearTouchEnd = useCallback(() => {
+    yearTouchStartRef.current = { x: 0, y: 0, moved: false };
+  }, []);
+
+  const handleViewToggle = () => {
+    if (calendarView === 'year') {
+      openMonthView(currentDate.getFullYear(), currentDate.getMonth());
+      return;
+    }
+
+    if (calendarView === 'month') {
+      setCalendarView('week');
+      return;
+    }
+
+    openMonthView(currentDate.getFullYear(), currentDate.getMonth());
+  };
+
+  const handleYearMonthClick = (targetYear, targetMonth) => {
+    yearTransitionLockRef.current = true;
+    activeYearRef.current = targetYear;
+
+>>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
     const selectedDay = Math.min(
       currentDate.getDate(),
-      getDaysInMonth(year, targetMonth),
+      getDaysInMonth(targetYear, targetMonth),
     );
 
-    setCurrentDate(new Date(year, targetMonth, selectedDay));
-    openMonthView(year, targetMonth);
+    setCurrentDate(new Date(targetYear, targetMonth, selectedDay));
+    openMonthView(targetYear, targetMonth);
   };
 
   const handleAddButtonClick = () => {
@@ -1077,8 +1592,15 @@ export default function Home() {
                 onClick={handleHeaderTitleClick}
                 disabled={calendarView === 'year'}
               >
-                <span className={styles.headerTitleText}>{headerTitle}</span>
-                <span className={styles.headerSubText}>{headerSubText}</span>
+                <span className={styles.headerTitleText}>
+                  {(calendarView === 'week' || calendarView === 'month') && (
+                    <span aria-hidden="true">＜</span>
+                  )}
+                  {headerTitle}
+                </span>
+                <span className={styles.headerSubText}>
+                  {headerSubText}
+                </span>
               </button>
             </div>
 
@@ -1173,60 +1695,87 @@ export default function Home() {
 
         <main className={styles.main}>
           {calendarView === 'year' && (
-            <div className={styles.yearOverview}>
-              {Array.from({ length: 12 }, (_, targetMonth) => {
-                const miniMonth = buildCalendarMonth(year, targetMonth, weekStartDay);
+            <div className={styles.connectedYearOverview}>
+              <div ref={yearTopLoadRef} className={styles.yearLoadSentinel} aria-hidden="true" />
 
-                return (
-                  <button
-                    key={`${year}-${targetMonth}`}
-                    type="button"
-                    className={styles.yearMonthCard}
-                    onClick={() => handleYearMonthClick(targetMonth)}
-                  >
-                    <h2 className={styles.yearMonthTitle}>{targetMonth + 1}月</h2>
+              {calendarYears.map((targetYear) => (
+                <section
+                  key={targetYear}
+                  ref={(element) => {
+                    if (element) {
+                      yearSectionRefs.current[targetYear] = element;
+                    }
+                  }}
+                  className={styles.yearSection}
+                  data-year={targetYear}
+                >
+                  <div className={styles.yearSectionTitle}>{targetYear}年</div>
 
-                    <div className={styles.miniMonthGrid}>
-                      {miniMonth.cells.map((cell, index) => {
-                        if (cell.type === 'empty') {
-                          return (
-                            <span
-                              key={`${miniMonth.key}-${cell.key}-${index}`}
-                              className={styles.miniMonthEmpty}
-                              aria-hidden="true"
-                            />
-                          );
-                        }
+                  <div className={styles.yearOverview}>
+                    {Array.from({ length: 12 }, (_, targetMonth) => {
+                      const miniMonth = buildCalendarMonth(targetYear, targetMonth, weekStartDay);
 
-                        const isSelected = (
-                          currentDate.getFullYear() === year &&
-                          currentDate.getMonth() === targetMonth &&
-                          currentDate.getDate() === cell.day
-                        );
-                        const isToday = isTodayDate(year, targetMonth, cell.day);
+                      return (
+                        <button
+                          key={`${targetYear}-${targetMonth}`}
+                          type="button"
+                          className={styles.yearMonthCard}
+                          onClick={() => handleYearMonthClick(targetYear, targetMonth)}
+                        >
+                          <h2 className={styles.yearMonthTitle}>
+                            {targetMonth + 1}月
+                          </h2>
 
-                        return (
-                          <span
-                            key={cell.dateKey}
-                            className={[
-                              styles.miniMonthDay,
-                              isSelected ? styles.miniMonthSelectedDay : '',
-                              isToday ? styles.miniMonthToday : '',
-                            ].join(' ')}
-                          >
-                            {cell.day}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </button>
-                );
-              })}
+                          <div className={styles.miniMonthGrid}>
+                            {miniMonth.cells.map((cell, index) => {
+                              if (cell.type === 'empty') {
+                                return (
+                                  <span
+                                    key={`${miniMonth.key}-${cell.key}-${index}`}
+                                    className={styles.miniMonthEmpty}
+                                    aria-hidden="true"
+                                  />
+                                );
+                              }
+
+                              const isToday = isTodayDate(targetYear, targetMonth, cell.day);
+
+                              return (
+                                <span
+                                  key={cell.dateKey}
+                                  className={[
+                                    styles.miniMonthDay,
+                                    isToday ? styles.miniMonthToday : '',
+                                  ].join(' ')}
+                                >
+                                  {cell.day}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+
+              <div ref={yearBottomLoadRef} className={styles.yearLoadSentinel} aria-hidden="true" />
             </div>
           )}
 
           {calendarView === 'week' && (
+<<<<<<< HEAD
             <div className={styles.weekView}>
+=======
+            <div
+              className={styles.weekView}
+              onWheel={handleWeekWheel}
+              onTouchStart={handleWeekTouchStart}
+              onTouchMove={handleWeekTouchMove}
+              onTouchEnd={handleWeekTouchEnd}
+            >
+>>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
               <div className={styles.weekTimelineWrapper}>
                 <div
                   className={styles.weekTimelineGrid}
