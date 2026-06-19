@@ -335,8 +335,6 @@ export default function Home() {
   }, [currentWeekDates]);
   const currentHour = now.getHours();
   const currentMinutes = now.getMinutes();
-<<<<<<< HEAD
-=======
   const calendarYears = useMemo(() => {
     const years = [];
 
@@ -346,7 +344,6 @@ export default function Home() {
 
     return years;
   }, [yearRange]);
->>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
   const headerTitle = calendarView === 'day' || calendarView === 'week'
     ? currentMonthLabel
     : `${year}年`;
@@ -380,10 +377,6 @@ export default function Home() {
   const openMonthView = useCallback((targetYear, targetMonth) => {
     const targetKey = formatMonthKey(targetYear, targetMonth);
 
-<<<<<<< HEAD
-    pendingScrollMonthKeyRef.current = targetKey;
-    activeMonthKeyRef.current = targetKey;
-=======
     if (monthTransitionTimerRef.current !== null) {
       window.clearTimeout(monthTransitionTimerRef.current);
       monthTransitionTimerRef.current = null;
@@ -406,7 +399,6 @@ export default function Home() {
       return new Date(targetYear, targetMonth, nextDay);
     });
 
->>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
     ensureMonthLoaded(targetYear, targetMonth);
     setCalendarView('month');
   }, [ensureMonthLoaded]);
@@ -465,16 +457,6 @@ export default function Home() {
     return () => window.clearInterval(timerId);
   }, []);
 
-<<<<<<< HEAD
-=======
-
-  useEffect(() => () => {
-    if (yearTransitionTimerRef.current !== null) {
-      window.clearTimeout(yearTransitionTimerRef.current);
-    }
-  }, []);
-
->>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
   useEffect(() => {
     try {
       const saved = localStorage.getItem(EVENT_STORAGE_KEY);
@@ -665,10 +647,7 @@ export default function Home() {
   const syncCurrentMonthWithScroll = useCallback(() => {
     if (calendarView !== 'month') return;
     if (!hasScrolledToCurrentMonthRef.current) return;
-<<<<<<< HEAD
-=======
     if (monthTransitionLockRef.current) return;
->>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
     if (pendingScrollMonthKeyRef.current) return;
     if (typeof window === 'undefined') return;
 
@@ -733,15 +712,6 @@ export default function Home() {
       scrollRafRef.current = window.requestAnimationFrame(() => {
         scrollRafRef.current = null;
         syncCurrentMonthWithScroll();
-<<<<<<< HEAD
-      });
-    };
-
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll);
-
-=======
       });
     };
 
@@ -759,7 +729,6 @@ export default function Home() {
       }
     };
   }, [syncCurrentMonthWithScroll, calendarView]);
-
 
   const loadPreviousYears = useCallback(() => {
     setYearRange((prev) => {
@@ -975,26 +944,16 @@ export default function Home() {
     window.addEventListener('resize', handleScroll);
     handleScroll();
 
->>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
 
-<<<<<<< HEAD
-      if (scrollRafRef.current !== null) {
-        window.cancelAnimationFrame(scrollRafRef.current);
-        scrollRafRef.current = null;
-      }
-    };
-  }, [syncCurrentMonthWithScroll, calendarView]);
-=======
       if (yearScrollRafRef.current !== null) {
         window.cancelAnimationFrame(yearScrollRafRef.current);
         yearScrollRafRef.current = null;
       }
     };
   }, [calendarView, calendarYears, syncCurrentYearWithScroll]);
->>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
@@ -1390,18 +1349,6 @@ export default function Home() {
     }
   };
 
-<<<<<<< HEAD
-  const handleViewToggle = () => {
-    setCalendarView((prev) => {
-      if (prev === 'year') return 'month';
-      if (prev === 'month') return 'week';
-      if (prev === 'week') return 'month';
-      return 'month';
-    });
-  };
-
-  const handleYearMonthClick = (targetMonth) => {
-=======
   const moveWeekBy = useCallback((weekOffset) => {
     setCurrentDate((prev) => {
       const next = new Date(prev);
@@ -1545,7 +1492,6 @@ export default function Home() {
     yearTransitionLockRef.current = true;
     activeYearRef.current = targetYear;
 
->>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
     const selectedDay = Math.min(
       currentDate.getDate(),
       getDaysInMonth(targetYear, targetMonth),
@@ -1695,7 +1641,13 @@ export default function Home() {
 
         <main className={styles.main}>
           {calendarView === 'year' && (
-            <div className={styles.connectedYearOverview}>
+            <div
+              className={styles.connectedYearOverview}
+              onWheel={handleYearWheel}
+              onTouchStart={handleYearTouchStart}
+              onTouchMove={handleYearTouchMove}
+              onTouchEnd={handleYearTouchEnd}
+            >
               <div ref={yearTopLoadRef} className={styles.yearLoadSentinel} aria-hidden="true" />
 
               {calendarYears.map((targetYear) => (
@@ -1765,9 +1717,6 @@ export default function Home() {
           )}
 
           {calendarView === 'week' && (
-<<<<<<< HEAD
-            <div className={styles.weekView}>
-=======
             <div
               className={styles.weekView}
               onWheel={handleWeekWheel}
@@ -1775,7 +1724,6 @@ export default function Home() {
               onTouchMove={handleWeekTouchMove}
               onTouchEnd={handleWeekTouchEnd}
             >
->>>>>>> 2e90184ad510eb6da56742427c71cbe79932c10a
               <div className={styles.weekTimelineWrapper}>
                 <div
                   className={styles.weekTimelineGrid}
