@@ -163,6 +163,18 @@ export async function listReceivedSchedules(uid) {
   return snapshot.docs.map(mapShare);
 }
 
+export async function listGroupSharedSchedules(groupId, uid) {
+  if (!groupId || !uid) return [];
+  if (!(await isMember(groupId, uid))) return [];
+
+  const schedulesQuery = query(
+    collection(db, 'groups', groupId, 'sharedSchedules'),
+    orderBy('sharedAt', 'desc')
+  );
+  const snapshot = await getDocs(schedulesQuery);
+  return snapshot.docs.map(mapShare);
+}
+
 export async function listSentSchedules(uid) {
   if (!uid) return [];
 

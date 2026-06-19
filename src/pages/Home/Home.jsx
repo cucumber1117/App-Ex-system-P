@@ -5,7 +5,7 @@ import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserSettings } from '../../Firebase/auth/users';
 import { listJoinedGroups } from '../../Firebase/auth/groups';
-import { listReceivedSchedules, shareScheduleToGroup } from '../../Firebase/auth/sharedSchedules';
+import { listGroupSharedSchedules, listReceivedSchedules, shareScheduleToGroup } from '../../Firebase/auth/sharedSchedules';
 import {
   deleteCalendarEvent,
   listCalendarEvents,
@@ -500,9 +500,20 @@ export default function Home() {
           await saveCalendarEvents(user.uid, localEventsToMigrate);
         }
 
+        const groupStoredShares = (await Promise.all(
+          groupItems.map((group) => listGroupSharedSchedules(group.id, user.uid))
+        )).flat();
+        const groupSharesById = new Map();
+
+        [...receivedSchedules, ...groupStoredShares]
+          .filter((share) => share.targetType === 'group')
+          .forEach((share) => {
+            groupSharesById.set(share.id, share);
+          });
+
         setWeekStart(settings.weekStart || readLocalWeekStart());
         setJoinedGroups(groupItems);
-        setReceivedGroupShares(receivedSchedules.filter((share) => share.targetType === 'group'));
+        setReceivedGroupShares([...groupSharesById.values()]);
         setEvents([...firebaseEvents, ...localEventsToMigrate]);
         localStorage.removeItem(EVENT_STORAGE_KEY);
       } catch (err) {
@@ -1044,11 +1055,12 @@ export default function Home() {
         .filter(Boolean)
     );
     const receivedSharedEvents = selectedGroupShares
+      .filter((share) => share.senderUid !== currentUser?.uid)
       .filter((share) => !importedShareIds.has(share.id))
       .map(buildEventFromGroupShare);
 
     return [...ownSharedEvents, ...receivedSharedEvents];
-  }, [events, receivedGroupShares, selectedSharedGroupId]);
+  }, [currentUser, events, receivedGroupShares, selectedSharedGroupId]);
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
