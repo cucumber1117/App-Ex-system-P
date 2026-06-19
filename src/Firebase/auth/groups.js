@@ -2,13 +2,44 @@ import { collection, collectionGroup, deleteDoc, doc, documentId, serverTimestam
 import { db } from '../firebaseConfig';
 
 const groupsCol = collection(db, 'groups');
+const GROUP_ID_PATTERN = /^g-\d{5}$/;
+const GROUP_ID_GENERATION_ATTEMPTS = 20;
+
+function createGroupId() {
+  const number = Math.floor(Math.random() * 100000)
+  .toString()
+  .padStart(5, '0');
+
+  return `g-${number}`;
+}
 
 export async function createGroup(name, detail, creatorUid) {
-  const groupRef = doc(groupsCol);
   const batch = writeBatch(db);
+  let groupId;
+  let groupRef;
+  let exists = true;
+
+  for (
+    let attempt = 0;
+    attempt < GROUP_ID_GENERATION_ATTEMPTS && exists;
+    attempt++
+  ) {
+    groupId = createGroupId();
+    groupRef = doc(db, 'groups', groupId);
+
+    const snap = await getDoc(groupRef);
+
+    if (!snap.exists()) {
+      exists = false;
+    }
+  }
+
+  if (exists) {
+    throw new Error('グループIDを発行できませんでした');
+  }
 
   batch.set(groupRef, {
-    groupId: groupRef.id,
+    groupId,
     name,
     detail,
     ...(creatorUid ? { createdBy: creatorUid } : {}),
@@ -26,7 +57,7 @@ export async function createGroup(name, detail, creatorUid) {
   }
 
   await batch.commit();
-  return groupRef.id;
+  return groupId;
 }
 
 export async function listGroups(groupIdSearch = '') {

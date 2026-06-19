@@ -511,3 +511,24 @@ textarea.createInput{
 	transform: scale(0.95) translateY(2px);
 	filter: brightness(0.9);
 }
+
+.descriptionRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.descriptionLabel {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+
+.descriptionText {
+  margin-top: 6px;
+}
+
+.showDescBtn {
+	margin-left: 15px;
+	padding: 10px 10px;
+}
