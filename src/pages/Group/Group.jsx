@@ -31,6 +31,7 @@ const Group = () => {
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [openedDescriptionId, setOpenedDescriptionId] = useState(null);
+  const [selectedFriends, setSelectedFriends] = useState([]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -38,6 +39,13 @@ const Group = () => {
       try {
         setLoading(true);
         const groupId = await createGroup(name, detail, currentUser?.uid);
+        for (const friendUid of selectedFriends) {
+          await inviteFriendToGroup(
+            groupId,
+            currentUser.uid,
+            friendUid
+          );
+        }
         setCreatedGroupId(groupId);
         if (currentUser) {
           await refreshJoinedGroups(currentUser.uid);
@@ -49,6 +57,7 @@ const Group = () => {
         }
         setName('');
         setDetail('');
+        setSelectedFriends([]);
       } catch (err) {
         console.error(err);
       } finally {
@@ -460,6 +469,52 @@ const Group = () => {
           <input className={styles.createInput} placeholder="グループ名を入力" value={name} onChange={(e)=>setName(e.target.value)} required />
 
           <textarea className={styles.createInput} placeholder="グループの説明を入力" value={detail} onChange={(e) => setDetail(e.target.value)}/>
+          
+          <div className={styles.friendSelectArea}>
+            <p>フレンドを招待</p>
+
+            <div className={styles.selectedFriends}>
+              {selectedFriends.length === 0 && (
+                <span className={styles.placeholderText}>
+                  フレンドを選択
+                </span>
+              )}
+              
+              {selectedFriends.map((friendId) => {
+                const friend = friends.find((f) => f.id === friendId);
+
+                return (
+                  <span key = {friendId} className={styles.selectedFriend}>
+                    {friend?.name || friend?.email || friendId}
+
+                    <button type = "button" onClick={() => setSelectedFriends((prev) => prev.filter((id) => id !== friendId))}>
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+
+            <div className={styles.friendList}>
+              {friends.length === 0 ? (
+                <p>フレンドがいません</p>
+              ) : (
+                friends.map((friend) => (
+                  <div key={friend.id} className={styles.friendItem} onClick={() => {
+                    if (!selectedFriends.includes(friend.id)) {
+                      setSelectedFriends((prev) => [
+                        ...prev,
+                        friend.id,
+                      ]);
+                    }
+                  }}
+                >
+                  {friend.name || friend.email || friend.id}
+                </div>
+                ))
+              )}
+            </div>
+          </div>
 
           <button className={styles.createBtn} type="submit">作成する</button>
           {createdGroupId && (

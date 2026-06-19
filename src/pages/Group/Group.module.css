@@ -532,3 +532,88 @@ textarea.createInput{
 	margin-left: 15px;
 	padding: 10px 10px;
 }
+
+.friendSelectArea label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  margin-bottom: 20px;
+  cursor: pointer;
+}
+
+.friendList {
+  background: white;
+  border-radius: 12px;
+  padding: 8px;
+
+  margin-top: 12px;
+
+  max-height: 120px;
+  overflow-y: auto;
+
+  margin-bottom: 20px;
+}
+
+.friendItem {
+  padding: 8px 12px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 8px;
+  color: black;
+}
+
+.friendItem:hover {
+  background: #f3f4f6;
+}
+
+.selectedFriends {
+  min-height: 60px;
+
+  background: white;
+  border-radius: 12px;
+
+  padding: 12px;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+
+  margin-bottom: 16px;
+}
+
+.selectedFriend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 12px;
+
+  background: #2f80ed;
+  color: white;
+
+  border-radius: 999px;
+
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.selectedFriend button {
+  border: none;
+  background: transparent;
+
+  color: white;
+
+  cursor: pointer;
+
+  font-size: 16px;
+  font-weight: bold;
+
+  padding: 0 2px;
+}
+
+.placeholderText {
+  color: #666;
+  font-size: 16px;
+}
