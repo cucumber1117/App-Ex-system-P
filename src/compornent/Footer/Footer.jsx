@@ -9,6 +9,7 @@ const Footer = () => {
 	const handleSettings = () => {
 		navigate('/settings');
 	};
+	const isSettings = location.pathname.startsWith('/settings');
 
 	return (
 		<nav className={styles.footer}>
@@ -57,7 +58,7 @@ const Footer = () => {
 			</button>
 
 			<button
-				className={`${styles.item} ${location.pathname === '/settings' ? styles.active : ''}`}
+				className={`${styles.item} ${isSettings ? styles.active : ''}`}
 				onClick={handleSettings}
 				aria-label="設定"
 			>

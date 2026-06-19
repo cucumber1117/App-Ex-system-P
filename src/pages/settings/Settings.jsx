@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styles from './Settings.module.css';
+import { useNavigate } from 'react-router-dom';
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { loginWithGoogle } from '../../Firebase/auth/login';
@@ -11,6 +12,7 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 
 const Settings = () => {
+    const navigate = useNavigate();
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(false);
     const [profileName, setProfileName] = useState('');
@@ -622,10 +624,25 @@ const Settings = () => {
 
                 <div className={styles.row}>
                     <div>
-                        <div className={styles.label}>バージョン</div>
+                        <div className={styles.label}>アプリ情報</div>
                         <p className={styles.description}>
-                            スケジュール管理アプリ
+                            開発者、アプリの説明、主要機能、お問い合わせを確認できます。
                         </p>
+                    </div>
+
+                    <button
+                        className={`${styles.btn} ${styles.secondaryBtn}`}
+                        type="button"
+                        onClick={() => navigate('/settings/app-info')}
+                    >
+                        表示
+                    </button>
+                </div>
+
+                <div className={styles.row}>
+                    <div>
+                        <div className={styles.label}>バージョン</div>
+                        <p className={styles.description}>スケジュール管理アプリ</p>
                     </div>
 
                     <div className={styles.version}>0.1.0</div>

@@ -256,6 +256,18 @@ input.select {
   box-shadow: 0 10px 22px rgba(229, 57, 53, 0.28);
 }
 
+.secondaryBtn {
+  background: #eef4ff;
+  color: #2f80ed;
+  box-shadow: none;
+}
+
+.secondaryBtn:hover {
+  background: #dfeaff;
+  color: #1f67c5;
+  box-shadow: 0 8px 18px rgba(47, 128, 237, 0.16);
+}
+
 .version {
   font-size: 14px;
   font-weight: 700;
@@ -353,6 +365,17 @@ input.select {
   box-shadow: 0 10px 22px rgba(255, 82, 82, 0.3);
 }
 
+.dark .secondaryBtn {
+  background: rgba(124, 92, 255, 0.16);
+  color: #d7cdff;
+  box-shadow: none;
+}
+
+.dark .secondaryBtn:hover {
+  background: rgba(124, 92, 255, 0.24);
+  color: #ffffff;
+}
+
 /* グリーンテーマ */
 .green {
   background:
@@ -418,6 +441,17 @@ input.select {
   opacity: 1;
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 10px 22px rgba(229, 57, 53, 0.28);
+}
+
+.green .secondaryBtn {
+  background: #e8f8ed;
+  color: #008f3a;
+  box-shadow: none;
+}
+
+.green .secondaryBtn:hover {
+  background: #d6f0df;
+  color: #006d2c;
 }
 
 /* スマホ対応 */

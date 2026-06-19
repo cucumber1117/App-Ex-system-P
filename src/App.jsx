@@ -5,6 +5,7 @@ import Group from './pages/Group/Group.jsx';
 import Friends from './pages/Friends/Friends.jsx';
 import SharedSchedules from './pages/shared/SharedSchedules.jsx';
 import Settings from './pages/settings/Settings.jsx';
+import AppInfo from './pages/settings/AppInfo.jsx';
 import Footer from './compornent/Footer/Footer.jsx';
 import './theme.css';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -109,6 +110,7 @@ function App() {
           <Route path="/friends" element={<Friends />} />
           <Route path="/shared" element={<SharedSchedules />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/app-info" element={<AppInfo />} />
         </Routes>
 
         <Footer />
