@@ -5,7 +5,7 @@ import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserSettings } from '../../Firebase/auth/users';
 import { listJoinedGroups } from '../../Firebase/auth/groups';
-import { shareScheduleToGroup } from '../../Firebase/auth/sharedSchedules';
+import { listReceivedSchedules, shareScheduleToGroup } from '../../Firebase/auth/sharedSchedules';
 import {
   deleteCalendarEvent,
   listCalendarEvents,
@@ -276,6 +276,20 @@ function readStoredEvents() {
   }
 }
 
+function buildEventFromGroupShare(share) {
+  return {
+    ...(share.schedule || {}),
+    id: `received-${share.id}`,
+    isShared: true,
+    isReceivedShared: true,
+    sharedScheduleId: share.id,
+    sharedByUid: share.senderUid,
+    sharedByName: share.senderName,
+    shareTargetGroupId: share.groupId || '',
+    shareTargetGroupName: share.groupName || '',
+  };
+}
+
 export default function Home() {
   const { theme } = useTheme();
 
@@ -309,6 +323,8 @@ export default function Home() {
   const [calendarView, setCalendarView] = useState('month');
   const [currentUser, setCurrentUser] = useState(null);
   const [joinedGroups, setJoinedGroups] = useState([]);
+  const [receivedGroupShares, setReceivedGroupShares] = useState([]);
+  const [selectedSharedGroupId, setSelectedSharedGroupId] = useState('');
   const [isLoadingShareGroups, setIsLoadingShareGroups] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
 
@@ -460,6 +476,8 @@ export default function Home() {
       if (!user) {
         setWeekStart(readLocalWeekStart());
         setJoinedGroups([]);
+        setReceivedGroupShares([]);
+        setSelectedSharedGroupId('');
         setIsLoadingShareGroups(false);
         setEvents(readStoredEvents());
         return;
@@ -467,10 +485,11 @@ export default function Home() {
 
       try {
         setIsLoadingShareGroups(true);
-        const [settings, groupItems, firebaseEvents] = await Promise.all([
+        const [settings, groupItems, firebaseEvents, receivedSchedules] = await Promise.all([
           getUserSettings(user.uid),
           listJoinedGroups(user.uid),
           listCalendarEvents(user.uid),
+          listReceivedSchedules(user.uid),
         ]);
         const localEvents = readStoredEvents();
         const localEventsToMigrate = localEvents.filter((localEvent) => (
@@ -483,11 +502,13 @@ export default function Home() {
 
         setWeekStart(settings.weekStart || readLocalWeekStart());
         setJoinedGroups(groupItems);
+        setReceivedGroupShares(receivedSchedules.filter((share) => share.targetType === 'group'));
         setEvents([...firebaseEvents, ...localEventsToMigrate]);
         localStorage.removeItem(EVENT_STORAGE_KEY);
       } catch (err) {
         console.error('load home data', err);
         setJoinedGroups([]);
+        setReceivedGroupShares([]);
         setEvents(readStoredEvents());
       } finally {
         setIsLoadingShareGroups(false);
@@ -502,6 +523,12 @@ export default function Home() {
       window.removeEventListener('focus', handleFocus);
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedSharedGroupId) return;
+    if (joinedGroups.some((group) => group.id === selectedSharedGroupId)) return;
+    setSelectedSharedGroupId('');
+  }, [joinedGroups, selectedSharedGroupId]);
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -999,6 +1026,30 @@ export default function Home() {
     };
   }, [calendarView, calendarYears, syncCurrentYearWithScroll]);
 
+  const visibleEvents = useMemo(() => {
+    if (!selectedSharedGroupId) return events;
+
+    const selectedGroupShares = receivedGroupShares.filter((share) => (
+      share.groupId === selectedSharedGroupId
+    ));
+    const selectedShareIds = new Set(selectedGroupShares.map((share) => share.id));
+    const ownSharedEvents = events.filter((event) => (
+      event.isShared && event.shareTargetGroupId === selectedSharedGroupId
+    ) || (
+      event.sharedScheduleId && selectedShareIds.has(event.sharedScheduleId)
+    ));
+    const importedShareIds = new Set(
+      events
+        .map((event) => event.sharedScheduleId)
+        .filter(Boolean)
+    );
+    const receivedSharedEvents = selectedGroupShares
+      .filter((share) => !importedShareIds.has(share.id))
+      .map(buildEventFromGroupShare);
+
+    return [...ownSharedEvents, ...receivedSharedEvents];
+  }, [events, receivedGroupShares, selectedSharedGroupId]);
+
   const eventsByDate = useMemo(() => {
     const grouped = {};
 
@@ -1007,7 +1058,7 @@ export default function Home() {
         const dateKey = formatDateKey(monthData.year, monthData.month, day);
         grouped[dateKey] = [];
 
-        events.forEach((event) => {
+        visibleEvents.forEach((event) => {
           if (!isEventOnDate(event, dateKey)) return;
 
           grouped[dateKey].push({
@@ -1024,7 +1075,7 @@ export default function Home() {
     });
 
     return grouped;
-  }, [events, calendarMonths]);
+  }, [visibleEvents, calendarMonths]);
 
   const currentDateKey = formatDateKey(
     currentDate.getFullYear(),
@@ -1033,7 +1084,7 @@ export default function Home() {
   );
 
   const currentDayEvents = useMemo(() => {
-    const dayEvents = events
+    const dayEvents = visibleEvents
       .filter((event) => isEventOnDate(event, currentDateKey))
       .map((event) => ({
         ...event,
@@ -1046,14 +1097,14 @@ export default function Home() {
     });
 
     return dayEvents;
-  }, [events, currentDateKey]);
+  }, [visibleEvents, currentDateKey]);
 
   const currentWeekEventsByDate = useMemo(() => {
     const grouped = {};
 
     currentWeekDates.forEach((date) => {
       const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
-      const dayEvents = events
+      const dayEvents = visibleEvents
         .filter((event) => isEventOnDate(event, dateKey))
         .map((event) => ({
           ...event,
@@ -1069,7 +1120,7 @@ export default function Home() {
     });
 
     return grouped;
-  }, [events, currentWeekDates]);
+  }, [visibleEvents, currentWeekDates]);
 
   const isWeekendDate = (targetYear, targetMonth, day) => {
     const dayOfWeek = new Date(targetYear, targetMonth, day).getDay();
@@ -1760,6 +1811,24 @@ export default function Home() {
             </div>
           </div>
 
+          {currentUser && joinedGroups.length > 0 && (
+            <div className={styles.groupFilterBar}>
+              <select
+                className={styles.groupFilterSelect}
+                value={selectedSharedGroupId}
+                onChange={(event) => setSelectedSharedGroupId(event.target.value)}
+                aria-label="表示するグループ共有予定"
+              >
+                <option value="">すべての予定</option>
+                {joinedGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name || '名前未設定のグループ'}の共有予定
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {(calendarView === 'day' || calendarView === 'week') && (
             <div className={styles.dateStrip}>
               {currentWeekDates.map((date) => {
@@ -1948,7 +2017,10 @@ export default function Home() {
                                 type="button"
                                 className={`${styles.dayEventItem} ${styles.weekEventItem}`}
                                 style={getEventStyle(event)}
-                                onClick={(e) => openEditModal(event, e)}
+                                onClick={(e) => {
+                                  if (event.isReceivedShared) return;
+                                  openEditModal(event, e);
+                                }}
                               >
                                 <span className={styles.dayEventTime}>{getEventTimeLabel(event)}</span>
                                 <span className={styles.dayEventTitle}>{event.title}</span>
@@ -2029,6 +2101,7 @@ export default function Home() {
                                     style={getEventStyle(event)}
                                     onClick={(e) => openEditModal(event, e)}
                                     aria-label={`${event.title}を編集`}
+                                    disabled={event.isReceivedShared}
                                   >
                                     <span className={styles.eventMetaRow}>
                                       {timeLabel && (
@@ -2038,7 +2111,9 @@ export default function Home() {
                                         <span className={styles.eventRepeat}>{repeatLabel}</span>
                                       )}
                                       {event.isShared && (
-                                        <span className={styles.eventShared}>共有</span>
+                                        <span className={styles.eventShared}>
+                                          {event.shareTargetGroupName || '共有'}
+                                        </span>
                                       )}
                                     </span>
                                     <span className={styles.eventTitle}>{event.title}</span>

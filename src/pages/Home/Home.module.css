@@ -61,6 +61,23 @@
   gap: 12px;
 }
 
+.groupFilterBar {
+  padding: 8px clamp(12px, 4vw, 24px) 6px;
+}
+
+.groupFilterSelect {
+  width: min(100%, 340px);
+  min-height: 34px;
+  border: 1px solid rgba(90, 200, 250, 0.35);
+  border-radius: 10px;
+  background: #1c1c1e;
+  color: #f5f5f7;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
 .yearArea {
   display: flex;
   align-items: center;
@@ -317,6 +334,11 @@
   outline: none;
 }
 
+.eventItem:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+
 .eventMetaRow {
   display: flex;
   align-items: center;
@@ -333,11 +355,14 @@
 
 .eventRepeat,
 .eventShared {
+  max-width: 58px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.16);
   font-size: 8px;
   line-height: 1;
   padding: 2px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -733,6 +758,12 @@
 .light .header {
   background: linear-gradient(180deg, #ffffff 0%, #f4f6fb 100%);
   border-bottom-color: #dfe3ec;
+}
+
+.light .groupFilterSelect {
+  border-color: #dfe3ec;
+  background: #ffffff;
+  color: #202124;
 }
 
 .light .monthSectionLabel {
@@ -1191,19 +1222,19 @@
 
 /* view switching header */
 .monthViewPage {
-  --calendar-header-height: 118px;
+  --calendar-header-height: 160px;
 }
 
 .yearViewPage {
-  --calendar-header-height: 92px;
+  --calendar-header-height: 134px;
 }
 
 .weekViewPage {
-  --calendar-header-height: 148px;
+  --calendar-header-height: 190px;
 }
 
 .dayViewPage {
-  --calendar-header-height: 178px;
+  --calendar-header-height: 220px;
 }
 
 .headerTitleButton {
