@@ -277,6 +277,13 @@ export default function Home() {
     startOffset: -INITIAL_PAST_MONTHS,
     endOffset: INITIAL_FUTURE_MONTHS,
   });
+  const [yearRange, setYearRange] = useState(() => {
+    const baseYear = new Date().getFullYear();
+    return {
+      startYear: baseYear - 2,
+      endYear: baseYear + 3,
+    };
+  });
   const [calendarView, setCalendarView] = useState('month');
 
   const displayBaseDateRef = useRef(new Date());
@@ -294,6 +301,13 @@ export default function Home() {
   const pendingScrollMonthKeyRef = useRef(null);
   const weekTouchStartRef = useRef({ x: 0, y: 0, moved: false });
   const weekNavigateLockRef = useRef(false);
+  const yearTouchStartRef = useRef({ x: 0, y: 0, moved: false });
+  const yearNavigateLockRef = useRef(false);
+  const yearSectionRefs = useRef({});
+  const yearTopLoadRef = useRef(null);
+  const yearBottomLoadRef = useRef(null);
+  const preserveYearScrollHeightRef = useRef(null);
+  const hasScrolledToCurrentYearRef = useRef(false);
 
   const year = currentDate.getFullYear();
   const weekStartDay = weekStart === 'monday' ? 1 : 0;
@@ -312,6 +326,15 @@ export default function Home() {
   }, [currentWeekDates]);
   const currentHour = now.getHours();
   const currentMinutes = now.getMinutes();
+  const calendarYears = useMemo(() => {
+    const years = [];
+
+    for (let targetYear = yearRange.startYear; targetYear <= yearRange.endYear; targetYear++) {
+      years.push(targetYear);
+    }
+
+    return years;
+  }, [yearRange]);
   const headerTitle = calendarView === 'day' || calendarView === 'week'
     ? currentMonthLabel
     : `${year}年`;
@@ -645,6 +668,131 @@ export default function Home() {
       }
     };
   }, [syncCurrentMonthWithScroll, calendarView]);
+
+
+  const loadPreviousYears = useCallback(() => {
+    setYearRange((prev) => {
+      if (typeof document !== 'undefined') {
+        preserveYearScrollHeightRef.current = document.documentElement.scrollHeight;
+      }
+
+      return {
+        ...prev,
+        startYear: prev.startYear - 3,
+      };
+    });
+  }, []);
+
+  const loadNextYears = useCallback(() => {
+    setYearRange((prev) => ({
+      ...prev,
+      endYear: prev.endYear + 3,
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (calendarView !== 'year') {
+      hasScrolledToCurrentYearRef.current = false;
+      return undefined;
+    }
+
+    const target = yearSectionRefs.current[currentDate.getFullYear()];
+    if (!target || hasScrolledToCurrentYearRef.current) return undefined;
+
+    const timerId = window.setTimeout(() => {
+      target.scrollIntoView({ block: 'start', behavior: 'auto' });
+      hasScrolledToCurrentYearRef.current = true;
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
+  }, [calendarView, calendarYears, currentDate]);
+
+  useLayoutEffect(() => {
+    if (preserveYearScrollHeightRef.current === null) return;
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const previousHeight = preserveYearScrollHeightRef.current;
+    const currentHeight = document.documentElement.scrollHeight;
+    const heightDiff = currentHeight - previousHeight;
+
+    if (heightDiff > 0) {
+      window.scrollBy(0, heightDiff);
+    }
+
+    preserveYearScrollHeightRef.current = null;
+  }, [calendarYears.length]);
+
+  useEffect(() => {
+    if (calendarView !== 'year') return undefined;
+
+    const topTarget = yearTopLoadRef.current;
+    const bottomTarget = yearBottomLoadRef.current;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting || !hasScrolledToCurrentYearRef.current) return;
+
+        if (entry.target === topTarget) {
+          loadPreviousYears();
+        }
+
+        if (entry.target === bottomTarget) {
+          loadNextYears();
+        }
+      });
+    }, {
+      root: null,
+      rootMargin: '700px 0px',
+      threshold: 0,
+    });
+
+    if (topTarget) observer.observe(topTarget);
+    if (bottomTarget) observer.observe(bottomTarget);
+
+    return () => observer.disconnect();
+  }, [calendarView, yearRange.startYear, yearRange.endYear, loadPreviousYears, loadNextYears]);
+
+  useEffect(() => {
+    if (calendarView !== 'year') return undefined;
+
+    const sections = calendarYears
+      .map((targetYear) => yearSectionRefs.current[targetYear])
+      .filter(Boolean);
+
+    if (sections.length === 0) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+      if (visibleEntries.length === 0) return;
+
+      visibleEntries.sort((a, b) => (
+        Math.abs(a.boundingClientRect.top - 100) -
+        Math.abs(b.boundingClientRect.top - 100)
+      ));
+
+      const targetYear = Number(visibleEntries[0].target.dataset.year);
+      if (Number.isNaN(targetYear)) return;
+
+      setCurrentDate((prev) => {
+        if (prev.getFullYear() === targetYear) return prev;
+
+        const nextDay = Math.min(
+          prev.getDate(),
+          getDaysInMonth(targetYear, prev.getMonth()),
+        );
+
+        return new Date(targetYear, prev.getMonth(), nextDay);
+      });
+    }, {
+      root: null,
+      rootMargin: '-100px 0px -55% 0px',
+      threshold: [0, 0.1, 0.25],
+    });
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [calendarView, calendarYears]);
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
@@ -1085,6 +1233,69 @@ export default function Home() {
     weekTouchStartRef.current = { x: 0, y: 0, moved: false };
   }, []);
 
+  const moveYearBy = useCallback((yearOffset) => {
+    setCurrentDate((prev) => {
+      const nextYear = prev.getFullYear() + yearOffset;
+      const nextMonth = prev.getMonth();
+      const nextDay = Math.min(prev.getDate(), getDaysInMonth(nextYear, nextMonth));
+      return new Date(nextYear, nextMonth, nextDay);
+    });
+  }, []);
+
+  const unlockYearNavigation = useCallback(() => {
+    window.setTimeout(() => {
+      yearNavigateLockRef.current = false;
+    }, 220);
+  }, []);
+
+  const handleYearSwipeNavigate = useCallback((direction) => {
+    if (yearNavigateLockRef.current) return;
+
+    yearNavigateLockRef.current = true;
+    moveYearBy(direction === 'next' ? 1 : -1);
+    unlockYearNavigation();
+  }, [moveYearBy, unlockYearNavigation]);
+
+  const handleYearWheel = useCallback((event) => {
+    const dominantDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+      ? event.deltaY
+      : event.deltaX;
+
+    if (Math.abs(dominantDelta) < 36) return;
+
+    event.preventDefault();
+    handleYearSwipeNavigate(dominantDelta > 0 ? 'next' : 'prev');
+  }, [handleYearSwipeNavigate]);
+
+  const handleYearTouchStart = useCallback((event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    yearTouchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      moved: false,
+    };
+  }, []);
+
+  const handleYearTouchMove = useCallback((event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    const diffX = touch.clientX - yearTouchStartRef.current.x;
+    const diffY = touch.clientY - yearTouchStartRef.current.y;
+
+    if (yearTouchStartRef.current.moved) return;
+    if (Math.abs(diffY) < 56 || Math.abs(diffY) <= Math.abs(diffX)) return;
+
+    yearTouchStartRef.current.moved = true;
+    handleYearSwipeNavigate(diffY < 0 ? 'next' : 'prev');
+  }, [handleYearSwipeNavigate]);
+
+  const handleYearTouchEnd = useCallback(() => {
+    yearTouchStartRef.current = { x: 0, y: 0, moved: false };
+  }, []);
+
   const handleViewToggle = () => {
     setCalendarView((prev) => {
       if (prev === 'year') return 'month';
@@ -1094,14 +1305,14 @@ export default function Home() {
     });
   };
 
-  const handleYearMonthClick = (targetMonth) => {
+  const handleYearMonthClick = (targetYear, targetMonth) => {
     const selectedDay = Math.min(
       currentDate.getDate(),
-      getDaysInMonth(year, targetMonth),
+      getDaysInMonth(targetYear, targetMonth),
     );
 
-    setCurrentDate(new Date(year, targetMonth, selectedDay));
-    openMonthView(year, targetMonth);
+    setCurrentDate(new Date(targetYear, targetMonth, selectedDay));
+    openMonthView(targetYear, targetMonth);
   };
 
   const handleAddButtonClick = () => {
@@ -1141,13 +1352,15 @@ export default function Home() {
                 onClick={handleHeaderTitleClick}
                 disabled={calendarView === 'year'}
               >
-                <span className={styles.headerTitleRow}>
+                <span className={styles.headerTitleText}>
                   {(calendarView === 'week' || calendarView === 'month') && (
-                    <span className={styles.headerBackMark} aria-hidden="true">＜</span>
+                    <span aria-hidden="true">＜</span>
                   )}
-                  <span className={styles.headerTitleText}>{headerTitle}</span>
+                  {headerTitle}
                 </span>
-                <span className={styles.headerSubText}>{headerSubText}</span>
+                <span className={styles.headerSubText}>
+                  {headerSubText}
+                </span>
               </button>
             </div>
 
@@ -1242,55 +1455,78 @@ export default function Home() {
 
         <main className={styles.main}>
           {calendarView === 'year' && (
-            <div className={styles.yearOverview}>
-              {Array.from({ length: 12 }, (_, targetMonth) => {
-                const miniMonth = buildCalendarMonth(year, targetMonth, weekStartDay);
+            <div className={styles.connectedYearOverview}>
+              <div ref={yearTopLoadRef} className={styles.yearLoadSentinel} aria-hidden="true" />
 
-                return (
-                  <button
-                    key={`${year}-${targetMonth}`}
-                    type="button"
-                    className={styles.yearMonthCard}
-                    onClick={() => handleYearMonthClick(targetMonth)}
-                  >
-                    <h2 className={styles.yearMonthTitle}>{targetMonth + 1}月</h2>
+              {calendarYears.map((targetYear) => (
+                <section
+                  key={targetYear}
+                  ref={(element) => {
+                    if (element) {
+                      yearSectionRefs.current[targetYear] = element;
+                    }
+                  }}
+                  className={styles.yearSection}
+                  data-year={targetYear}
+                >
+                  <div className={styles.yearSectionTitle}>{targetYear}年</div>
 
-                    <div className={styles.miniMonthGrid}>
-                      {miniMonth.cells.map((cell, index) => {
-                        if (cell.type === 'empty') {
-                          return (
-                            <span
-                              key={`${miniMonth.key}-${cell.key}-${index}`}
-                              className={styles.miniMonthEmpty}
-                              aria-hidden="true"
-                            />
-                          );
-                        }
+                  <div className={styles.yearOverview}>
+                    {Array.from({ length: 12 }, (_, targetMonth) => {
+                      const miniMonth = buildCalendarMonth(targetYear, targetMonth, weekStartDay);
 
-                        const isSelected = (
-                          currentDate.getFullYear() === year &&
-                          currentDate.getMonth() === targetMonth &&
-                          currentDate.getDate() === cell.day
-                        );
-                        const isToday = isTodayDate(year, targetMonth, cell.day);
+                      return (
+                        <button
+                          key={`${targetYear}-${targetMonth}`}
+                          type="button"
+                          className={styles.yearMonthCard}
+                          onClick={() => handleYearMonthClick(targetYear, targetMonth)}
+                        >
+                          <h2 className={styles.yearMonthTitle}>
+                            {targetMonth + 1}月
+                          </h2>
 
-                        return (
-                          <span
-                            key={cell.dateKey}
-                            className={[
-                              styles.miniMonthDay,
-                              isSelected ? styles.miniMonthSelectedDay : '',
-                              isToday ? styles.miniMonthToday : '',
-                            ].join(' ')}
-                          >
-                            {cell.day}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </button>
-                );
-              })}
+                          <div className={styles.miniMonthGrid}>
+                            {miniMonth.cells.map((cell, index) => {
+                              if (cell.type === 'empty') {
+                                return (
+                                  <span
+                                    key={`${miniMonth.key}-${cell.key}-${index}`}
+                                    className={styles.miniMonthEmpty}
+                                    aria-hidden="true"
+                                  />
+                                );
+                              }
+
+                              const isSelected = (
+                                currentDate.getFullYear() === targetYear &&
+                                currentDate.getMonth() === targetMonth &&
+                                currentDate.getDate() === cell.day
+                              );
+                              const isToday = isTodayDate(targetYear, targetMonth, cell.day);
+
+                              return (
+                                <span
+                                  key={cell.dateKey}
+                                  className={[
+                                    styles.miniMonthDay,
+                                    isSelected ? styles.miniMonthSelectedDay : '',
+                                    isToday ? styles.miniMonthToday : '',
+                                  ].join(' ')}
+                                >
+                                  {cell.day}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+
+              <div ref={yearBottomLoadRef} className={styles.yearLoadSentinel} aria-hidden="true" />
             </div>
           )}
 

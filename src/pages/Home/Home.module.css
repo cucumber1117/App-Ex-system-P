@@ -1879,36 +1879,77 @@
 }
 
 
-.headerTitleRow {
+
+
+.headerTitleText {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.headerBackMark {
-  color: inherit;
-  font-size: 0.92em;
-  font-weight: 900;
-  line-height: 1;
-  flex-shrink: 0;
-  transform: translateY(-1px);
-}
-
-.light .headerBackMark {
-  color: #2f80ed;
-}
-
-.dark .headerBackMark {
-  color: #5ac8fa;
+  align-items: baseline;
+  gap: 4px;
 }
 
 @media (max-width: 600px) {
-  .headerTitleRow {
-    gap: 6px;
+  .headerTitleText {
+    gap: 3px;
+  }
+}
+
+
+.yearOverview {
+  overscroll-behavior: contain;
+  touch-action: pan-x;
+}
+
+
+.connectedYearOverview {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.yearSection {
+  scroll-margin-top: calc(var(--calendar-header-height) + 2px);
+  padding-bottom: 24px;
+}
+
+.yearSectionTitle {
+  padding: 18px clamp(18px, 4vw, 48px) 4px;
+  color: #2f80ed;
+  font-size: clamp(30px, 6vw, 52px);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.dark .yearSectionTitle {
+  color: #5ac8fa;
+}
+
+.yearLoadSentinel {
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+}
+
+.januaryYearLabel {
+  color: #2f80ed;
+  font-weight: 900;
+}
+
+.dark .januaryYearLabel {
+  color: #5ac8fa;
+}
+
+.yearOverview {
+  overscroll-behavior: auto;
+  touch-action: auto;
+}
+
+@media (max-width: 600px) {
+  .yearSection {
+    padding-bottom: 12px;
   }
 
-  .headerBackMark {
-    font-size: 0.88em;
+  .yearSectionTitle {
+    padding: 14px 18px 2px;
+    font-size: 30px;
   }
 }
