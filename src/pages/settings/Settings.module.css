@@ -50,6 +50,64 @@
   border-bottom: none;
 }
 
+.menuRow {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 0;
+  border: none;
+  border-bottom: 1px solid #edf0f4;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuRow:hover .menuLabel {
+  color: #2f80ed;
+}
+
+.menuRow:hover .menuArrow {
+  transform: translateX(3px);
+}
+
+.menuIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #eef4ff;
+  color: #2f80ed;
+}
+
+.menuContent {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.menuLabel {
+  font-size: 15px;
+  font-weight: 800;
+  transition: color 0.15s ease;
+}
+
+.menuDescription {
+  color: #7a7f87;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.menuArrow {
+  color: #9aa1ac;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
 .label {
   font-size: 15px;
   font-weight: 700;
@@ -304,8 +362,29 @@ input.select {
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
+.dark .menuRow {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .menuRow:hover .menuLabel {
+  color: #d7cdff;
+}
+
 .dark .description {
   color: #b7bdc8;
+}
+
+.dark .menuIcon {
+  background: rgba(124, 92, 255, 0.16);
+  color: #d7cdff;
+}
+
+.dark .menuDescription {
+  color: #b7bdc8;
+}
+
+.dark .menuArrow {
+  color: #aeb4c0;
 }
 
 .dark .select {
@@ -394,6 +473,15 @@ input.select {
   color: #00a844;
 }
 
+.green .menuRow:hover .menuLabel {
+  color: #008f3a;
+}
+
+.green .menuIcon {
+  background: #e8f8ed;
+  color: #008f3a;
+}
+
 .green .btn {
   background: linear-gradient(135deg, #00c300, #37d67a);
   color: #ffffff;
@@ -476,6 +564,18 @@ input.select {
     flex-direction: column;
     gap: 12px;
     padding: 16px 0;
+  }
+
+  .menuRow {
+    grid-template-columns: 42px minmax(0, 1fr) 20px;
+    gap: 10px;
+    padding: 16px 0;
+  }
+
+  .menuIcon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
   }
 
   .profileRow {

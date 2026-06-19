@@ -8,6 +8,7 @@ import Settings from './pages/settings/Settings.jsx';
 import AppInfo from './pages/settings/AppInfo.jsx';
 import Footer from './compornent/Footer/Footer.jsx';
 import './theme.css';
+import appIcon from './assets/icon.png';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './Firebase/firebaseConfig.js';
@@ -23,7 +24,7 @@ const NotificationWatcher = () => {
 
       new Notification(title, {
         body,
-        icon: '/vite.svg',
+        icon: appIcon,
       });
     };
 

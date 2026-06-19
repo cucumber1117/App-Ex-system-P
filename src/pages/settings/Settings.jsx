@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from './Settings.module.css';
 import { useNavigate } from 'react-router-dom';
+import { ChevronRight, Info } from 'lucide-react';
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { loginWithGoogle } from '../../Firebase/auth/login';
@@ -620,33 +621,24 @@ const Settings = () => {
             </div>
 
             <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>このアプリについて</h2>
+                <h2 className={styles.sectionTitle}>サポート</h2>
 
-                <div className={styles.row}>
-                    <div>
-                        <div className={styles.label}>アプリ情報</div>
-                        <p className={styles.description}>
-                            開発者、アプリの説明、主要機能、お問い合わせを確認できます。
-                        </p>
-                    </div>
-
-                    <button
-                        className={`${styles.btn} ${styles.secondaryBtn}`}
-                        type="button"
-                        onClick={() => navigate('/settings/app-info')}
-                    >
-                        表示
-                    </button>
-                </div>
-
-                <div className={styles.row}>
-                    <div>
-                        <div className={styles.label}>バージョン</div>
-                        <p className={styles.description}>スケジュール管理アプリ</p>
-                    </div>
-
-                    <div className={styles.version}>0.1.0</div>
-                </div>
+                <button
+                    className={styles.menuRow}
+                    type="button"
+                    onClick={() => navigate('/settings/app-info')}
+                >
+                    <span className={styles.menuIcon} aria-hidden="true">
+                        <Info size={22} />
+                    </span>
+                    <span className={styles.menuContent}>
+                        <span className={styles.menuLabel}>アプリ情報・お問い合わせ</span>
+                        <span className={styles.menuDescription}>
+                            開発者、アプリの説明、主要機能、連絡先を確認できます。
+                        </span>
+                    </span>
+                    <ChevronRight className={styles.menuArrow} size={22} aria-hidden="true" />
+                </button>
             </div>
 
             {loading && <p className={styles.note}>読み込み中…</p>}
