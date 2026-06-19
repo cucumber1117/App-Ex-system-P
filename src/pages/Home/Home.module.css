@@ -223,26 +223,26 @@
   pointer-events: none;
 }
 
-.firstWeekCell .dayCellInner {
-  padding-top: 36px;
+.monthSectionHeader {
+  min-height: 38px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 8px 0 6px;
 }
 
-.monthMarker {
-  position: absolute;
-  top: 7px;
-  left: 0;
-  right: 0;
+.monthSectionLabel {
   color: #f5f5f7;
   font-size: clamp(18px, 4vw, 26px);
   font-weight: 800;
   line-height: 1.1;
   text-align: center;
-  pointer-events: none;
 }
 
 .calendarGrid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: minmax(88px, auto);
   width: 100%;
 }
 
@@ -714,7 +714,7 @@
   border-bottom-color: #dfe3ec;
 }
 
-.light .monthMarker {
+.light .monthSectionLabel {
   color: #202124;
 }
 
@@ -882,12 +882,12 @@
     padding-bottom: 0;
   }
 
-  .firstWeekCell .dayCellInner {
-    padding-top: 28px;
+  .monthSectionHeader {
+    min-height: 30px;
+    padding: 6px 0 4px;
   }
 
-  .monthMarker {
-    top: 5px;
+  .monthSectionLabel {
     font-size: 18px;
   }
 
@@ -913,6 +913,10 @@
 
   .main {
     padding: 0 6px 18px;
+  }
+
+  .calendarGrid {
+    grid-auto-rows: minmax(64px, auto);
   }
 
   .dayCell {
@@ -1015,6 +1019,10 @@
     padding-right: 4px;
   }
 
+  .calendarGrid {
+    grid-auto-rows: minmax(58px, auto);
+  }
+
   .dayCell {
     min-height: 58px;
   }
@@ -1025,6 +1033,10 @@
   .main {
     padding-left: 32px;
     padding-right: 32px;
+  }
+
+  .calendarGrid {
+    grid-auto-rows: minmax(118px, auto);
   }
 
   .dayCell {
@@ -1164,6 +1176,10 @@
   --calendar-header-height: 92px;
 }
 
+.weekViewPage {
+  --calendar-header-height: 148px;
+}
+
 .dayViewPage {
   --calendar-header-height: 178px;
 }
@@ -1279,6 +1295,172 @@
   color: #062338;
 }
 
+.weekViewPage .main {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.weekViewPage .dateStrip {
+  padding: 10px 14px 12px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(122, 129, 144, 0.18);
+}
+
+.weekViewPage .dateStripItem {
+  border-radius: 24px;
+  padding: 8px 4px 10px;
+  color: #f5f5f7;
+}
+
+.weekViewPage .dateStripWeekday {
+  color: rgba(245, 245, 247, 0.88);
+  font-size: 14px;
+}
+
+.weekViewPage .dateStripNumber {
+  min-width: 44px;
+  height: 44px;
+  font-size: clamp(24px, 5vw, 36px);
+  font-weight: 500;
+}
+
+.weekViewPage .dateStripWeekend {
+  color: #8e8e93;
+}
+
+.weekViewPage .dateStripItemToday .dateStripNumber {
+  color: #ff6b5c;
+  box-shadow: none;
+}
+
+.weekViewPage .dateStripItemSelected {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.weekViewPage .dateStripItemSelected .dateStripNumber {
+  background: #ffffff;
+  color: #050505;
+  box-shadow: none;
+}
+
+.weekView {
+  background: transparent;
+  color: inherit;
+  width: 100%;
+}
+
+.weekTimelineWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.weekTimelineGrid {
+  display: grid;
+  min-width: 100%;
+  width: 100%;
+  align-items: stretch;
+}
+
+.weekTimelineCorner {
+  min-height: 72px;
+  border-right: 1px solid rgba(122, 129, 144, 0.22);
+  border-bottom: 1px solid rgba(122, 129, 144, 0.22);
+  background: inherit;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+
+.weekDayHeader {
+  min-width: 0;
+  min-height: 72px;
+  border-right: 1px solid rgba(122, 129, 144, 0.22);
+  border-bottom: 1px solid rgba(122, 129, 144, 0.22);
+  padding: 16px 10px 12px;
+  text-align: center;
+  background: inherit;
+}
+
+.weekDayHeaderSelected {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.weekDayHeaderText {
+  color: inherit;
+  font-size: clamp(18px, 3vw, 28px);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.weekHeaderAllDayList {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.weekTimeLabel {
+  min-height: 62px;
+  padding: 8px 10px 0;
+  color: #8e8e93;
+  font-size: 14px;
+  text-align: right;
+  border-right: 1px solid rgba(122, 129, 144, 0.22);
+  border-top: 1px solid rgba(122, 129, 144, 0.22);
+  background: inherit;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.weekHourCell {
+  min-width: 0;
+  min-height: 62px;
+  border-right: 1px solid rgba(122, 129, 144, 0.22);
+  border-top: 1px solid rgba(122, 129, 144, 0.22);
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.weekEventItem {
+  width: 100%;
+  min-width: 0;
+}
+
+.light .weekViewPage .dateStripItem {
+  color: #202124;
+}
+
+.light .weekViewPage .dateStripWeekday {
+  color: #202124;
+}
+
+.light .weekViewPage .dateStripWeekend {
+  color: #7a8190;
+}
+
+.light .weekViewPage .dateStripItemToday .dateStripNumber {
+  color: #eb5757;
+}
+
+.light .weekViewPage .dateStripItemSelected {
+  background: rgba(47, 128, 237, 0.12);
+}
+
+.light .weekViewPage .dateStripItemSelected .dateStripNumber {
+  background: #2f80ed;
+  color: #ffffff;
+}
+
+.light .weekTimelineCorner,
+.light .weekDayHeader,
+.light .weekTimeLabel,
+.light .weekHourCell {
+  border-color: rgba(122, 129, 144, 0.24);
+}
+
 .dayView {
   background: transparent;
   color: inherit;
@@ -1383,6 +1565,10 @@
     --calendar-header-height: 82px;
   }
 
+  .weekViewPage {
+    --calendar-header-height: 126px;
+  }
+
   .dayViewPage {
     --calendar-header-height: 154px;
   }
@@ -1411,6 +1597,62 @@
     font-size: 13px;
   }
 
+  .weekViewPage .main {
+    padding-bottom: 18px;
+  }
+
+  .weekViewPage .dateStrip {
+    gap: 6px;
+    padding: 8px 8px 10px;
+  }
+
+  .weekViewPage .dateStripItem {
+    border-radius: 18px;
+    padding: 6px 2px 8px;
+  }
+
+  .weekViewPage .dateStripWeekday {
+    font-size: 12px;
+  }
+
+  .weekViewPage .dateStripNumber {
+    min-width: 34px;
+    height: 34px;
+    font-size: 20px;
+  }
+
+  .weekTimelineGrid {
+    width: max-content;
+    min-width: max-content;
+  }
+
+  .weekTimelineCorner,
+  .weekDayHeader,
+  .weekHourCell {
+    min-width: 168px;
+  }
+
+  .weekDayHeader {
+    min-height: 60px;
+    padding: 12px 8px 10px;
+  }
+
+  .weekDayHeaderText {
+    font-size: 16px;
+  }
+
+  .weekTimeLabel {
+    min-height: 56px;
+    font-size: 12px;
+    padding-left: 6px;
+    padding-right: 8px;
+  }
+
+  .weekHourCell {
+    min-height: 56px;
+    padding: 4px;
+  }
+
   .dayViewTitleRow {
     top: var(--calendar-header-height);
     padding: 10px 12px;
@@ -1436,5 +1678,237 @@
 @media (max-width: 390px) {
   .yearOverview {
     grid-template-columns: 1fr;
+  }
+}
+
+
+.weekDateStripNumberSelected {
+  color: inherit;
+}
+
+.weekDateStripNumberToday {
+  color: #ff6b5c;
+}
+
+.weekDateStripNumberWeekend {
+  color: inherit;
+}
+
+.weekHourCell {
+  position: relative;
+}
+
+.currentTimeLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ff3b30;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.currentTimeDot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ff3b30;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.light .weekViewPage .dateStripNumber {
+  color: #6f7683;
+}
+
+.light .weekViewPage .dateStripWeekday {
+  color: #8a909c;
+}
+
+.light .weekViewPage .dateStripItem {
+  color: #6f7683;
+}
+
+.light .weekViewPage .weekDateStripNumberWeekend {
+  color: #8a909c;
+}
+
+.light .weekViewPage .weekDateStripNumberToday {
+  color: #eb5757;
+}
+
+.light .weekViewPage .weekDateStripNumberSelected {
+  color: #ffffff;
+}
+
+.dark .weekViewPage .dateStripNumber {
+  color: #f5f5f7;
+}
+
+.dark .weekViewPage .weekDateStripNumberWeekend {
+  color: #8e8e93;
+}
+
+.dark .weekViewPage .weekDateStripNumberSelected {
+  color: #050505;
+}
+
+
+.weekViewPage .dateStripNumber {
+  position: relative;
+}
+
+.weekTodayMarker {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #5ac8fa;
+  transform: translateX(-50%);
+}
+
+/* week view weekday date colors */
+.light .weekViewPage .dateStripItem {
+  color: #202124;
+}
+
+.light .weekViewPage .dateStripWeekday {
+  color: #202124;
+}
+
+.light .weekViewPage .dateStripNumber {
+  color: #202124;
+}
+
+.light .weekViewPage .weekDateStripNumberWeekend,
+.light .weekViewPage .dateStripWeekend .dateStripWeekday,
+.light .weekViewPage .dateStripWeekend .dateStripNumber {
+  color: #7a8190;
+}
+
+.light .weekViewPage .weekDateStripNumberToday {
+  color: #202124;
+}
+
+.light .weekViewPage .weekDateStripNumberSelected {
+  color: #ffffff;
+}
+
+.dark .weekTodayMarker {
+  background: #5ac8fa;
+}
+
+.light .weekTodayMarker {
+  background: #5ac8fa;
+}
+
+@media (max-width: 600px) {
+  .weekTodayMarker {
+    bottom: -6px;
+    width: 6px;
+    height: 6px;
+  }
+}
+
+
+/* final week-view date color override */
+.weekViewPage .weekDateStripItem .dateStripWeekday,
+.weekViewPage .weekDateStripItem .dateStripNumber {
+  color: #202124 !important;
+  opacity: 1 !important;
+}
+
+.weekViewPage .weekDateStripItem.dateStripWeekend .dateStripWeekday,
+.weekViewPage .weekDateStripItem.dateStripWeekend .dateStripNumber,
+.weekViewPage .dateStripWeekend .dateStripWeekday,
+.weekViewPage .dateStripWeekend .dateStripNumber {
+  color: #7a8190 !important;
+  opacity: 1 !important;
+}
+
+.weekViewPage .weekDateStripItem.dateStripItemSelected {
+  background: transparent !important;
+}
+
+.weekViewPage .weekDateStripItem.dateStripItemSelected .dateStripNumber {
+  background: #5ac8fa !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.weekViewPage .weekDateStripItem.weekDateStripItemToday:not(.dateStripItemSelected) .dateStripNumber {
+  background: rgba(90, 200, 250, 0.16) !important;
+  color: #202124 !important;
+  box-shadow: 0 0 0 2px rgba(90, 200, 250, 0.34) !important;
+}
+
+.weekViewPage .weekDateStripItem.weekDateStripItemToday .weekTodayMarker {
+  background: #5ac8fa !important;
+  display: block !important;
+}
+
+.weekViewPage .weekDateStripItem.dateStripItemSelected .weekTodayMarker {
+  background: #5ac8fa !important;
+  bottom: -10px;
+}
+
+@media (max-width: 600px) {
+  .weekViewPage .weekDateStripItem.dateStripItemSelected .weekTodayMarker {
+    bottom: -7px;
+  }
+}
+
+
+/* remove duplicate week date row above timeline */
+.weekTimelineCorner,
+.weekDayHeader {
+  display: none !important;
+}
+
+
+.weekView {
+  touch-action: pan-y;
+}
+
+.weekTimelineWrapper {
+  overscroll-behavior-x: contain;
+}
+
+
+.headerTitleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.headerBackMark {
+  color: inherit;
+  font-size: 0.92em;
+  font-weight: 900;
+  line-height: 1;
+  flex-shrink: 0;
+  transform: translateY(-1px);
+}
+
+.light .headerBackMark {
+  color: #2f80ed;
+}
+
+.dark .headerBackMark {
+  color: #5ac8fa;
+}
+
+@media (max-width: 600px) {
+  .headerTitleRow {
+    gap: 6px;
+  }
+
+  .headerBackMark {
+    font-size: 0.88em;
   }
 }
