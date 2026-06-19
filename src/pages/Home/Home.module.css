@@ -1953,3 +1953,10 @@
     font-size: 30px;
   }
 }
+
+
+/* Year view: highlight only the actual current date */
+.yearSection .miniMonthSelectedDay:not(.miniMonthToday) {
+  background: transparent !important;
+  color: inherit !important;
+}

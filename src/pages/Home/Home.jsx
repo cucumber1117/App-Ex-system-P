@@ -308,6 +308,8 @@ export default function Home() {
   const yearBottomLoadRef = useRef(null);
   const preserveYearScrollHeightRef = useRef(null);
   const hasScrolledToCurrentYearRef = useRef(false);
+  const yearScrollRafRef = useRef(null);
+  const activeYearRef = useRef(new Date().getFullYear());
 
   const year = currentDate.getFullYear();
   const weekStartDay = weekStart === 'monday' ? 1 : 0;
@@ -700,6 +702,7 @@ export default function Home() {
     if (!target || hasScrolledToCurrentYearRef.current) return undefined;
 
     const timerId = window.setTimeout(() => {
+      activeYearRef.current = currentDate.getFullYear();
       target.scrollIntoView({ block: 'start', behavior: 'auto' });
       hasScrolledToCurrentYearRef.current = true;
     }, 0);
@@ -752,47 +755,80 @@ export default function Home() {
     return () => observer.disconnect();
   }, [calendarView, yearRange.startYear, yearRange.endYear, loadPreviousYears, loadNextYears]);
 
-  useEffect(() => {
-    if (calendarView !== 'year') return undefined;
+  const syncCurrentYearWithScroll = useCallback(() => {
+    if (calendarView !== 'year') return;
+    if (!hasScrolledToCurrentYearRef.current) return;
 
+    const headerHeight = headerRef.current?.getBoundingClientRect().height || 0;
+    const anchorY = headerHeight + 8;
     const sections = calendarYears
       .map((targetYear) => yearSectionRefs.current[targetYear])
       .filter(Boolean);
 
-    if (sections.length === 0) return undefined;
+    if (sections.length === 0) return;
 
-    const observer = new IntersectionObserver((entries) => {
-      const visibleEntries = entries.filter((entry) => entry.isIntersecting);
-      if (visibleEntries.length === 0) return;
+    let selectedSection = sections[0];
 
-      visibleEntries.sort((a, b) => (
-        Math.abs(a.boundingClientRect.top - 100) -
-        Math.abs(b.boundingClientRect.top - 100)
-      ));
+    for (const section of sections) {
+      const rect = section.getBoundingClientRect();
 
-      const targetYear = Number(visibleEntries[0].target.dataset.year);
-      if (Number.isNaN(targetYear)) return;
+      if (rect.top <= anchorY) {
+        selectedSection = section;
+      }
 
-      setCurrentDate((prev) => {
-        if (prev.getFullYear() === targetYear) return prev;
+      if (rect.top <= anchorY && rect.bottom > anchorY) {
+        selectedSection = section;
+        break;
+      }
 
-        const nextDay = Math.min(
-          prev.getDate(),
-          getDaysInMonth(targetYear, prev.getMonth()),
-        );
+      if (rect.top > anchorY) {
+        break;
+      }
+    }
 
-        return new Date(targetYear, prev.getMonth(), nextDay);
-      });
-    }, {
-      root: null,
-      rootMargin: '-100px 0px -55% 0px',
-      threshold: [0, 0.1, 0.25],
+    const targetYear = Number(selectedSection.dataset.year);
+    if (Number.isNaN(targetYear) || activeYearRef.current === targetYear) return;
+
+    activeYearRef.current = targetYear;
+
+    setCurrentDate((prev) => {
+      if (prev.getFullYear() === targetYear) return prev;
+
+      const nextDay = Math.min(
+        prev.getDate(),
+        getDaysInMonth(targetYear, prev.getMonth()),
+      );
+
+      return new Date(targetYear, prev.getMonth(), nextDay);
     });
-
-    sections.forEach((section) => observer.observe(section));
-
-    return () => observer.disconnect();
   }, [calendarView, calendarYears]);
+
+  useEffect(() => {
+    if (calendarView !== 'year') return undefined;
+
+    const handleScroll = () => {
+      if (yearScrollRafRef.current !== null) return;
+
+      yearScrollRafRef.current = window.requestAnimationFrame(() => {
+        yearScrollRafRef.current = null;
+        syncCurrentYearWithScroll();
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+
+      if (yearScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(yearScrollRafRef.current);
+        yearScrollRafRef.current = null;
+      }
+    };
+  }, [calendarView, calendarYears, syncCurrentYearWithScroll]);
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
@@ -1498,11 +1534,6 @@ export default function Home() {
                                 );
                               }
 
-                              const isSelected = (
-                                currentDate.getFullYear() === targetYear &&
-                                currentDate.getMonth() === targetMonth &&
-                                currentDate.getDate() === cell.day
-                              );
                               const isToday = isTodayDate(targetYear, targetMonth, cell.day);
 
                               return (
@@ -1510,7 +1541,6 @@ export default function Home() {
                                   key={cell.dateKey}
                                   className={[
                                     styles.miniMonthDay,
-                                    isSelected ? styles.miniMonthSelectedDay : '',
                                     isToday ? styles.miniMonthToday : '',
                                   ].join(' ')}
                                 >
