@@ -1433,7 +1433,12 @@ export default function Home() {
       event: calendarEvent,
     });
 
-    window.alert(`${selectedGroup.name || 'グループ'}のメンバー${recipientCount}人に予定を共有しました。`);
+    if (recipientCount > 0) {
+      window.alert(`${selectedGroup.name || 'グループ'}のメンバー${recipientCount}人に予定を共有しました。`);
+      return;
+    }
+
+    window.alert(`${selectedGroup.name || 'グループ'}に予定を共有しました。後から参加したメンバーにも表示されます。`);
   };
 
   const handleSaveEvent = async () => {

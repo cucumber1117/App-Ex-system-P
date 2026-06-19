@@ -116,6 +116,39 @@ export async function listGroupMembers(groupId) {
     .filter((member) => member.uid || member.id);
 }
 
+async function deliverGroupSharedSchedulesToMember(groupId, uid) {
+  if (!groupId || !uid) return;
+
+  const snapshot = await getDocs(collection(db, 'groups', groupId, 'sharedSchedules'));
+  const shares = snapshot.docs
+    .map((shareDoc) => ({
+      id: shareDoc.id,
+      ...shareDoc.data(),
+    }))
+    .filter((share) => share.senderUid !== uid);
+  const batchSize = 200;
+
+  for (let start = 0; start < shares.length; start += batchSize) {
+    const batch = writeBatch(db);
+    const batchShares = shares.slice(start, start + batchSize);
+
+    batchShares.forEach((share) => {
+      const shareRef = doc(db, 'users', uid, 'sharedSchedules', share.id);
+      batch.set(shareRef, {
+        ...share,
+        shareId: share.shareId || share.id,
+        recipientUid: uid,
+        recipientName: share.groupName || 'グループ',
+        targetType: 'group',
+        groupId,
+        status: 'pending',
+      }, { merge: true });
+    });
+
+    await batch.commit();
+  }
+}
+
 export async function listJoinedGroups(uid) {
   if (!uid) return [];
 
@@ -155,12 +188,14 @@ export async function joinGroup(groupId, uid) {
   const memberSnap = await getDoc(memberRef);
   if (memberSnap.exists()) {
     await setDoc(memberRef, { uid }, { merge: true });
+    await deliverGroupSharedSchedulesToMember(groupId, uid);
     return;
   }
 
   await setDoc(memberRef, { uid, joinedAt: serverTimestamp() });
   const groupRef = doc(db, 'groups', groupId);
   await updateDoc(groupRef, { memberCount: increment(1) });
+  await deliverGroupSharedSchedulesToMember(groupId, uid);
 }
 
 export async function leaveGroup(groupId, uid) {

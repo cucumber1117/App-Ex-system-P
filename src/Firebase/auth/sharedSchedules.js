@@ -102,35 +102,44 @@ export async function shareScheduleToGroup({
     .map((member) => member.uid || member.id)
     .filter((uid) => uid && uid !== sender.uid);
 
-  if (recipients.length === 0) {
-    throw new Error('共有できるグループメンバーがいません');
-  }
-
   const schedule = normalizeEvent(event);
   const senderName = sender.displayName || sender.email || '名前未設定';
   const groupName = group.name || '名前未設定のグループ';
+  const sharedAt = serverTimestamp();
+  const groupShareRef = doc(collection(db, 'groups', group.id, 'sharedSchedules'));
+  const groupShareData = {
+    shareId: groupShareRef.id,
+    senderUid: sender.uid,
+    senderName,
+    targetType: 'group',
+    groupId: group.id,
+    groupName,
+    schedule,
+    sharedAt,
+  };
   const batchSize = 200;
+
+  {
+    const batch = writeBatch(db);
+    batch.set(groupShareRef, groupShareData);
+    await batch.commit();
+  }
 
   for (let start = 0; start < recipients.length; start += batchSize) {
     const batch = writeBatch(db);
     const memberUids = recipients.slice(start, start + batchSize);
 
     memberUids.forEach((recipientUid) => {
-      const shareRef = doc(collection(db, 'users', recipientUid, 'sharedSchedules'));
-      const sentShareRef = doc(db, 'users', sender.uid, 'sentSchedules', shareRef.id);
-      const sharedAt = serverTimestamp();
+      const shareRef = doc(db, 'users', recipientUid, 'sharedSchedules', groupShareRef.id);
+      const sentShareRef = doc(db, 'users', sender.uid, 'sentSchedules', `${groupShareRef.id}-${recipientUid}`);
       const shareData = {
-        shareId: shareRef.id,
+        ...groupShareData,
+        shareId: groupShareRef.id,
         senderUid: sender.uid,
         senderName,
         recipientUid,
         recipientName: groupName,
-        targetType: 'group',
-        groupId: group.id,
-        groupName,
-        schedule,
         status: 'pending',
-        sharedAt,
       };
 
       batch.set(shareRef, shareData);
