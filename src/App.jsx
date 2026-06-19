@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import React, { useEffect } from 'react';
 import Home from './pages/Home/Home.jsx';
 import Group from './pages/Group/Group.jsx';
@@ -85,6 +85,16 @@ const NotificationWatcher = () => {
   return null;
 };
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname]);
+
+  return null;
+};
+
 function App() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -104,6 +114,7 @@ function App() {
     <ThemeProvider>
       <>
         <NotificationWatcher />
+        <ScrollToTop />
 
         <Routes>
           <Route path="/" element={<Home />} />
