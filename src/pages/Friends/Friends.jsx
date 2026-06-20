@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Copy, UserRound, UserRoundPlus } from 'lucide-react';
+import { Check, Copy, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
 import {
@@ -134,12 +134,21 @@ export default function Friends() {
 
   return (
     <main className={`${styles.container} ${styles[theme]}`}>
-      <h1 className={styles.title}>フレンド</h1>
+      <header className={styles.header}>
+        <h1 className={styles.title}>フレンド</h1>
+        <div className={styles.countBadge} aria-label={`フレンド ${friends.length}人`}>
+          <UserRound size={17} aria-hidden="true" />
+          <span>{friends.length}</span>
+        </div>
+      </header>
 
       <section className={styles.addSection}>
         <h2 className={styles.sectionTitle}>フレンド追加</h2>
         {!currentUser ? (
-          <p className={styles.note}>ログインするとフレンドを追加できます。</p>
+          <div className={styles.emptyState}>
+            <UserRoundPlus size={28} aria-hidden="true" />
+            <p className={styles.note}>ログインするとフレンドを追加できます。</p>
+          </div>
         ) : (
           <>
             <div className={styles.friendCode}>
@@ -192,7 +201,10 @@ export default function Friends() {
         {!currentUser && <p className={styles.note}>ログインするとフレンドを確認できます。</p>}
         {currentUser && loading && <p className={styles.note}>読み込み中...</p>}
         {currentUser && !loading && friends.length === 0 && (
-          <p className={styles.note}>フレンドはいません。</p>
+          <div className={styles.emptyState}>
+            <UserRound size={30} aria-hidden="true" />
+            <p className={styles.note}>フレンドはいません。</p>
+          </div>
         )}
         {currentUser && !loading && friends.length > 0 && (
           <ul className={styles.friendList}>
@@ -225,7 +237,8 @@ export default function Friends() {
                     </span>
                   </div>
                   <button type="button" className={styles.deleteBtn} onClick={() => handleDeleteFriend(friend.id)}>
-                      削除
+                    <Trash2 size={16} aria-hidden="true" />
+                    <span>削除</span>
                   </button>
                 </li>
               );
