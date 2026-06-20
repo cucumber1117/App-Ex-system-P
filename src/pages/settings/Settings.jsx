@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './Settings.module.css';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Info } from 'lucide-react';
@@ -14,8 +14,10 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 const Settings = () => {
     const navigate = useNavigate();
+    const toastTimerRef = useRef(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [toast, setToast] = useState('');
     const [profileName, setProfileName] = useState('');
     const [savingName, setSavingName] = useState(false);
     const [nameMessage, setNameMessage] = useState('');
@@ -39,6 +41,18 @@ const Settings = () => {
     const [backupFreq, setBackupFreq] = useState('weekly');
 
     const { theme, setTheme: setThemeContext } = useTheme();
+
+    const showToast = useCallback((text) => {
+        setToast(text);
+        window.clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = window.setTimeout(() => {
+            setToast('');
+        }, 2400);
+    }, []);
+
+    useEffect(() => () => {
+        window.clearTimeout(toastTimerRef.current);
+    }, []);
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, async (u) => {
@@ -219,6 +233,8 @@ const Settings = () => {
                 console.error(err);
             }
         }
+
+        showToast('設定を保存しました');
     };
 
     const handleNotificationChange = async (checked) => {
@@ -236,7 +252,7 @@ const Settings = () => {
 
     const resetSettings = () => {
         const ok = window.confirm(
-            '設定を初期化しますか？\n\n通知・表示・データ同期などの設定が初期状態に戻ります。この操作は元に戻せません。'
+            '設定を初期化しますか？\n\n表示設定や通知設定、データ同期設定を初期状態に戻します。予定やフレンドは削除されません。'
         );
 
         if (!ok) return;
@@ -258,6 +274,7 @@ const Settings = () => {
         setBackupFreq('weekly');
 
         setThemeContext('light');
+        showToast('設定を初期化しました');
     };
 
     return (
@@ -373,7 +390,7 @@ const Settings = () => {
                     <>
                         <div className={styles.row}>
                             <div>
-                                <div className={styles.label}>リマインダー時間</div>
+                                <div className={styles.label}>通知タイミング</div>
                                 <p className={styles.description}>
                                     予定開始の何分前に通知するかを選択します。
                                 </p>
@@ -390,6 +407,7 @@ const Settings = () => {
                                 <option value="10">10分前</option>
                                 <option value="30">30分前</option>
                                 <option value="60">1時間前</option>
+                                <option value="1440">前日</option>
                             </select>
                         </div>
 
@@ -595,7 +613,7 @@ const Settings = () => {
                     <div>
                         <div className={styles.dangerLabel}>危険操作</div>
                         <p className={styles.description}>
-                            初期化すると、この端末に保存された通知・表示・データ同期の設定がリセットされます。
+                            表示設定や通知設定を初期状態に戻します。予定やフレンドは削除されません。
                         </p>
                     </div>
                     <button
@@ -630,6 +648,11 @@ const Settings = () => {
             </div>
 
             {loading && <p className={styles.note}>読み込み中…</p>}
+            {toast && (
+                <div className={styles.toast} role="status" aria-live="polite">
+                    {toast}
+                </div>
+            )}
         </div>
     );
 };

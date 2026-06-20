@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Copy, MoreVertical, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
+import { Check, Copy, MoreVertical, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
 import {
@@ -14,17 +14,28 @@ import styles from './Friends.module.css';
 export default function Friends() {
   const { theme } = useTheme();
   const menuRef = useRef(null);
+  const toastTimerRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [ownFriendId, setOwnFriendId] = useState('');
   const [friendId, setFriendId] = useState('');
+  const [searchText, setSearchText] = useState('');
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [failedAvatarIds, setFailedAvatarIds] = useState({});
   const [copied, setCopied] = useState(false);
   const [openMenuId, setOpenMenuId] = useState('');
+  const [toast, setToast] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  const showToast = useCallback((text) => {
+    setToast(text);
+    window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast('');
+    }, 2400);
+  }, []);
 
   const refreshFriends = useCallback(async (uid) => {
     if (!uid) {
@@ -50,14 +61,26 @@ export default function Friends() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      setOwnFriendId('');
       refreshFriends(user?.uid);
 
-      if (!user) return;
+      if (!user) {
+        setOwnFriendId('');
+        return;
+      }
+
+      const friendIdCacheKey = `friendId:${user.uid}`;
+      const cachedFriendId = localStorage.getItem(friendIdCacheKey);
+
+      if (cachedFriendId) {
+        setOwnFriendId(cachedFriendId);
+      } else {
+        setOwnFriendId('');
+      }
 
       try {
         const issuedFriendId = await getOrCreateFriendId(user.uid);
         setOwnFriendId(issuedFriendId);
+        localStorage.setItem(friendIdCacheKey, issuedFriendId);
       } catch (err) {
         console.error(err);
         setError(err.message || 'フレンドIDを読み込めませんでした');
@@ -89,18 +112,43 @@ export default function Friends() {
     };
   }, [openMenuId]);
 
+  useEffect(() => () => {
+    window.clearTimeout(toastTimerRef.current);
+  }, []);
+
   const handleAddFriend = async (e) => {
     e.preventDefault();
     if (!currentUser) return;
+
+    const normalizedFriendId = friendId.trim().toLowerCase();
+
+    if (!normalizedFriendId) {
+      setError('フレンドIDを入力してください');
+      setMessage('');
+      return;
+    }
+
+    if (normalizedFriendId === ownFriendId) {
+      setError('自分自身は追加できません');
+      setMessage('');
+      return;
+    }
+
+    if (friends.some((friend) => friend.friendId === normalizedFriendId)) {
+      setError('すでにフレンドに追加されています');
+      setMessage('');
+      return;
+    }
 
     try {
       setAdding(true);
       setError('');
       setMessage('');
-      await addFriend(currentUser.uid, friendId);
+      await addFriend(currentUser.uid, normalizedFriendId);
       await refreshFriends(currentUser.uid);
       setFriendId('');
       setMessage('フレンドを追加しました');
+      showToast('フレンドを追加しました');
     } catch (err) {
       console.error(err);
       setError(err.message || 'フレンドを追加できませんでした');
@@ -128,6 +176,7 @@ export default function Friends() {
       }
 
       setCopied(true);
+      showToast('フレンドIDをコピーしました');
       window.setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error(err);
@@ -151,12 +200,23 @@ export default function Friends() {
         setOpenMenuId('');
 
         setMessage('フレンドを削除しました');
+        showToast('フレンドを削除しました');
       }
       catch(err) {
         console.error(err);
         setError('フレンドを削除できませんでした');
       }
     };
+
+  const normalizedSearch = searchText.trim().toLowerCase();
+  const filteredFriends = normalizedSearch
+    ? friends.filter((friend) => {
+        const friendName = friend.name || friend.displayName || '';
+        const id = friend.friendId || '';
+        const email = friend.email || '';
+        return `${friendName} ${id} ${email}`.toLowerCase().includes(normalizedSearch);
+      })
+    : friends;
 
   return (
     <main className={`${styles.container} ${styles[theme]}`}>
@@ -187,7 +247,7 @@ export default function Friends() {
               <div className={styles.friendCodeText}>
                 <span className={styles.friendCodeLabel}>自分のフレンドID</span>
                 <code className={styles.ownId}>
-                  {ownFriendId || '発行中...'}
+                  {ownFriendId || '確認中...'}
                 </code>
               </div>
               <button
@@ -232,18 +292,46 @@ export default function Friends() {
       </section>
 
       <section className={styles.listSection}>
-        <h2 className={styles.sectionTitle}>フレンド一覧</h2>
+        <div className={styles.listHeader}>
+          <div>
+            <h2 className={styles.sectionTitle}>フレンド一覧</h2>
+            {currentUser && !loading && (
+              <p className={styles.friendCount}>
+                {friends.length}人のフレンドがいます
+              </p>
+            )}
+          </div>
+        </div>
         {!currentUser && <p className={styles.note}>ログインするとフレンドを確認できます。</p>}
         {currentUser && loading && <p className={styles.note}>読み込み中...</p>}
+        {currentUser && !loading && friends.length > 0 && (
+          <label className={styles.searchBox}>
+            <Search size={17} aria-hidden="true" />
+            <input
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="名前またはIDで検索"
+              aria-label="フレンドを検索"
+            />
+          </label>
+        )}
         {currentUser && !loading && friends.length === 0 && (
           <div className={styles.emptyState}>
             <UserRound size={30} aria-hidden="true" />
-            <p className={styles.note}>フレンドはいません。</p>
+            <p className={styles.note}>
+              まだフレンドがいません。フレンドIDを共有して友達を追加しましょう。
+            </p>
           </div>
         )}
-        {currentUser && !loading && friends.length > 0 && (
+        {currentUser && !loading && friends.length > 0 && filteredFriends.length === 0 && (
+          <div className={styles.emptyState}>
+            <Search size={30} aria-hidden="true" />
+            <p className={styles.note}>一致するフレンドはいません。</p>
+          </div>
+        )}
+        {currentUser && !loading && filteredFriends.length > 0 && (
           <ul className={styles.friendList}>
-            {friends.map((friend) => {
+            {filteredFriends.map((friend) => {
               const friendName = friend.name || friend.displayName || '名前未設定';
               const fallbackLabel = (friendName !== '名前未設定' ? friendName : friend.email || '').slice(0, 1);
               const canShowAvatar = friend.photoURL && !failedAvatarIds[friend.id];
@@ -305,6 +393,12 @@ export default function Friends() {
           </ul>
         )}
       </section>
+
+      {toast && (
+        <div className={styles.toast} role="status" aria-live="polite">
+          {toast}
+        </div>
+      )}
     </main>
   );
 }

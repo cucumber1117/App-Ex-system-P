@@ -1,6 +1,6 @@
 .container {
   min-height: 100vh;
-  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 120px;
+  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 144px;
   background: #f4f6f8;
   color: #1f2933;
   transition: background 0.25s ease, color 0.25s ease;
@@ -153,6 +153,25 @@
   font-weight: 800;
 }
 
+.techList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.techList span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #edf0f4;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .featureList {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -245,6 +264,12 @@
   color: #e5e7eb;
 }
 
+.dark .techList span {
+  background: #2b313b;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+}
+
 .dark .contactLink:hover {
   background: rgba(124, 140, 255, 0.24);
 }
@@ -277,13 +302,18 @@
   border-color: #d5eadb;
 }
 
+.green .techList span {
+  background: #f8fffa;
+  border-color: #d5eadb;
+}
+
 .green .contactLink:hover {
   background: #d9f0df;
 }
 
 @media (max-width: 640px) {
   .container {
-    padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 112px;
+    padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 136px;
   }
 
   .title {

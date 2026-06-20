@@ -65,6 +65,13 @@ const AppInfo = () => {
       </section>
 
       <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>開発目的</h2>
+        <p className={styles.bodyText}>
+          個人の予定管理だけでなく、友人やグループと予定を共有しやすくすることを目的に開発しました。
+        </p>
+      </section>
+
+      <section className={styles.section}>
         <h2 className={styles.sectionTitle}>主要機能</h2>
         <ul className={styles.featureList}>
           {features.map((feature) => (
@@ -82,7 +89,16 @@ const AppInfo = () => {
         <h2 className={styles.sectionTitle}>バージョン</h2>
         <div className={styles.versionRow}>
           <span className={styles.label}>現在のバージョン</span>
-          <span className={styles.versionValue}>v{packageInfo.version}</span>
+          <span className={styles.versionValue}>バージョン {packageInfo.version}</span>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>使用技術</h2>
+        <div className={styles.techList}>
+          <span>React</span>
+          <span>Firebase</span>
+          <span>CSS</span>
         </div>
       </section>
 

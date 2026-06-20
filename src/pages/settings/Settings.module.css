@@ -1,6 +1,6 @@
 .container {
   min-height: 100vh;
-  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 120px;
+  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 144px;
   background: #f4f6f8;
   color: #1f2933;
   transition: background 0.25s ease, color 0.25s ease;
@@ -275,6 +275,23 @@
   box-shadow: 0 9px 20px rgba(220, 38, 38, 0.22);
 }
 
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+  z-index: 1100;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 11px 14px;
+  border-radius: 999px;
+  background: rgba(31, 41, 51, 0.94);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(31, 41, 51, 0.22);
+  font-size: 13px;
+  font-weight: 800;
+  transform: translateX(-50%);
+}
+
 .menuRow {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) 22px;
@@ -496,7 +513,7 @@
 
 @media (max-width: 640px) {
   .container {
-    padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 112px;
+    padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 136px;
   }
 
   .title {

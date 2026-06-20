@@ -1,7 +1,7 @@
 .container {
   min-height: 100vh;
   width: 100%;
-  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 120px;
+  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 144px;
   background: #f4f6f8;
   color: #1f2933;
   transition: background 0.25s ease, color 0.25s ease;
@@ -60,6 +60,23 @@
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.04em;
+}
+
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.listHeader .sectionTitle {
+  margin-bottom: 5px;
+}
+
+.friendCount {
+  margin: 0 0 14px;
+  color: #697586;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .addGuide {
@@ -156,6 +173,36 @@
   height: 1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
+}
+
+.searchBox {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin-bottom: 12px;
+  padding: 0 12px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #8b95a1;
+}
+
+.searchBox input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #1f2933;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+}
+
+.searchBox input::placeholder {
+  color: #9aa4b2;
 }
 
 .addForm {
@@ -365,6 +412,23 @@
   box-shadow: 0 10px 24px rgba(31, 41, 51, 0.14);
 }
 
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+  z-index: 1100;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 11px 14px;
+  border-radius: 999px;
+  background: rgba(31, 41, 51, 0.94);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(31, 41, 51, 0.22);
+  font-size: 13px;
+  font-weight: 800;
+  transform: translateX(-50%);
+}
+
 .light {
   background: #f4f6f8;
   color: #1f2933;
@@ -380,7 +444,8 @@
 .dark .addGuide p,
 .dark .inputLabel,
 .dark .friendCodeLabel,
-.dark .friendId {
+.dark .friendId,
+.dark .friendCount {
   color: #aeb7c4;
 }
 
@@ -388,7 +453,8 @@
 .dark .listSection,
 .dark .friendCode,
 .dark .input,
-.dark .friendItem {
+.dark .friendItem,
+.dark .searchBox {
   border-color: rgba(255, 255, 255, 0.08);
   background: #1f242d;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
@@ -400,6 +466,10 @@
 }
 
 .dark .input {
+  color: #ffffff;
+}
+
+.dark .searchBox input {
   color: #ffffff;
 }
 
@@ -488,7 +558,8 @@
 }
 
 .green .friendCode,
-.green .emptyState {
+.green .emptyState,
+.green .searchBox {
   border-color: #d5eadb;
   background: #f8fffa;
 }
@@ -514,7 +585,7 @@
 
 @media (max-width: 640px) {
   .container {
-    padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 112px;
+    padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 136px;
   }
 
   .title {
