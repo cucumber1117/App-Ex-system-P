@@ -5,10 +5,10 @@ import { useTheme } from '../../contexts/ThemeContext';
 import styles from './AppInfo.module.css';
 
 const features = [
-  { icon: CalendarDays, label: '予定を月・週・日表示で確認' },
-  { icon: Share2, label: 'フレンドやグループへの予定共有' },
-  { icon: Bell, label: '通知とリマインダー設定' },
-  { icon: Palette, label: 'テーマや表示方法のカスタマイズ' },
+  { icon: CalendarDays, label: '予定を見やすく管理' },
+  { icon: UsersRound, label: 'フレンドと予定を共有' },
+  { icon: Share2, label: 'グループ予定をまとめて共有' },
+  { icon: Bell, label: '通知と表示を自分向けに調整' },
 ];
 
 const AppInfo = () => {
@@ -27,7 +27,7 @@ const AppInfo = () => {
           <ArrowLeft size={20} aria-hidden="true" />
         </button>
         <div>
-          <p className={styles.kicker}>App Information</p>
+          <p className={styles.kicker}>アプリについて</p>
           <h1 className={styles.title}>アプリ情報</h1>
         </div>
       </header>
@@ -37,7 +37,7 @@ const AppInfo = () => {
         <div>
           <h2 className={styles.appName}>スケジュール管理アプリ</h2>
           <p className={styles.description}>
-            日々の予定を見やすく整理し、フレンドやグループとスムーズに共有できるカレンダーアプリです。
+            個人の予定管理から、フレンド・グループとの予定共有までまとめて扱えるカレンダーアプリです。
           </p>
         </div>
       </section>
@@ -58,8 +58,8 @@ const AppInfo = () => {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>アプリの説明</h2>
         <p className={styles.bodyText}>
-          個人の予定管理に加えて、友だちやグループとの予定共有をまとめて扱えるアプリです。
-          表示設定や通知設定を自分に合わせて変更できます。
+          予定を確認しやすく整理し、共有したい相手に予定を届けられます。
+          通知や表示も自分に合わせて調整できます。
         </p>
       </section>
 

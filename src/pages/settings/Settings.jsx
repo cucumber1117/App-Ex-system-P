@@ -235,7 +235,9 @@ const Settings = () => {
     };
 
     const resetSettings = () => {
-        const ok = window.confirm('設定を初期化しますか？');
+        const ok = window.confirm(
+            '設定を初期化しますか？\n\n通知・表示・データ同期などの設定が初期状態に戻ります。この操作は元に戻せません。'
+        );
 
         if (!ok) return;
 
@@ -546,9 +548,9 @@ const Settings = () => {
 
                 <div className={styles.row}>
                     <div>
-                        <div className={styles.label}>自動バックアップ</div>
+                        <div className={styles.label}>データ同期</div>
                         <p className={styles.description}>
-                            設定や予定データを定期的に保存するための設定です。
+                            設定や予定データを定期的に保存・同期するための設定です。
                         </p>
                     </div>
 
@@ -567,9 +569,9 @@ const Settings = () => {
                 {autoBackup && (
                     <div className={styles.row}>
                         <div>
-                            <div className={styles.label}>バックアップ頻度</div>
+                            <div className={styles.label}>同期頻度</div>
                             <p className={styles.description}>
-                                自動バックアップの頻度を選択します。
+                                データ同期の頻度を選択します。
                             </p>
                         </div>
 
@@ -589,10 +591,17 @@ const Settings = () => {
 
                 
 
-                <div className={styles.actionRow}>
+                <div className={styles.dangerZone}>
+                    <div>
+                        <div className={styles.dangerLabel}>危険操作</div>
+                        <p className={styles.description}>
+                            初期化すると、この端末に保存された通知・表示・データ同期の設定がリセットされます。
+                        </p>
+                    </div>
                     <button
                         className={`${styles.btn} ${styles.dangerBtn}`}
                         onClick={resetSettings}
+                        type="button"
                     >
                         設定を初期化
                     </button>
