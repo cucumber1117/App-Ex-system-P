@@ -499,27 +499,6 @@ const Settings = () => {
 
                 <div className={styles.row}>
                     <div>
-                        <div className={styles.label}>初期表示</div>
-                        <p className={styles.description}>
-                            アプリを開いたときのカレンダー表示を設定します。
-                        </p>
-                    </div>
-
-                    <select
-                        className={styles.select}
-                        value={viewMode}
-                        onChange={(e) =>
-                            saveSettings({ viewMode: e.target.value })
-                        }
-                    >
-                        <option value="month">月表示</option>
-                        <option value="week">週表示</option>
-                        <option value="day">日表示</option>
-                    </select>
-                </div>
-
-                <div className={styles.row}>
-                    <div>
                         <div className={styles.label}>テーマ</div>
                         <p className={styles.description}>
                             画面の色合いを選択します。
