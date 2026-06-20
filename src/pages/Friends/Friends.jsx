@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Copy, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
+import { Check, Copy, MoreVertical, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
 import {
@@ -21,6 +21,7 @@ export default function Friends() {
   const [adding, setAdding] = useState(false);
   const [failedAvatarIds, setFailedAvatarIds] = useState({});
   const [copied, setCopied] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -123,6 +124,7 @@ export default function Friends() {
 
         await deleteFriend(currentUser.uid, friendUid);
         await refreshFriends(currentUser.uid);
+        setOpenMenuId('');
 
         setMessage('フレンドを削除しました');
       }
@@ -151,6 +153,12 @@ export default function Friends() {
           </div>
         ) : (
           <>
+            <div className={styles.addGuide}>
+              <p>
+                自分のIDを相手に共有するか、相手のフレンドIDを入力して追加できます。
+              </p>
+            </div>
+
             <div className={styles.friendCode}>
               <div className={styles.friendCodeText}>
                 <span className={styles.friendCodeLabel}>自分のフレンドID</span>
@@ -173,18 +181,21 @@ export default function Friends() {
               {copied ? 'フレンドコードをコピーしました' : ''}
             </span>
             <form className={styles.addForm} onSubmit={handleAddFriend}>
-              <input
-                className={styles.input}
-                value={friendId}
-                onChange={(e) => setFriendId(e.target.value.toLowerCase())}
-                placeholder="j-00000"
-                maxLength={7}
-                pattern="[a-z]-[0-9]{5}"
-                title="半角英字1文字、ハイフン、数字5桁で入力してください"
-                autoCapitalize="none"
-                spellCheck="false"
-                required
-              />
+              <label className={styles.inputField}>
+                <span className={styles.inputLabel}>相手のフレンドID</span>
+                <input
+                  className={styles.input}
+                  value={friendId}
+                  onChange={(e) => setFriendId(e.target.value.toLowerCase())}
+                  placeholder="j-00000"
+                  maxLength={7}
+                  pattern="[a-z]-[0-9]{5}"
+                  title="半角英字1文字、ハイフン、数字5桁で入力してください"
+                  autoCapitalize="none"
+                  spellCheck="false"
+                  required
+                />
+              </label>
               <button className={styles.addBtn} type="submit" disabled={adding}>
                 <UserRoundPlus size={18} />
                 <span>{adding ? '追加中...' : '追加'}</span>
@@ -236,10 +247,31 @@ export default function Friends() {
                       ID: {friend.friendId || '未発行'}
                     </span>
                   </div>
-                  <button type="button" className={styles.deleteBtn} onClick={() => handleDeleteFriend(friend.id)}>
-                    <Trash2 size={16} aria-hidden="true" />
-                    <span>削除</span>
-                  </button>
+                  <div className={styles.friendMenu}>
+                    <button
+                      type="button"
+                      className={styles.menuBtn}
+                      onClick={() =>
+                        setOpenMenuId((prev) => (prev === friend.id ? '' : friend.id))
+                      }
+                      aria-label={`${friendName}のメニュー`}
+                      aria-expanded={openMenuId === friend.id}
+                    >
+                      <MoreVertical size={18} aria-hidden="true" />
+                    </button>
+                    {openMenuId === friend.id && (
+                      <div className={styles.menuPopover}>
+                        <button
+                          type="button"
+                          className={styles.deleteBtn}
+                          onClick={() => handleDeleteFriend(friend.id)}
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                          <span>削除</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </li>
               );
             })}

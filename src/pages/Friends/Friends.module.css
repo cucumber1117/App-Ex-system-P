@@ -62,6 +62,18 @@
   letter-spacing: 0.04em;
 }
 
+.addGuide {
+  margin: -4px 0 12px;
+}
+
+.addGuide p {
+  margin: 0;
+  color: #697586;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
 .friendCode {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -149,7 +161,20 @@
 .addForm {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
   gap: 10px;
+}
+
+.inputField {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.inputLabel {
+  color: #697586;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .input {
@@ -231,6 +256,7 @@
 }
 
 .friendItem {
+  position: relative;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
   align-items: center;
@@ -289,13 +315,54 @@
 }
 
 .deleteBtn {
+  width: 100%;
+  justify-content: flex-start;
   padding: 0 12px;
-  background: #fee2e2;
+  background: transparent;
   color: #b91c1c;
+  box-shadow: none;
 }
 
 .deleteBtn:hover {
   background: #fecaca;
+  transform: none;
+}
+
+.friendMenu {
+  position: relative;
+  justify-self: end;
+}
+
+.menuBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #697586;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.menuBtn:hover {
+  background: #f1f5fb;
+  color: #1f2933;
+}
+
+.menuPopover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  min-width: 116px;
+  padding: 6px;
+  border: 1px solid #e4e8ee;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(31, 41, 51, 0.14);
 }
 
 .light {
@@ -310,6 +377,8 @@
 
 .dark .sectionTitle,
 .dark .note,
+.dark .addGuide p,
+.dark .inputLabel,
 .dark .friendCodeLabel,
 .dark .friendId {
   color: #aeb7c4;
@@ -367,12 +436,27 @@
 }
 
 .dark .deleteBtn {
-  background: rgba(239, 68, 68, 0.16);
+  background: transparent;
   color: #fca5a5;
 }
 
 .dark .deleteBtn:hover {
   background: rgba(239, 68, 68, 0.24);
+}
+
+.dark .menuBtn {
+  color: #aeb7c4;
+}
+
+.dark .menuBtn:hover {
+  background: #2b313b;
+  color: #ffffff;
+}
+
+.dark .menuPopover {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #232a35;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34);
 }
 
 .dark .emptyState {
@@ -458,8 +542,9 @@
     grid-template-columns: 48px minmax(0, 1fr);
   }
 
-  .deleteBtn {
-    grid-column: 1 / -1;
-    width: 100%;
+  .friendMenu {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: -2px;
   }
 }
