@@ -1,14 +1,14 @@
 import React from 'react';
-import { ArrowLeft, Mail, Sparkles, UsersRound } from 'lucide-react';
+import { ArrowLeft, Bell, CalendarDays, Mail, Palette, Share2, UsersRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import styles from './AppInfo.module.css';
 
 const features = [
-  '予定を月・週・日表示で確認',
-  'フレンドやグループへの予定共有',
-  '通知とリマインダー設定',
-  'テーマや表示方法のカスタマイズ',
+  { icon: CalendarDays, label: '予定を月・週・日表示で確認' },
+  { icon: Share2, label: 'フレンドやグループへの予定共有' },
+  { icon: Bell, label: '通知とリマインダー設定' },
+  { icon: Palette, label: 'テーマや表示方法のカスタマイズ' },
 ];
 
 const AppInfo = () => {
@@ -33,9 +33,7 @@ const AppInfo = () => {
       </header>
 
       <section className={styles.heroSection}>
-        <div className={styles.appIcon} aria-hidden="true">
-          <Sparkles size={28} />
-        </div>
+        <img className={styles.appIcon} src="/app-icon-512.png" alt="" aria-hidden="true" />
         <div>
           <h2 className={styles.appName}>スケジュール管理アプリ</h2>
           <p className={styles.description}>
@@ -69,7 +67,12 @@ const AppInfo = () => {
         <h2 className={styles.sectionTitle}>主要機能</h2>
         <ul className={styles.featureList}>
           {features.map((feature) => (
-            <li key={feature}>{feature}</li>
+            <li key={feature.label}>
+              <span className={styles.featureIcon} aria-hidden="true">
+                {React.createElement(feature.icon, { size: 18 })}
+              </span>
+              <span>{feature.label}</span>
+            </li>
           ))}
         </ul>
       </section>
