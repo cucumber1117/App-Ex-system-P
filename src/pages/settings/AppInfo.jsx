@@ -1,7 +1,8 @@
 import React from 'react';
-import { ArrowLeft, Bell, CalendarDays, Mail, Palette, Share2, UsersRound } from 'lucide-react';
+import { ArrowLeft, Bell, CalendarDays, Mail, Share2, UsersRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
+import packageInfo from '../../../package.json';
 import styles from './AppInfo.module.css';
 
 const features = [
@@ -75,6 +76,14 @@ const AppInfo = () => {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>バージョン</h2>
+        <div className={styles.versionRow}>
+          <span className={styles.label}>現在のバージョン</span>
+          <span className={styles.versionValue}>v{packageInfo.version}</span>
+        </div>
       </section>
 
       <section className={styles.section}>

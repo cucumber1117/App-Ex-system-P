@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy, MoreVertical, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
@@ -13,6 +13,7 @@ import styles from './Friends.module.css';
 
 export default function Friends() {
   const { theme } = useTheme();
+  const menuRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [ownFriendId, setOwnFriendId] = useState('');
   const [friendId, setFriendId] = useState('');
@@ -64,6 +65,29 @@ export default function Friends() {
     });
     return () => unsub();
   }, [refreshFriends]);
+
+  useEffect(() => {
+    if (!openMenuId) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (menuRef.current?.contains(event.target)) return;
+      setOpenMenuId('');
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setOpenMenuId('');
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openMenuId]);
 
   const handleAddFriend = async (e) => {
     e.preventDefault();
@@ -247,7 +271,10 @@ export default function Friends() {
                       ID: {friend.friendId || '未発行'}
                     </span>
                   </div>
-                  <div className={styles.friendMenu}>
+                  <div
+                    className={styles.friendMenu}
+                    ref={openMenuId === friend.id ? menuRef : null}
+                  >
                     <button
                       type="button"
                       className={styles.menuBtn}
