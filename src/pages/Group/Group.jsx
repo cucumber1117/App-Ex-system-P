@@ -4,7 +4,7 @@ import { createGroup, listGroups, listJoinedGroups, getGroupDetails, isMember, j
 import { listFriends } from '../../Firebase/auth/friends';
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Search } from "lucide-react";
+import { Search, Copy } from "lucide-react";
 import { useTheme } from '../../contexts/ThemeContext';
 
 const Group = () => {
@@ -35,6 +35,7 @@ const Group = () => {
   const [editingGroupId, setEditingGroupId] = useState('');
   const [editingGroupName, setEditingGroupName] = useState('');
   const [savingGroupName, setSavingGroupName] = useState(false);
+  const [copiedGroupId, setCopiedGroupId] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -70,9 +71,15 @@ const Group = () => {
   };
 
   const handleSearch = async () => {
+    if (!search.trim()) {
+      setGroups([]);
+      setHasSearched(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const items = await listGroups(search || '');
+      const items = await listGroups(search.trim());
       setGroups(items);
       setHasSearched(true);
     } catch (err) {
@@ -252,6 +259,8 @@ const Group = () => {
       setInviteMessage('');
       await inviteFriendToGroup(groupId, currentUser.uid, inviteFriendId);
       setInviteFriendId('');
+      setInviteMessage('招待を送信しました');
+      setTimeout(() => {setInviteMessage('');}, 3000);
     } catch (err) {
       console.error(err);
       setInviteError(err.message || '招待を送れませんでした');
@@ -372,9 +381,12 @@ const Group = () => {
                     </button>
                   </form>
                 ) : (
-                  <span className={styles.groupName}>
-                    {g.name}
-                  </span>
+                  <div className={styles.groupNameRow}>
+                    <span className={styles.groupName}>
+                      {g.name}
+                    </span>
+                    <button className={styles.renameBtn} onClick={(e) => startEditingGroupName(g, e)}>名前変更</button>
+                  </div>
                 )}
 
                 <span className={styles.groupId}>
@@ -388,6 +400,26 @@ const Group = () => {
                       メンバー数:
                       <strong>{g.memberCount ?? 0}</strong>
                     </p>
+
+                    <div className={styles.groupIdRow}>
+                  <span className={styles.groupId}>ID: {g.groupId || g.id}</span>
+
+                  <button type ="button" className={copiedGroupId === g.id ? styles.copyBtnSuccess : styles.copyBtn} onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(
+                      g.groupId || g.id
+                    );
+                    setCopiedGroupId(g.id);
+                    setTimeout(() => {setInviteMessage('');}, 3000);
+                  }}
+                >
+                  {copiedGroupId === g.id ? (
+                    <>✓ コピー済み</>
+                  ) : (
+                    <><Copy size = {18}/>コピー</>
+                  )}
+                  </button>
+                </div>
 
                     
                     <div className={styles.detailItem}>
@@ -415,11 +447,7 @@ const Group = () => {
                       <div className={styles.joinedLabel}>
                         参加済み
                       </div>
-
-                      <button className={styles.renameBtn} onClick={(e) => startEditingGroupName(g, e)}>
-                        名前変更
-                      </button>
-
+                      
                       <button className={styles.leaveBtn} onClick={(e) => {e.stopPropagation(); handleLeave(g.id)}}>
                         脱退
                       </button>
@@ -512,7 +540,7 @@ const Group = () => {
                     </button>
                   </form>
                 )}
-                <p className={styles.detailItem}>グループID: <strong>{selectedDetails.groupId || selectedDetails.id}</strong></p>
+                <p className={styles.detailItem}>グループID:<strong>{selectedDetails.groupId || selectedDetails.id}</strong></p>
                 <p className={styles.detailItem}>メンバー数: <strong>{selectedDetails.memberCount ?? 0}</strong></p>
                 <p className={styles.detailItem}>説明:<strong>{selectedDetails.detail || "説明はありません"}</strong></p>
                 <p className={styles.detailItem}>作成日: {selectedDetails.createdAt?.toDate ? selectedDetails.createdAt.toDate().toLocaleString() : '-'}</p>
