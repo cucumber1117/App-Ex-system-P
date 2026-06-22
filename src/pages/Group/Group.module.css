@@ -135,7 +135,7 @@ textarea.createInput{
 	font-weight: 600;
 	transition: transform 0.1s;
 }
-.groupName,
+
 .groupId {
 	display: block;
 }
@@ -697,4 +697,86 @@ textarea.createInput{
 .placeholderText {
   color: #666;
   font-size: 16px;
+}
+
+.copyBtn{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 10px 16px;
+
+  border: 1px solid #bcd4ff;
+  border-radius: 14px;
+
+  background: #eef5ff;
+  color: #2563eb;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+.groupIdRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 14px;
+
+  border: 1px solid #bcd4ff;
+  border-radius: 12px;
+
+  background: #eef5ff;
+  color: #2563eb;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.copyBtn:hover {
+  background: #e3efff;
+}
+.copyBtn:hover{
+  background: #e3efff;
+}
+
+.copyBtnSuccess {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 10px 18px;
+
+  border: 1px solid #86d19d;
+  border-radius: 14px;
+
+  background: #e8f7ec;
+  color: #15803d;
+
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.groupNameRow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+}
+.renameBtn {
+	margin-left: auto;
 }
