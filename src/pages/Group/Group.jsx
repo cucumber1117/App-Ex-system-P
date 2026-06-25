@@ -12,7 +12,6 @@ const Group = () => {
   const [name, setName] = useState('');
   const [groups, setGroups] = useState([]);
   const [search, setSearch] = useState('');
-  const [detail, setDetail] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -30,7 +29,6 @@ const Group = () => {
   const [inviteFriendId, setInviteFriendId] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteError, setInviteError] = useState('');
-  const [openedDescriptionId, setOpenedDescriptionId] = useState(null);
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [editingGroupId, setEditingGroupId] = useState('');
   const [editingGroupName, setEditingGroupName] = useState('');
@@ -42,7 +40,7 @@ const Group = () => {
     (async () => {
       try {
         setLoading(true);
-        const groupId = await createGroup(name, detail, currentUser?.uid);
+        const groupId = await createGroup(name, currentUser?.uid);
         for (const friendUid of selectedFriends) {
           await inviteFriendToGroup(
             groupId,
@@ -421,27 +419,6 @@ const Group = () => {
                   </button>
                 </div>
 
-                    
-                    <div className={styles.detailItem}>
-                      <div className = {styles.descriptionRow}>
-                        <span className={styles.descriptionLabel}>説明</span>
-
-                        <button className={styles.showDesBtn} onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenedDescriptionId(
-                            openedDescriptionId === g.id ? null : g.id
-                          );
-                        }}
-                        >
-                          {openedDescriptionId === g.id ? "非表示" : "表示"}
-                        </button>
-                    </div>
-                    {openedDescriptionId === g.id && (
-                      <p className= {styles.descriptionText}>
-                        {g.detail || "説明はありません"}
-                      </p>
-                    )}
-                    </div>
 
                     <div className={styles.joinedActions}>
                       <div className={styles.joinedLabel}>
@@ -542,7 +519,6 @@ const Group = () => {
                 )}
                 <p className={styles.detailItem}>グループID:<strong>{selectedDetails.groupId || selectedDetails.id}</strong></p>
                 <p className={styles.detailItem}>メンバー数: <strong>{selectedDetails.memberCount ?? 0}</strong></p>
-                <p className={styles.detailItem}>説明:<strong>{selectedDetails.detail || "説明はありません"}</strong></p>
                 <p className={styles.detailItem}>作成日: {selectedDetails.createdAt?.toDate ? selectedDetails.createdAt.toDate().toLocaleString() : '-'}</p>
                 {currentUser ? (
                   isJoined ? (
@@ -588,7 +564,7 @@ const Group = () => {
 
       <div className={styles.createCard}>
         <h2 className={styles.createTitle}>
-          + グループ作成
+          グループ作成
         </h2>
 
         <p className={styles.createSub}>
@@ -597,8 +573,6 @@ const Group = () => {
 
         <form onSubmit={handleSubmit}>
           <input className={styles.createInput} placeholder="グループ名を入力" value={name} onChange={(e)=>setName(e.target.value)} required />
-
-          <textarea className={styles.createInput} placeholder="グループの説明を入力" value={detail} onChange={(e) => setDetail(e.target.value)}/>
           
           <div className={styles.friendSelectArea}>
             <p>フレンドを招待</p>
@@ -606,7 +580,7 @@ const Group = () => {
             <div className={styles.selectedFriends}>
               {selectedFriends.length === 0 && (
                 <span className={styles.placeholderText}>
-                  フレンドを選択
+                  フレンドを下から選択
                 </span>
               )}
               
@@ -625,25 +599,29 @@ const Group = () => {
               })}
             </div>
 
-            <div className={styles.friendList}>
-              {friends.length === 0 ? (
-                <p>フレンドがいません</p>
-              ) : (
-                friends.map((friend) => (
-                  <div key={friend.id} className={styles.friendItem} onClick={() => {
-                    if (!selectedFriends.includes(friend.id)) {
-                      setSelectedFriends((prev) => [
-                        ...prev,
-                        friend.id,
-                      ]);
-                    }
-                  }}
-                >
+            <select className={styles.inviteSelect} value="" onChange={(e) => {
+              const friendId = e.target.value;
+
+              if (
+                friendId &&
+                !selectedFriends.includes(friendId)
+              ) {
+                setSelectedFriends((prev) => [
+                  ...prev,
+                  friendId,
+                ]);
+              }
+              e.target.value ="";
+            }}>
+              <option value = "">フレンドを選択</option>
+
+              {friends.filter((friend) => !selectedFriends.includes(friend.id))
+              .map((friend) => (
+                <option key = {friend.id} value={friend.id}>
                   {friend.name || friend.email || friend.id}
-                </div>
-                ))
-              )}
-            </div>
+                </option>
+              ))}
+            </select>
           </div>
 
           <button className={styles.createBtn} type="submit">作成する</button>

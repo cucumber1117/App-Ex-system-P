@@ -13,7 +13,7 @@ function createGroupId() {
   return `g-${number}`;
 }
 
-export async function createGroup(name, detail, creatorUid) {
+export async function createGroup(name, creatorUid) {
   const batch = writeBatch(db);
   let groupId;
   let groupRef;
@@ -41,7 +41,6 @@ export async function createGroup(name, detail, creatorUid) {
   batch.set(groupRef, {
     groupId,
     name,
-    detail,
     ...(creatorUid ? { createdBy: creatorUid } : {}),
     createdAt: serverTimestamp(),
     memberCount: creatorUid ? 1 : 0,

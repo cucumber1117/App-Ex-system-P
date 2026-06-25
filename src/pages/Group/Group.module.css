@@ -1,8 +1,15 @@
 .container {
 	padding: calc(20px + env(safe-area-inset-top, 0px)) 18px 120px;
-	background-color: #f8f9fa;
+	background-color: #f4f6f8;
 	min-height: 100vh;
 	width: 100%;
+	font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    "Helvetica Neue",
+    "Noto Sans JP",
+    sans-serif;
 }
 .light {
 	background-color: #f8f9fa;
@@ -14,8 +21,9 @@
 	color: #f5f5f5;
 }
 .title {
-	font-size: 24px;
-	font-weight: 800;
+	font-size:32px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
 	margin: 10px 0 28px;
 	color: #333;
 }
@@ -97,8 +105,8 @@ textarea.createInput{
 }
 .sectionTitle {
 	margin: 0 0 14px;
-	font-size: 18px;
-	font-weight: 800;
+	font-size: 20px;
+	font-weight: 700;
 }
 .joinedList {
 	display: flex;
@@ -180,7 +188,7 @@ textarea.createInput{
 	padding: 10px 14px;
 	border: none;
 	border-radius: 12px;
-	font-weight: 800;
+	font-weight: 600;
 }
 .acceptBtn,
 .inviteBtn {
@@ -276,7 +284,7 @@ textarea.createInput{
 	background: #fee2e2;
 	color: #b91c1c;
 	font-size: 14px;
-	font-weight: 800;
+	font-weight: 600;
 	transition: transform 0.1s;
 }
 
@@ -288,7 +296,7 @@ textarea.createInput{
 	background: #eaf2ff;
 	color: #2f80ed;
 	font-size: 14px;
-	font-weight: 800;
+	font-weight: 600;
 	cursor: pointer;
 }
 
@@ -342,12 +350,21 @@ textarea.createInput{
 }
 
 .createCard{
-	margin-top: 32px;
-	padding: 20px;
-	border-radius: 24px;
-	background: linear-gradient(135deg, #2f80ed, #66a6ff);
-	color: white;
-	box-shadow: 0 8px 24px rgba(47, 128, 237, .18);
+  margin-top: 32px;
+  padding: 24px;
+
+  background: linear-gradient(
+    135deg,
+    #3b82f6,
+    #2563eb
+  );
+
+  color: white;
+
+  border-radius: 28px;
+
+  box-shadow:
+    0 12px 32px rgba(37,99,235,.25);
 }
 
 .createTitle{
@@ -357,28 +374,45 @@ textarea.createInput{
 }
 
 .createSub{
-	margin-bottom: 20px;
-	opacity: .9;
+	color: rgba(255,255,255,.85);
+	margin-bottom: 24px;
+	opacity: 10.9;
 	font-size: 14px;
 }
 
 .createInput{
-	width: 100%;
-	padding: 16px;
-	border: none;
-	border-radius: 16px;
-	margin-bottom: 14px;
+  width: 100%;
+
+  padding: 16px 18px;
+
+  border: none;
+  border-radius: 16px;
+
+  background: #f9fafb;
+
+  font-size: 16px;
+
+  margin-bottom: 20px;
 }
 
 .createBtn{
-	width: 100%;
-	padding: 15px;
-	border: none;
-	border-radius: 16px;
-	background: white;
-	color: #2f80ed;
-	font-weight:800;
-	transition: transform 0.1s;
+  width: 100%;
+
+  margin-top: 24px;
+
+  padding: 18px;
+
+  border: none;
+  border-radius: 18px;
+
+  background: white;
+  color: #2563eb;
+
+  font-size: 16px;
+  font-weight: 800;
+
+  box-shadow:
+    0 6px 16px rgba(0,0,0,.12);
 }
 .createdId {
 	margin: 14px 0 0;
@@ -593,22 +627,6 @@ textarea.createInput{
 	filter: brightness(0.9);
 }
 
-.descriptionRow {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.descriptionLabel {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-
-.descriptionText {
-  margin-top: 6px;
-}
-
 .showDescBtn {
 	margin-left: 15px;
 	padding: 10px 10px;
@@ -648,20 +666,17 @@ textarea.createInput{
   background: #f3f4f6;
 }
 
-.selectedFriends {
+.selectedFriends{
   min-height: 60px;
 
-  background: white;
-  border-radius: 12px;
+  background: rgba(255,255,255);
+
+  backdrop-filter: blur(10px);
+
+  border-radius: 16px;
 
   padding: 12px;
-
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .selectedFriend {
@@ -770,6 +785,14 @@ textarea.createInput{
   font-weight: 700;
   cursor: pointer;
 }
+.groupName {
+	font-size: 17px;
+	font-weight: 600;
+}
+.groupId {
+	font-size: 13px;
+	color: #8a8a8a;
+}
 
 .groupNameRow {
 	display: flex;
@@ -779,4 +802,79 @@ textarea.createInput{
 }
 .renameBtn {
 	margin-left: auto;
+}
+
+.inviteSelect{
+  width: 100%;
+
+  padding: 16px ;
+
+  border-radius: 16px;
+
+  border: 1px solid #e5e7eb;
+
+  background: #f9fafb;
+
+  font-size: 16px;
+
+  appearance: none;
+  margin-bottom: 16px;
+}
+
+.dark .createCard{
+  background: linear-gradient(
+    135deg,
+    #1e293b,
+    #0f172a
+  );
+
+  border: 1px solid rgba(255,255,255,.08);
+
+  box-shadow:
+    0 12px 32px rgba(0,0,0,.4);
+}
+
+.green .createCard{
+  background: linear-gradient(
+    135deg,
+    #22c55e,
+    #16a34a
+  );
+}
+
+.dark .createInput{
+  background:#111827;
+  color:white;
+
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.green .createInput{
+  background:white;
+  color:#14532d;
+}
+
+.dark .createBtn{
+  background:#334155;
+  color:white;
+}
+
+.green .createBtn{
+  background:white;
+  color:#16a34a;
+}
+
+.dark .selectedFriends{
+  background:#111827;
+
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.green .selectedFriends{
+  background:rgba(255,255,255);
+}
+
+.green {
+  background: #f0fdf4;
+  color: #14532d;
 }
