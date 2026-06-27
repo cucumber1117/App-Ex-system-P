@@ -492,63 +492,59 @@ const Group = () => {
             {!loading && hasSearched && filtered.length === 0 && <li className={styles.noresult}>該当するグループが見つかりません。</li>}
         </ul>
 
-        <div className={styles.detail}>
-          {loadingDetails && <div className={styles.noresult}>詳細を読み込み中...</div>}
-          {!loadingDetails && selectedDetails && (
+        {hasSearched && (
+          <div className={styles.detail}>
+            {loadingDetails && (
+              <div className={styles.noresult}>
+                詳細を読み込み中...
+              </div>
+            )}
+
+            {!loadingDetails && selectedDetails && (
               <div>
                 <h2 className={styles.detailTitle}>{selectedDetails.name}</h2>
                 {editingGroupId === selectedDetails.id && (
-                  <form
-                    className={styles.renameForm}
-                    onSubmit={(e) => handleUpdateGroupName(e, selectedDetails.id)}
+                  <form className= {styles.renameForm} onSubmit={(e) => handleUpdateGroupName(e, selectedDetails.id)}
                   >
-                    <input
-                      className={styles.renameInput}
-                      value={editingGroupName}
-                      onChange={(e) => setEditingGroupName(e.target.value)}
-                      autoFocus
-                      required
-                    />
-                    <button className={styles.renameSaveBtn} type="submit" disabled={savingGroupName}>
-                      {savingGroupName ? '保存中' : '保存'}
+                    <input className={styles.renameInput} value={editingGroupName} onChange={(e) => setEditingGroupName(e.target.value)} autoFocus/>
+                    <button className={styles.renameSaveBtn} type = "submit" disabled = {savingGroupName}>
+                      {savingGroupName ? '保存中' : '保存'} 
                     </button>
-                    <button className={styles.renameCancelBtn} type="button" onClick={cancelEditingGroupName}>
+                    <button className={styles.renameCancelBtn} type = "button" onClick={cancelEditingGroupName}>
                       やめる
                     </button>
                   </form>
                 )}
                 <p className={styles.detailItem}>グループID:<strong>{selectedDetails.groupId || selectedDetails.id}</strong></p>
                 <p className={styles.detailItem}>メンバー数: <strong>{selectedDetails.memberCount ?? 0}</strong></p>
-                <p className={styles.detailItem}>作成日: {selectedDetails.createdAt?.toDate ? selectedDetails.createdAt.toDate().toLocaleString() : '-'}</p>
+                <p className={styles.detailItem}>作成日:{selectedDetails.createdAt?.toDate ? selectedDetails.createdAt.toDate().toLocaleString(): '-'}</p>
                 {currentUser ? (
                   isJoined ? (
                     <>
-                      <div className={styles.joinedActions}>
-                        <div className={styles.joinedLabel}>参加済み</div>
-                        <button className={styles.renameBtn} onClick={(e) => startEditingGroupName(selectedDetails, e)}>名前変更</button>
-                        <button className={styles.leaveBtn} onClick={() => handleLeave(selectedDetails.id)}>脱退</button>
-                      </div>
-                      <form className={styles.inviteForm} onSubmit={(e) => handleInvite(e, selectedDetails.id)}>
-                        <select
-                          className={styles.inviteSelect}
-                          value={inviteFriendId}
-                          onChange={(e) => setInviteFriendId(e.target.value)}
-                          required
-                        >
-                          <option value="">フレンドを選択</option>
-                          {friends.map((friend) => (
-                            <option key={friend.id} value={friend.id}>
-                              {friend.name || friend.email || friend.id}
-                            </option>
-                          ))}
-                        </select>
-                        <button className={styles.inviteBtn} type="submit" disabled={friends.length === 0}>
-                          招待
-                        </button>
-                      </form>
-                      {friends.length === 0 && <p className={styles.noresult}>招待できるフレンドがいません。</p>}
-                      {inviteMessage && <p className={styles.successText}>{inviteMessage}</p>}
-                      {inviteError && <p className={styles.errorText}>{inviteError}</p>}
+                     <div className={styles.joinedActions}>
+                      <div className={styles.joinedLabel}>参加済み</div>
+                      <button className={styles.renameBtn} onClick={(e) => startEditingGroupName(selectedDetails, e)}>名前変更</button>
+                      <button className={styles.leaveBtn} onClick={() => handleLeave(selectedDetails.id)}>脱退</button>
+                     </div>
+
+                     <form className={styles.inviteForm} onSubmit={(e) => handleInvite(e, selectedDetails.id)}>
+                      <select className={styles.inviteSelect} value={inviteFriendId} onChange={(e) => setInviteFriendId(e.target.value)} required>
+                        <option value = "">フレンドを選択</option>
+                        {friends.map((friend) => (
+                          <option key = {friend.id} value={friend.id}>
+                            {friend.name || friend.email || friend.id}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button className={styles.inviteBtn} type = "submit" disabled = {friends.length === 0}>
+                        招待
+                      </button>
+                     </form>
+                     
+                     {friends.length === 0 && <p className={styles.noresult}>招待できるフレンドがいません。</p>}
+                     {inviteMessage && <p className={styles.successText}>{inviteMessage}</p>}
+                     {inviteError && <p className={styles.errorText}>{inviteError}</p>}
                     </>
                   ) : (
                     <button className={styles.joinBtn} onClick={handleJoin}>参加</button>
@@ -556,10 +552,16 @@ const Group = () => {
                 ) : (
                   <div className={styles.noresult}>ログインすると参加できます</div>
                 )}
+                </div>
+            )}
+
+            {!loadingDetails && !selectedDetails && (
+              <div className={styles.noresult}>
+                グループを選択してください。
               </div>
             )}
-          {!loadingDetails && !selectedDetails && <div className={styles.noresult}>グループを選択してください。</div>}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.createCard}>
