@@ -610,12 +610,11 @@
   }
 
   .friendItem {
-    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 12px;
   }
 
   .friendMenu {
-    grid-column: 2;
-    justify-self: start;
-    margin-top: -2px;
+    justify-self: end;
   }
 }
