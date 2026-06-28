@@ -1,27 +1,27 @@
 .container {
   min-height: 100vh;
-  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 144px;
+  padding: calc(22px + env(safe-area-inset-top, 0px)) 20px 128px;
   background: #f4f6f8;
   color: #1f2933;
   transition: background 0.25s ease, color 0.25s ease;
 }
 
 .container > * {
-  width: min(100%, 760px);
+  width: min(100%, 720px);
   margin-left: auto;
   margin-right: auto;
 }
 
 .title {
-  margin: 0 auto 20px;
-  font-size: 28px;
+  margin: 0 auto 14px;
+  font-size: 25px;
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .section {
-  margin-bottom: 16px;
-  padding: 0 18px;
+  margin-bottom: 10px;
+  padding: 0 14px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid #e4e8ee;
@@ -30,7 +30,7 @@
 }
 
 .sectionTitle {
-  margin: 16px 0 2px;
+  margin: 11px 0 0;
   color: #697586;
   font-size: 13px;
   font-weight: 800;
@@ -48,9 +48,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  min-height: 76px;
-  padding: 16px 0;
+  gap: 16px;
+  min-height: 60px;
+  padding: 10px 0;
   border-bottom: 1px solid #edf0f4;
 }
 
@@ -59,7 +59,7 @@
 }
 
 .label {
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   font-size: 15px;
   font-weight: 800;
 }
@@ -68,12 +68,12 @@
   margin: 0;
   color: #697586;
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.4;
 }
 
 .btn {
-  min-height: 38px;
-  padding: 9px 14px;
+  min-height: 34px;
+  padding: 7px 12px;
   border: none;
   border-radius: 8px;
   background: #2563eb;
@@ -108,8 +108,8 @@
 }
 
 .avatar {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
   border: 2px solid #ffffff;
   border-radius: 50%;
@@ -139,7 +139,7 @@
 
 .nameInput,
 .select {
-  min-height: 38px;
+  min-height: 34px;
   border: 1px solid #d8dee8;
   border-radius: 8px;
   background: #f8fafc;
@@ -154,12 +154,12 @@
 .nameInput {
   min-width: 0;
   flex: 1;
-  padding: 9px 12px;
+  padding: 7px 11px;
 }
 
 .select {
   min-width: 132px;
-  padding: 9px 32px 9px 12px;
+  padding: 7px 30px 7px 11px;
   cursor: pointer;
 }
 
@@ -251,8 +251,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  margin: 16px 0;
-  padding: 14px;
+  margin: 10px 0;
+  padding: 12px;
   border: 1px solid #fecaca;
   border-radius: 8px;
   background: #fff7f7;
@@ -298,8 +298,8 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 78px;
-  padding: 14px 0;
+  min-height: 62px;
+  padding: 10px 0;
   border: none;
   background: transparent;
   color: inherit;
@@ -322,7 +322,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 
 .menuLabel {
@@ -455,25 +455,50 @@
 
 @media (max-width: 640px) {
   .container {
-    padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 136px;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 12px 118px;
   }
 
   .title {
-    margin-bottom: 16px;
-    font-size: 26px;
+    margin-bottom: 10px;
+    font-size: 23px;
   }
 
   .section {
-    padding: 0 14px;
+    margin-bottom: 8px;
+    padding: 0 12px;
+  }
+
+  .sectionTitle {
+    margin-top: 9px;
+    font-size: 12px;
   }
 
   .row {
-    align-items: flex-start;
-    gap: 12px;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 8px 0;
   }
 
   .row > :first-child {
     min-width: 0;
+  }
+
+  .row .description,
+  .menuDescription {
+    display: none;
+  }
+
+  .label {
+    margin-bottom: 0;
+    font-size: 14px;
+  }
+
+  .btn,
+  .nameInput,
+  .select {
+    min-height: 32px;
+    font-size: 13px;
   }
 
   .profileRow {
@@ -498,10 +523,22 @@
   .dangerZone {
     align-items: stretch;
     flex-direction: column;
+    gap: 10px;
+    margin: 8px 0 10px;
+    padding: 10px;
+  }
+
+  .dangerZone .description {
+    display: block;
   }
 
   .dangerZone .dangerBtn {
     width: 100%;
+  }
+
+  .menuRow {
+    min-height: 54px;
+    padding: 8px 0;
   }
 }
 
