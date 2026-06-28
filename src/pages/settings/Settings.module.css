@@ -453,64 +453,6 @@
   color: #fca5a5;
 }
 
-.green {
-  background: #edf8f1;
-  color: #153322;
-}
-
-.green .section {
-  border-color: #c8e6d0;
-  box-shadow: 0 8px 20px rgba(22, 101, 52, 0.07);
-}
-
-.green .sectionTitle {
-  color: #16803a;
-}
-
-.green .btn {
-  background: #16803a;
-  box-shadow: 0 6px 14px rgba(22, 128, 58, 0.2);
-}
-
-.green .btn:hover {
-  background: #11662f;
-}
-
-.green .dangerBtn {
-  background: #dc2626;
-}
-
-.green .dangerZone {
-  border-color: #fecaca;
-  background: #fff7f7;
-}
-
-.green .nameInput,
-.green .select {
-  background: #f8fffa;
-  border-color: #b8dec4;
-}
-
-.green .nameInput:focus,
-.green .select:focus {
-  border-color: #16803a;
-  box-shadow: 0 0 0 3px rgba(22, 128, 58, 0.14);
-}
-
-.green .toggleLabel input:checked,
-.green .menuIcon {
-  background: #16803a;
-}
-
-.green .menuIcon {
-  color: #ffffff;
-}
-
-.green .menuRow:hover .menuLabel,
-.green .menuRow:hover .menuArrow {
-  color: #16803a;
-}
-
 @media (max-width: 640px) {
   .container {
     padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 136px;

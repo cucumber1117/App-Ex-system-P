@@ -534,7 +534,6 @@ const Settings = () => {
                     >
                         <option value="light">ライト</option>
                         <option value="dark">ダーク</option>
-                        <option value="green">グリーン</option>
                     </select>
                 </div>
 

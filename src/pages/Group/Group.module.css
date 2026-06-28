@@ -834,14 +834,6 @@ textarea.createInput{
     0 12px 32px rgba(0,0,0,.4);
 }
 
-.green .createCard{
-  background: linear-gradient(
-    135deg,
-    #22c55e,
-    #16a34a
-  );
-}
-
 .dark .createInput{
   background:#111827;
   color:white;
@@ -849,32 +841,13 @@ textarea.createInput{
   border:1px solid rgba(255,255,255,.08);
 }
 
-.green .createInput{
-  background:white;
-  color:#14532d;
-}
-
 .dark .createBtn{
   background:#334155;
   color:white;
-}
-
-.green .createBtn{
-  background:white;
-  color:#16a34a;
 }
 
 .dark .selectedFriends{
   background:#111827;
 
   border:1px solid rgba(255,255,255,.08);
-}
-
-.green .selectedFriends{
-  background:rgba(255,255,255);
-}
-
-.green {
-  background: #f0fdf4;
-  color: #14532d;
 }

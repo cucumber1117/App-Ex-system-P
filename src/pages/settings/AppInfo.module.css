@@ -274,43 +274,6 @@
   background: rgba(124, 140, 255, 0.24);
 }
 
-.green {
-  background: #edf8f1;
-  color: #153322;
-}
-
-.green .heroSection,
-.green .section,
-.green .backButton {
-  border-color: #c8e6d0;
-  box-shadow: 0 8px 20px rgba(22, 101, 52, 0.07);
-}
-
-.green .sectionTitle {
-  color: #16803a;
-}
-
-.green .developerIcon,
-.green .featureIcon,
-.green .contactLink,
-.green .versionValue {
-  background: #e6f6ea;
-  color: #16803a;
-}
-
-.green .featureList li {
-  border-color: #d5eadb;
-}
-
-.green .techList span {
-  background: #f8fffa;
-  border-color: #d5eadb;
-}
-
-.green .contactLink:hover {
-  background: #d9f0df;
-}
-
 @media (max-width: 640px) {
   .container {
     padding: calc(22px + env(safe-area-inset-top, 0px)) 14px 136px;

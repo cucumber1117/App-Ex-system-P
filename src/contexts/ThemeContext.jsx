@@ -4,6 +4,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { getUserSettings, setUserSettings } from '../Firebase/auth/users';
 
 const ThemeContext = createContext({ theme: 'light', setTheme: () => {} });
+const supportedThemes = new Set(['light', 'dark']);
+
+const normalizeTheme = (value) => (supportedThemes.has(value) ? value : 'light');
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState('light');
@@ -16,14 +19,14 @@ export const ThemeProvider = ({ children }) => {
         try {
           const s = await getUserSettings(u.uid);
           const t = s.theme || JSON.parse(localStorage.getItem('settings') || '{}').theme || 'light';
-          setThemeState(t);
+          setThemeState(normalizeTheme(t));
         } catch (err) {
           console.error('load settings', err);
         }
       } else {
         const raw = localStorage.getItem('settings');
         const parsed = raw ? JSON.parse(raw) : {};
-        setThemeState(parsed.theme || 'light');
+        setThemeState(normalizeTheme(parsed.theme));
       }
     });
     return () => unsub();
@@ -37,18 +40,19 @@ export const ThemeProvider = ({ children }) => {
   }, [theme]);
 
   const setTheme = async (newTheme) => {
-    setThemeState(newTheme);
+    const nextTheme = normalizeTheme(newTheme);
+    setThemeState(nextTheme);
     // persist
     if (currentUser) {
       try {
-        await setUserSettings(currentUser.uid, { theme: newTheme });
+        await setUserSettings(currentUser.uid, { theme: nextTheme });
       } catch (err) {
         console.error('save theme', err);
       }
     } else {
       const raw = localStorage.getItem('settings');
       const parsed = raw ? JSON.parse(raw) : {};
-      parsed.theme = newTheme;
+      parsed.theme = nextTheme;
       localStorage.setItem('settings', JSON.stringify(parsed));
     }
   };
