@@ -1157,20 +1157,34 @@ export default function Home() {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase('ja-JP');
     if (!normalizedQuery) return [];
 
+    const groupNameById = new Map(
+      joinedGroups.map((group) => [String(group.id), String(group.name || '名前未設定のグループ')])
+    );
     const matchingEvents = new Map();
 
     visibleEvents.forEach((event, index) => {
       const title = String(event.title || '');
-      if (!title.toLocaleLowerCase('ja-JP').includes(normalizedQuery)) return;
+      const groupName = String(
+        event.shareTargetGroupName ||
+        groupNameById.get(String(event.shareTargetGroupId || '')) ||
+        ''
+      );
+      const matchesTitle = title.toLocaleLowerCase('ja-JP').includes(normalizedQuery);
+      const matchesGroupName = groupName.toLocaleLowerCase('ja-JP').includes(normalizedQuery);
+
+      if (!matchesTitle && !matchesGroupName) return;
 
       const resultKey = String(
         event.sharedScheduleId ||
         event.id ||
         `${event.startDate || ''}-${event.startTime || ''}-${title}-${index}`
       );
+      const searchResultEvent = groupName && !event.shareTargetGroupName
+        ? { ...event, shareTargetGroupName: groupName }
+        : event;
 
       if (!matchingEvents.has(resultKey)) {
-        matchingEvents.set(resultKey, event);
+        matchingEvents.set(resultKey, searchResultEvent);
       }
     });
 
@@ -1185,7 +1199,7 @@ export default function Home() {
         return String(a.title || '').localeCompare(String(b.title || ''), 'ja');
       })
       .slice(0, 50);
-  }, [searchQuery, visibleEvents]);
+  }, [joinedGroups, searchQuery, visibleEvents]);
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
@@ -1507,9 +1521,23 @@ export default function Home() {
       return false;
     }
 
-    if (eventForm.isShared && eventForm.shareTargetGroupId) {
+    if (eventForm.isShared) {
       if (!currentUser) {
         alert('予定を共有するにはログインしてください。');
+        return false;
+      }
+
+      if (!eventForm.shareTargetGroupId) {
+        alert('共有するグループを選択してください。');
+        return false;
+      }
+
+      const selectedGroup = joinedGroups.find(
+        (group) => String(group.id) === String(eventForm.shareTargetGroupId)
+      );
+
+      if (!selectedGroup) {
+        alert('選択したグループを確認してください。');
         return false;
       }
     }
@@ -1970,8 +1998,8 @@ export default function Home() {
                       type="search"
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="予定の名前を検索"
-                      aria-label="予定の名前を検索"
+                      placeholder="予定名・グループ名を検索"
+                      aria-label="予定名またはグループ名を検索"
                     />
                     {searchQuery && (
                       <button
@@ -1990,11 +2018,11 @@ export default function Home() {
 
                   <div className={styles.searchResults} aria-live="polite">
                     {!searchQuery.trim() && (
-                      <p className={styles.searchMessage}>予定名を入力してください。</p>
+                      <p className={styles.searchMessage}>予定名またはグループ名を入力してください。</p>
                     )}
 
                     {searchQuery.trim() && searchResults.length === 0 && (
-                      <p className={styles.searchMessage}>一致する予定はありません。</p>
+                      <p className={styles.searchMessage}>一致する予定またはグループはありません。</p>
                     )}
 
                     {searchResults.map((calendarEvent, searchIndex) => (
