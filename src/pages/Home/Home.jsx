@@ -101,6 +101,62 @@ function getEventTimeLabel(event) {
   return '';
 }
 
+function getTimeInMinutes(timeText, fallback = 0) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(timeText || ''));
+  if (!match) return fallback;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return fallback;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function getEventDurationMinutes(event) {
+  if (event.allDay) return 0;
+
+  const startMinutes = getTimeInMinutes(event.startTime, 0);
+  const endMinutes = getTimeInMinutes(event.endTime, startMinutes + 60);
+  const startDate = parseDateOnly(event.startDate || event.occurrenceDate);
+  const endDate = parseDateOnly(event.endDate || event.startDate || event.occurrenceDate);
+  const dayOffset = startDate && endDate
+    ? Math.round((endDate.getTime() - startDate.getTime()) / 86400000)
+    : 0;
+
+  let duration = dayOffset * 1440 + endMinutes - startMinutes;
+
+  if (!Number.isFinite(duration) || duration <= 0) {
+    duration = endMinutes - startMinutes;
+  }
+
+  if (duration <= 0) {
+    duration += 1440;
+  }
+
+  return Math.min(Math.max(duration, 15), 1440);
+}
+
+function getWeekEventPositionStyle(event) {
+  const startMinutes = getTimeInMinutes(event.startTime, 0);
+  const minuteOffset = startMinutes % 60;
+  const durationMinutes = getEventDurationMinutes(event);
+
+  return {
+    '--week-event-top': `${(minuteOffset / 60) * 100}%`,
+    '--week-event-height': `${(durationMinutes / 60) * 100}%`,
+  };
+}
+
 function getRepeatLabel(repeat) {
   return REPEAT_OPTIONS.find((option) => option.value === repeat)?.label || 'しない';
 }
@@ -359,10 +415,16 @@ export default function Home() {
   const [isGroupFilterOpen, setIsGroupFilterOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileWeekLayout, setIsMobileWeekLayout] = useState(() => (
+    typeof window !== 'undefined'
+      ? window.matchMedia('(max-width: 600px)').matches
+      : false
+  ));
 
   const displayBaseDateRef = useRef(new Date());
   const hasScrolledToCurrentMonthRef = useRef(false);
   const monthSectionRefs = useRef({});
+  const calendarPageRef = useRef(null);
   const headerRef = useRef(null);
   const groupFilterRef = useRef(null);
   const searchPanelRef = useRef(null);
@@ -405,6 +467,19 @@ export default function Home() {
     () => getWeekDates(currentDate, weekStartDay),
     [currentDate, weekStartDay],
   );
+  const weekTimelineDates = useMemo(() => {
+    if (!isMobileWeekLayout) return currentWeekDates;
+
+    const firstDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+    );
+    const nextDate = new Date(firstDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    return [firstDate, nextDate];
+  }, [currentDate, currentWeekDates, isMobileWeekLayout]);
   const currentWeekLabel = useMemo(() => {
     if (currentWeekDates.length === 0) return '';
 
@@ -629,6 +704,60 @@ export default function Home() {
 
     return () => window.clearInterval(timerId);
   }, []);
+
+  useLayoutEffect(() => {
+    const calendarPage = calendarPageRef.current;
+    const header = headerRef.current;
+
+    if (!calendarPage || !header) return undefined;
+
+    const syncHeaderHeight = () => {
+      const nextHeight = Math.ceil(header.getBoundingClientRect().height);
+      if (nextHeight > 0) {
+        calendarPage.style.setProperty('--calendar-header-height', `${nextHeight}px`);
+      }
+    };
+
+    const frameId = window.requestAnimationFrame(syncHeaderHeight);
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(syncHeaderHeight)
+      : null;
+
+    resizeObserver?.observe(header);
+    window.addEventListener('resize', syncHeaderHeight);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', syncHeaderHeight);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const mediaQuery = window.matchMedia('(max-width: 600px)');
+    const syncMobileWeekLayout = () => {
+      setIsMobileWeekLayout(mediaQuery.matches);
+    };
+
+    syncMobileWeekLayout();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncMobileWeekLayout);
+      return () => mediaQuery.removeEventListener('change', syncMobileWeekLayout);
+    }
+
+    mediaQuery.addListener(syncMobileWeekLayout);
+    return () => mediaQuery.removeListener(syncMobileWeekLayout);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (calendarView !== 'week') return;
+    if (!weekTimelineWrapperRef.current) return;
+
+    weekTimelineWrapperRef.current.scrollLeft = 0;
+  }, [calendarView, currentDate, isMobileWeekLayout]);
 
   useEffect(() => {
     setEventCategories(readStoredCategories());
@@ -1253,7 +1382,7 @@ export default function Home() {
   const currentWeekEventsByDate = useMemo(() => {
     const grouped = {};
 
-    currentWeekDates.forEach((date) => {
+    weekTimelineDates.forEach((date) => {
       const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
       const dayEvents = visibleEvents
         .filter((event) => isEventOnDate(event, dateKey))
@@ -1271,7 +1400,7 @@ export default function Home() {
     });
 
     return grouped;
-  }, [visibleEvents, currentWeekDates]);
+  }, [visibleEvents, weekTimelineDates]);
 
   const isWeekendDate = (targetYear, targetMonth, day) => {
     const dayOfWeek = new Date(targetYear, targetMonth, day).getDay();
@@ -1697,6 +1826,14 @@ export default function Home() {
     });
   }, []);
 
+  const moveDayBy = useCallback((dayOffset) => {
+    setCurrentDate((prev) => {
+      const next = new Date(prev);
+      next.setDate(next.getDate() + dayOffset);
+      return next;
+    });
+  }, []);
+
   const unlockWeekNavigation = useCallback(() => {
     window.setTimeout(() => {
       weekNavigateLockRef.current = false;
@@ -1707,9 +1844,16 @@ export default function Home() {
     if (weekNavigateLockRef.current) return;
 
     weekNavigateLockRef.current = true;
-    moveWeekBy(direction === 'next' ? 1 : -1);
+    const offset = direction === 'next' ? 1 : -1;
+
+    if (isMobileWeekLayout) {
+      moveDayBy(offset);
+    } else {
+      moveWeekBy(offset);
+    }
+
     unlockWeekNavigation();
-  }, [moveWeekBy, unlockWeekNavigation]);
+  }, [isMobileWeekLayout, moveDayBy, moveWeekBy, unlockWeekNavigation]);
 
   const handleWeekWheel = useCallback((event) => {
     const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
@@ -1946,7 +2090,10 @@ export default function Home() {
 
   return (
     <div className={styles.home}>
-      <div className={`${styles.calendarPage} ${styles[theme]} ${styles[`${calendarView}ViewPage`]}`}>
+      <div
+        ref={calendarPageRef}
+        className={`${styles.calendarPage} ${styles[theme]} ${styles[`${calendarView}ViewPage`]}`}
+      >
         <header ref={headerRef} className={styles.header}>
           <div className={styles.topRow}>
             <div className={styles.yearArea}>
@@ -2255,15 +2402,13 @@ export default function Home() {
               >
                 <div
                   className={styles.weekTimelineGrid}
-                  style={{
-                    gridTemplateColumns: `72px repeat(${currentWeekDates.length}, minmax(0, 1fr))`,
-                  }}
+                  style={{ '--week-column-count': weekTimelineDates.length }}
                 >
                   {Array.from({ length: 24 }, (_, hour) => (
                     <React.Fragment key={`week-hour-${hour}`}>
                       <div className={styles.weekTimeLabel}>{pad(hour)}:00</div>
 
-                      {currentWeekDates.map((date) => {
+                      {weekTimelineDates.map((date) => {
                         const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
                         const hourEvents = (currentWeekEventsByDate[dateKey] || []).filter((event) => {
                           if (event.allDay) return false;
@@ -2290,7 +2435,10 @@ export default function Home() {
                                 key={`${event.id}-${event.occurrenceDate}-${hour}`}
                                 type="button"
                                 className={`${styles.dayEventItem} ${styles.weekEventItem}`}
-                                style={getEventStyle(event)}
+                                style={{
+                                  ...getEventStyle(event),
+                                  ...getWeekEventPositionStyle(event),
+                                }}
                                 onClick={(e) => {
                                   if (event.isReceivedShared) return;
                                   openEditModal(event, e);
