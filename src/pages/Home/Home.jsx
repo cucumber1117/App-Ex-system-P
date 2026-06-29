@@ -101,62 +101,6 @@ function getEventTimeLabel(event) {
   return '';
 }
 
-function getTimeInMinutes(timeText, fallback = 0) {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(String(timeText || ''));
-  if (!match) return fallback;
-
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-
-  if (
-    !Number.isInteger(hours) ||
-    !Number.isInteger(minutes) ||
-    hours < 0 ||
-    hours > 23 ||
-    minutes < 0 ||
-    minutes > 59
-  ) {
-    return fallback;
-  }
-
-  return hours * 60 + minutes;
-}
-
-function getEventDurationMinutes(event) {
-  if (event.allDay) return 0;
-
-  const startMinutes = getTimeInMinutes(event.startTime, 0);
-  const endMinutes = getTimeInMinutes(event.endTime, startMinutes + 60);
-  const startDate = parseDateOnly(event.startDate || event.occurrenceDate);
-  const endDate = parseDateOnly(event.endDate || event.startDate || event.occurrenceDate);
-  const dayOffset = startDate && endDate
-    ? Math.round((endDate.getTime() - startDate.getTime()) / 86400000)
-    : 0;
-
-  let duration = dayOffset * 1440 + endMinutes - startMinutes;
-
-  if (!Number.isFinite(duration) || duration <= 0) {
-    duration = endMinutes - startMinutes;
-  }
-
-  if (duration <= 0) {
-    duration += 1440;
-  }
-
-  return Math.min(Math.max(duration, 15), 1440);
-}
-
-function getWeekEventPositionStyle(event) {
-  const startMinutes = getTimeInMinutes(event.startTime, 0);
-  const minuteOffset = startMinutes % 60;
-  const durationMinutes = getEventDurationMinutes(event);
-
-  return {
-    '--week-event-top': `${(minuteOffset / 60) * 100}%`,
-    '--week-event-height': `${(durationMinutes / 60) * 100}%`,
-  };
-}
-
 function getRepeatLabel(repeat) {
   return REPEAT_OPTIONS.find((option) => option.value === repeat)?.label || 'しない';
 }
@@ -412,23 +356,11 @@ export default function Home() {
   const [selectedSharedGroupId, setSelectedSharedGroupId] = useState('');
   const [isLoadingShareGroups, setIsLoadingShareGroups] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
-  const [isGroupFilterOpen, setIsGroupFilterOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isMobileWeekLayout, setIsMobileWeekLayout] = useState(() => (
-    typeof window !== 'undefined'
-      ? window.matchMedia('(max-width: 600px)').matches
-      : false
-  ));
 
   const displayBaseDateRef = useRef(new Date());
   const hasScrolledToCurrentMonthRef = useRef(false);
   const monthSectionRefs = useRef({});
-  const calendarPageRef = useRef(null);
   const headerRef = useRef(null);
-  const groupFilterRef = useRef(null);
-  const searchPanelRef = useRef(null);
-  const searchInputRef = useRef(null);
   const scrollRafRef = useRef(null);
   const activeMonthKeyRef = useRef(formatMonthKey(
     displayBaseDateRef.current.getFullYear(),
@@ -467,19 +399,6 @@ export default function Home() {
     () => getWeekDates(currentDate, weekStartDay),
     [currentDate, weekStartDay],
   );
-  const weekTimelineDates = useMemo(() => {
-    if (!isMobileWeekLayout) return currentWeekDates;
-
-    const firstDate = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      currentDate.getDate(),
-    );
-    const nextDate = new Date(firstDate);
-    nextDate.setDate(nextDate.getDate() + 1);
-
-    return [firstDate, nextDate];
-  }, [currentDate, currentWeekDates, isMobileWeekLayout]);
   const currentWeekLabel = useMemo(() => {
     if (currentWeekDates.length === 0) return '';
 
@@ -652,112 +571,12 @@ export default function Home() {
   }, [joinedGroups, selectedSharedGroupId]);
 
   useEffect(() => {
-    if (!isSearchOpen) return undefined;
-
-    const focusTimerId = window.setTimeout(() => {
-      searchInputRef.current?.focus();
-    }, 0);
-
-    return () => window.clearTimeout(focusTimerId);
-  }, [isSearchOpen]);
-
-  useEffect(() => {
-    if (!isGroupFilterOpen && !isSearchOpen) return undefined;
-
-    const handlePointerDown = (event) => {
-      if (
-        isGroupFilterOpen &&
-        groupFilterRef.current &&
-        !groupFilterRef.current.contains(event.target)
-      ) {
-        setIsGroupFilterOpen(false);
-      }
-
-      if (
-        isSearchOpen &&
-        searchPanelRef.current &&
-        !searchPanelRef.current.contains(event.target)
-      ) {
-        setIsSearchOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event) => {
-      if (event.key !== 'Escape') return;
-      setIsGroupFilterOpen(false);
-      setIsSearchOpen(false);
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isGroupFilterOpen, isSearchOpen]);
-
-  useEffect(() => {
     const timerId = window.setInterval(() => {
       setNow(new Date());
     }, 60000);
 
     return () => window.clearInterval(timerId);
   }, []);
-
-  useLayoutEffect(() => {
-    const calendarPage = calendarPageRef.current;
-    const header = headerRef.current;
-
-    if (!calendarPage || !header) return undefined;
-
-    const syncHeaderHeight = () => {
-      const nextHeight = Math.ceil(header.getBoundingClientRect().height);
-      if (nextHeight > 0) {
-        calendarPage.style.setProperty('--calendar-header-height', `${nextHeight}px`);
-      }
-    };
-
-    const frameId = window.requestAnimationFrame(syncHeaderHeight);
-    const resizeObserver = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(syncHeaderHeight)
-      : null;
-
-    resizeObserver?.observe(header);
-    window.addEventListener('resize', syncHeaderHeight);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      resizeObserver?.disconnect();
-      window.removeEventListener('resize', syncHeaderHeight);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const mediaQuery = window.matchMedia('(max-width: 600px)');
-    const syncMobileWeekLayout = () => {
-      setIsMobileWeekLayout(mediaQuery.matches);
-    };
-
-    syncMobileWeekLayout();
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', syncMobileWeekLayout);
-      return () => mediaQuery.removeEventListener('change', syncMobileWeekLayout);
-    }
-
-    mediaQuery.addListener(syncMobileWeekLayout);
-    return () => mediaQuery.removeListener(syncMobileWeekLayout);
-  }, []);
-
-  useLayoutEffect(() => {
-    if (calendarView !== 'week') return;
-    if (!weekTimelineWrapperRef.current) return;
-
-    weekTimelineWrapperRef.current.scrollLeft = 0;
-  }, [calendarView, currentDate, isMobileWeekLayout]);
 
   useEffect(() => {
     setEventCategories(readStoredCategories());
@@ -1247,15 +1066,6 @@ export default function Home() {
     };
   }, [calendarView, calendarYears, syncCurrentYearWithScroll]);
 
-  const selectedGroupFilterLabel = useMemo(() => {
-    if (!selectedSharedGroupId) return 'すべての予定';
-
-    const selectedGroup = joinedGroups.find((group) => group.id === selectedSharedGroupId);
-    return selectedGroup
-      ? `${selectedGroup.name || '名前未設定のグループ'}の共有予定`
-      : 'すべての予定';
-  }, [joinedGroups, selectedSharedGroupId]);
-
   const visibleEvents = useMemo(() => {
     const targetGroupShares = selectedSharedGroupId
       ? receivedGroupShares.filter((share) => share.groupId === selectedSharedGroupId)
@@ -1281,54 +1091,6 @@ export default function Home() {
 
     return [...ownSharedEvents, ...receivedSharedEvents];
   }, [currentUser, events, receivedGroupShares, selectedSharedGroupId]);
-
-  const searchResults = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLocaleLowerCase('ja-JP');
-    if (!normalizedQuery) return [];
-
-    const groupNameById = new Map(
-      joinedGroups.map((group) => [String(group.id), String(group.name || '名前未設定のグループ')])
-    );
-    const matchingEvents = new Map();
-
-    visibleEvents.forEach((event, index) => {
-      const title = String(event.title || '');
-      const groupName = String(
-        event.shareTargetGroupName ||
-        groupNameById.get(String(event.shareTargetGroupId || '')) ||
-        ''
-      );
-      const matchesTitle = title.toLocaleLowerCase('ja-JP').includes(normalizedQuery);
-      const matchesGroupName = groupName.toLocaleLowerCase('ja-JP').includes(normalizedQuery);
-
-      if (!matchesTitle && !matchesGroupName) return;
-
-      const resultKey = String(
-        event.sharedScheduleId ||
-        event.id ||
-        `${event.startDate || ''}-${event.startTime || ''}-${title}-${index}`
-      );
-      const searchResultEvent = groupName && !event.shareTargetGroupName
-        ? { ...event, shareTargetGroupName: groupName }
-        : event;
-
-      if (!matchingEvents.has(resultKey)) {
-        matchingEvents.set(resultKey, searchResultEvent);
-      }
-    });
-
-    return [...matchingEvents.values()]
-      .sort((a, b) => {
-        const dateCompare = String(a.startDate || '').localeCompare(String(b.startDate || ''));
-        if (dateCompare !== 0) return dateCompare;
-
-        const timeCompare = String(a.startTime || '').localeCompare(String(b.startTime || ''));
-        if (timeCompare !== 0) return timeCompare;
-
-        return String(a.title || '').localeCompare(String(b.title || ''), 'ja');
-      })
-      .slice(0, 50);
-  }, [joinedGroups, searchQuery, visibleEvents]);
 
   const eventsByDate = useMemo(() => {
     const grouped = {};
@@ -1382,7 +1144,7 @@ export default function Home() {
   const currentWeekEventsByDate = useMemo(() => {
     const grouped = {};
 
-    weekTimelineDates.forEach((date) => {
+    currentWeekDates.forEach((date) => {
       const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
       const dayEvents = visibleEvents
         .filter((event) => isEventOnDate(event, dateKey))
@@ -1400,7 +1162,7 @@ export default function Home() {
     });
 
     return grouped;
-  }, [visibleEvents, weekTimelineDates]);
+  }, [visibleEvents, currentWeekDates]);
 
   const isWeekendDate = (targetYear, targetMonth, day) => {
     const dayOfWeek = new Date(targetYear, targetMonth, day).getDay();
@@ -1650,23 +1412,9 @@ export default function Home() {
       return false;
     }
 
-    if (eventForm.isShared) {
+    if (eventForm.isShared && eventForm.shareTargetGroupId) {
       if (!currentUser) {
         alert('予定を共有するにはログインしてください。');
-        return false;
-      }
-
-      if (!eventForm.shareTargetGroupId) {
-        alert('共有するグループを選択してください。');
-        return false;
-      }
-
-      const selectedGroup = joinedGroups.find(
-        (group) => String(group.id) === String(eventForm.shareTargetGroupId)
-      );
-
-      if (!selectedGroup) {
-        alert('選択したグループを確認してください。');
         return false;
       }
     }
@@ -1826,14 +1574,6 @@ export default function Home() {
     });
   }, []);
 
-  const moveDayBy = useCallback((dayOffset) => {
-    setCurrentDate((prev) => {
-      const next = new Date(prev);
-      next.setDate(next.getDate() + dayOffset);
-      return next;
-    });
-  }, []);
-
   const unlockWeekNavigation = useCallback(() => {
     window.setTimeout(() => {
       weekNavigateLockRef.current = false;
@@ -1844,16 +1584,9 @@ export default function Home() {
     if (weekNavigateLockRef.current) return;
 
     weekNavigateLockRef.current = true;
-    const offset = direction === 'next' ? 1 : -1;
-
-    if (isMobileWeekLayout) {
-      moveDayBy(offset);
-    } else {
-      moveWeekBy(offset);
-    }
-
+    moveWeekBy(direction === 'next' ? 1 : -1);
     unlockWeekNavigation();
-  }, [isMobileWeekLayout, moveDayBy, moveWeekBy, unlockWeekNavigation]);
+  }, [moveWeekBy, unlockWeekNavigation]);
 
   const handleWeekWheel = useCallback((event) => {
     const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
@@ -2020,6 +1753,20 @@ export default function Home() {
     yearTouchStartRef.current = { x: 0, y: 0, moved: false };
   }, []);
 
+  const handleViewToggle = () => {
+    if (calendarView === 'year') {
+      openMonthView(currentDate.getFullYear(), currentDate.getMonth());
+      return;
+    }
+
+    if (calendarView === 'month') {
+      setCalendarView('week');
+      return;
+    }
+
+    openMonthView(currentDate.getFullYear(), currentDate.getMonth());
+  };
+
   const handleYearMonthClick = (targetYear, targetMonth) => {
     yearTransitionLockRef.current = true;
     activeYearRef.current = targetYear;
@@ -2034,41 +1781,11 @@ export default function Home() {
   };
 
   const handleAddButtonClick = () => {
-    setIsSearchOpen(false);
-    setSearchQuery('');
-    setIsGroupFilterOpen(false);
-
     openAddModal(
       currentDate.getDate(),
       currentDate.getFullYear(),
       currentDate.getMonth(),
     );
-  };
-
-  const handleSearchToggle = () => {
-    setIsGroupFilterOpen(false);
-    setIsSearchOpen((prev) => !prev);
-  };
-
-  const handleSearchResultClick = (calendarEvent) => {
-    const targetDate = parseDateOnly(calendarEvent.startDate || calendarEvent.occurrenceDate);
-
-    if (targetDate) {
-      setCurrentDate(new Date(
-        targetDate.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate(),
-      ));
-      setCalendarView('day');
-    }
-
-    setIsSearchOpen(false);
-    setSearchQuery('');
-  };
-
-  const handleGroupFilterSelect = (groupId) => {
-    setSelectedSharedGroupId(groupId);
-    setIsGroupFilterOpen(false);
   };
 
   const handleDateStripClick = (date) => {
@@ -2090,10 +1807,7 @@ export default function Home() {
 
   return (
     <div className={styles.home}>
-      <div
-        ref={calendarPageRef}
-        className={`${styles.calendarPage} ${styles[theme]} ${styles[`${calendarView}ViewPage`]}`}
-      >
+      <div className={`${styles.calendarPage} ${styles[theme]} ${styles[`${calendarView}ViewPage`]}`}>
         <header ref={headerRef} className={styles.header}>
           <div className={styles.topRow}>
             <div className={styles.yearArea}>
@@ -2115,13 +1829,20 @@ export default function Home() {
               </button>
             </div>
 
-            <div ref={searchPanelRef} className={styles.headerButtons}>
+            <div className={styles.headerButtons}>
               <button
                 className={styles.iconButton}
                 type="button"
-                aria-label="予定を検索"
-                aria-expanded={isSearchOpen}
-                onClick={handleSearchToggle}
+                aria-label="表示切替"
+                onClick={handleViewToggle}
+              >
+                ▤
+              </button>
+
+              <button
+                className={styles.iconButton}
+                type="button"
+                aria-label="検索"
               >
                 ⌕
               </button>
@@ -2134,119 +1855,24 @@ export default function Home() {
               >
                 ＋
               </button>
-
-              {isSearchOpen && (
-                <div className={styles.searchPanel} role="search">
-                  <div className={styles.searchInputRow}>
-                    <span className={styles.searchInputIcon} aria-hidden="true">⌕</span>
-                    <input
-                      ref={searchInputRef}
-                      className={styles.searchInput}
-                      type="search"
-                      value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="予定名・グループ名を検索"
-                      aria-label="予定名またはグループ名を検索"
-                    />
-                    {searchQuery && (
-                      <button
-                        className={styles.searchClearButton}
-                        type="button"
-                        aria-label="検索文字を消去"
-                        onClick={() => {
-                          setSearchQuery('');
-                          searchInputRef.current?.focus();
-                        }}
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-
-                  <div className={styles.searchResults} aria-live="polite">
-                    {!searchQuery.trim() && (
-                      <p className={styles.searchMessage}>予定名またはグループ名を入力してください。</p>
-                    )}
-
-                    {searchQuery.trim() && searchResults.length === 0 && (
-                      <p className={styles.searchMessage}>一致する予定またはグループはありません。</p>
-                    )}
-
-                    {searchResults.map((calendarEvent, searchIndex) => (
-                      <button
-                        key={`search-${calendarEvent.sharedScheduleId || calendarEvent.id || `${calendarEvent.startDate}-${calendarEvent.title}-${searchIndex}`}`}
-                        className={styles.searchResultItem}
-                        type="button"
-                        onClick={() => handleSearchResultClick(calendarEvent)}
-                      >
-                        <span className={styles.searchResultTitle}>{calendarEvent.title}</span>
-                        <span className={styles.searchResultMeta}>
-                          {calendarEvent.startDate || '日付未設定'}
-                          {getEventTimeLabel(calendarEvent) && ` ${getEventTimeLabel(calendarEvent)}`}
-                          {calendarEvent.shareTargetGroupName && `・${calendarEvent.shareTargetGroupName}`}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
           {currentUser && joinedGroups.length > 0 && (
             <div className={styles.groupFilterBar}>
-              <div ref={groupFilterRef} className={styles.groupFilterControl}>
-                <button
-                  className={styles.groupFilterSelect}
-                  type="button"
-                  aria-label="表示するグループ共有予定"
-                  aria-haspopup="listbox"
-                  aria-expanded={isGroupFilterOpen}
-                  onClick={() => {
-                    setIsSearchOpen(false);
-                    setIsGroupFilterOpen((prev) => !prev);
-                  }}
-                >
-                  <span className={styles.groupFilterLabel}>{selectedGroupFilterLabel}</span>
-                  <span
-                    className={`${styles.groupFilterArrow} ${isGroupFilterOpen ? styles.groupFilterArrowOpen : ''}`}
-                    aria-hidden="true"
-                  >
-                    ▾
-                  </span>
-                </button>
-
-                {isGroupFilterOpen && (
-                  <div className={styles.groupFilterMenu} role="listbox">
-                    <button
-                      className={`${styles.groupFilterOption} ${!selectedSharedGroupId ? styles.groupFilterOptionSelected : ''}`}
-                      type="button"
-                      role="option"
-                      aria-selected={!selectedSharedGroupId}
-                      onClick={() => handleGroupFilterSelect('')}
-                    >
-                      すべての予定
-                    </button>
-
-                    {joinedGroups.map((group) => {
-                      const isSelected = group.id === selectedSharedGroupId;
-
-                      return (
-                        <button
-                          key={group.id}
-                          className={`${styles.groupFilterOption} ${isSelected ? styles.groupFilterOptionSelected : ''}`}
-                          type="button"
-                          role="option"
-                          aria-selected={isSelected}
-                          onClick={() => handleGroupFilterSelect(group.id)}
-                        >
-                          {group.name || '名前未設定のグループ'}の共有予定
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              <select
+                className={styles.groupFilterSelect}
+                value={selectedSharedGroupId}
+                onChange={(event) => setSelectedSharedGroupId(event.target.value)}
+                aria-label="表示するグループ共有予定"
+              >
+                <option value="">すべての予定</option>
+                {joinedGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name || '名前未設定のグループ'}の共有予定
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
@@ -2402,13 +2028,15 @@ export default function Home() {
               >
                 <div
                   className={styles.weekTimelineGrid}
-                  style={{ '--week-column-count': weekTimelineDates.length }}
+                  style={{
+                    gridTemplateColumns: `72px repeat(${currentWeekDates.length}, minmax(0, 1fr))`,
+                  }}
                 >
                   {Array.from({ length: 24 }, (_, hour) => (
                     <React.Fragment key={`week-hour-${hour}`}>
                       <div className={styles.weekTimeLabel}>{pad(hour)}:00</div>
 
-                      {weekTimelineDates.map((date) => {
+                      {currentWeekDates.map((date) => {
                         const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
                         const hourEvents = (currentWeekEventsByDate[dateKey] || []).filter((event) => {
                           if (event.allDay) return false;
@@ -2435,10 +2063,7 @@ export default function Home() {
                                 key={`${event.id}-${event.occurrenceDate}-${hour}`}
                                 type="button"
                                 className={`${styles.dayEventItem} ${styles.weekEventItem}`}
-                                style={{
-                                  ...getEventStyle(event),
-                                  ...getWeekEventPositionStyle(event),
-                                }}
+                                style={getEventStyle(event)}
                                 onClick={(e) => {
                                   if (event.isReceivedShared) return;
                                   openEditModal(event, e);
