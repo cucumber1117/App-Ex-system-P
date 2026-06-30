@@ -1,37 +1,40 @@
 .container {
   min-height: 100vh;
-  padding: 0 0 128px;
-  background: #eef4fb;
-  color: #0f172a;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 132px;
+  background: #f8fafc;
+  color: #111827;
   transition: background 0.25s ease, color 0.25s ease;
 }
 
+.header,
+.detailPanel {
+  width: min(100%, 430px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  min-height: calc(72px + env(safe-area-inset-top, 0px));
-  padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 14px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.14);
+  gap: 8px;
+  min-height: 42px;
+  margin-bottom: 18px;
 }
 
 .backButton {
   display: inline-flex;
   align-items: center;
   justify-self: start;
-  gap: 5px;
+  gap: 4px;
   min-height: 36px;
   padding: 0;
   border: none;
   background: transparent;
-  color: #020617;
+  color: #111827;
   cursor: pointer;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 900;
   letter-spacing: 0;
 }
 
@@ -42,191 +45,208 @@
 .title {
   grid-column: 2;
   margin: 0;
-  color: #020617;
-  font-size: 24px;
+  color: #111827;
+  font-size: 17px;
   font-weight: 900;
   letter-spacing: 0;
   white-space: nowrap;
 }
 
 .detailPanel {
-  width: min(100% - 32px, 760px);
-  margin: 0 auto;
-  padding: 26px 54px 36px;
-  background: #ffffff;
-  box-shadow:
-    -18px 0 22px rgba(219, 234, 254, 0.72),
-    18px 0 22px rgba(224, 231, 255, 0.72);
+  display: grid;
+  gap: 16px;
 }
 
-.detailSection {
-  margin: 0 0 28px;
+.detailGroup {
+  display: grid;
+  gap: 10px;
 }
 
-.detailSection:last-child {
-  margin-bottom: 0;
-}
-
-.detailSection h2 {
-  margin: 0 0 12px;
-  color: #020617;
-  font-size: 21px;
+.sectionTitle {
+  margin: 0;
+  color: #111827;
+  font-size: 14px;
   font-weight: 900;
   letter-spacing: 0;
 }
 
-.detailSection p {
+.infoCard,
+.textCard {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.infoList {
+  margin: 0;
+}
+
+.infoRow {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 14px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoRow dt,
+.infoRow dd {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.infoRow dt {
+  color: #111827;
+  font-weight: 900;
+}
+
+.infoRow dd {
+  min-width: 0;
+  color: #374151;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.textCard {
+  padding: 16px;
+}
+
+.textCard p {
   margin: 0;
   color: #374151;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1.75;
+  line-height: 1.8;
+}
+
+.textCard p + p {
+  margin-top: 8px;
 }
 
 .featureList {
   display: grid;
   gap: 10px;
   margin: 0;
-  padding-left: 1.3em;
+  padding: 0;
   color: #374151;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.65;
-}
-
-.featureList li::marker {
-  color: #374151;
-  font-size: 0.9em;
-}
-
-.legalLink,
-.contactLink {
-  color: #2563eb;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.6;
+  list-style: none;
+}
+
+.featureList li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.featureList li::before {
+  content: "";
+  position: absolute;
+  top: 0.72em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2563eb;
+  transform: translateY(-50%);
+}
+
+.supportSection {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 0;
+}
+
+.contactLink {
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.6;
+  text-decoration: none;
+}
+
+.contactLink:hover {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
-.contactLink {
-  display: inline-block;
-  margin-top: 10px;
+.light {
+  background: #f8fafc;
+  color: #111827;
 }
 
-.light {
-  background: #eef4fb;
-  color: #0f172a;
+.light .header {
+  background: transparent;
+  box-shadow: none;
 }
 
 .dark {
-  background: #10141d;
+  background: #111318;
   color: #f8fafc;
 }
 
-.dark .header,
-.dark .detailPanel {
-  background: #181d27;
-}
-
 .dark .header {
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.42);
-}
-
-.dark .detailPanel {
-  box-shadow:
-    -18px 0 22px rgba(30, 41, 59, 0.46),
-    18px 0 22px rgba(49, 46, 129, 0.26);
+  background: transparent;
+  box-shadow: none;
 }
 
 .dark .backButton,
 .dark .title,
-.dark .detailSection h2 {
+.dark .sectionTitle,
+.dark .infoRow dt {
   color: #f8fafc;
 }
 
 .dark .backButton:hover,
-.dark .legalLink,
 .dark .contactLink {
   color: #93c5fd;
 }
 
-.dark .detailSection p,
-.dark .featureList {
-  color: #cbd5e1;
+.dark .infoCard,
+.dark .textCard {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #1f242d;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
 }
 
-.dark .featureList li::marker {
+.dark .infoRow {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .infoRow dd,
+.dark .textCard p,
+.dark .featureList {
   color: #cbd5e1;
 }
 
 @media (max-width: 640px) {
   .container {
-    padding-bottom: 118px;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 14px 136px;
   }
 
   .header {
-    min-height: calc(62px + env(safe-area-inset-top, 0px));
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
-  }
-
-  .backButton {
-    font-size: 16px;
-  }
-
-  .title {
-    font-size: 22px;
-  }
-
-  .detailPanel {
-    width: min(100% - 28px, 560px);
-    padding: 24px 36px 32px;
-  }
-
-  .detailSection {
-    margin-bottom: 25px;
-  }
-
-  .detailSection h2 {
-    margin-bottom: 10px;
-    font-size: 20px;
-  }
-
-  .detailSection p,
-  .featureList,
-  .legalLink,
-  .contactLink {
-    font-size: 17px;
+    margin-bottom: 16px;
   }
 }
 
-@media (max-width: 420px) {
-  .header {
-    padding-left: 14px;
-    padding-right: 14px;
+@media (max-width: 380px) {
+  .infoRow {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 10px;
+    padding: 0 12px;
   }
 
-  .title {
-    font-size: 21px;
-  }
-
-  .detailPanel {
-    width: calc(100% - 24px);
-    padding: 22px 26px 30px;
-  }
-
-  .detailSection {
-    margin-bottom: 24px;
-  }
-
-  .detailSection h2 {
-    font-size: 19px;
-  }
-
-  .detailSection p,
-  .featureList,
-  .legalLink,
-  .contactLink {
-    font-size: 16px;
+  .textCard {
+    padding: 14px;
   }
 }

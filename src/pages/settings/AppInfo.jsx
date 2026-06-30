@@ -34,50 +34,50 @@ const AppInfo = () => {
       </header>
 
       <div className={styles.detailPanel}>
-        <section className={styles.detailSection}>
-          <h2>アプリ名</h2>
-          <p>スケジュール管理アプリ</p>
+        <section className={styles.detailGroup}>
+          <h2 className={styles.sectionTitle}>基本情報</h2>
+          <div className={styles.infoCard}>
+            <dl className={styles.infoList}>
+              <div className={styles.infoRow}>
+                <dt>アプリ名</dt>
+                <dd>スケジュール管理アプリ</dd>
+              </div>
+              <div className={styles.infoRow}>
+                <dt>バージョン</dt>
+                <dd>{packageInfo.version}</dd>
+              </div>
+              <div className={styles.infoRow}>
+                <dt>開発者</dt>
+                <dd>グループ 2</dd>
+              </div>
+            </dl>
+          </div>
         </section>
 
-        <section className={styles.detailSection}>
-          <h2>バージョン</h2>
-          <p>{packageInfo.version}</p>
+        <section className={styles.detailGroup}>
+          <h2 className={styles.sectionTitle}>アプリの説明</h2>
+          <div className={styles.textCard}>
+            <p>
+              個人の予定を見やすく整理し、友達やグループと予定を共有できるカレンダーアプリです。
+            </p>
+            <p>
+              予定のカテゴリ分けや繰り返し設定、通知設定を使って、自分に合ったスケジュール管理ができます。
+            </p>
+          </div>
         </section>
 
-        <section className={styles.detailSection}>
-          <h2>開発者</h2>
-          <p>グループ２</p>
+        <section className={styles.detailGroup}>
+          <h2 className={styles.sectionTitle}>主な機能</h2>
+          <div className={styles.textCard}>
+            <ul className={styles.featureList}>
+              {features.map((feature) => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+          </div>
         </section>
 
-        <section className={styles.detailSection}>
-          <h2>アプリの説明</h2>
-          <p>
-            個人の予定を見やすく整理し、友達やグループと予定を共有できるカレンダーアプリです。
-            予定のカテゴリ分けや繰り返し設定、通知設定を使って、自分に合ったスケジュール管理ができます。
-          </p>
-        </section>
-
-        <section className={styles.detailSection}>
-          <h2>主な機能</h2>
-          <ul className={styles.featureList}>
-            {features.map((feature) => (
-              <li key={feature}>{feature}</li>
-            ))}
-          </ul>
-        </section>
-
-        <section className={styles.detailSection}>
-          <h2>法的情報</h2>
-          <a className={styles.legalLink} href="mailto:support@example.com">
-            利用規約・プライバシーポリシー
-          </a>
-        </section>
-
-        <section className={styles.detailSection}>
-          <h2>お問い合わせ</h2>
-          <p>
-            ご質問やお困りのことがございましたら、以下までお気軽にお問い合わせください。
-          </p>
+        <section className={styles.supportSection} aria-label="お問い合わせ">
           <a className={styles.contactLink} href="mailto:support@example.com">
             support@example.com
           </a>
