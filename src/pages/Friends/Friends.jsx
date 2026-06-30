@@ -20,6 +20,8 @@ export default function Friends() {
   const [friendId, setFriendId] = useState('');
   const [searchText, setSearchText] = useState('');
   const [friends, setFriends] = useState([]);
+  const [activeTab, setActiveTab] = useState('list');
+  const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [failedAvatarIds, setFailedAvatarIds] = useState({});
@@ -147,6 +149,7 @@ export default function Friends() {
       await addFriend(currentUser.uid, normalizedFriendId);
       await refreshFriends(currentUser.uid);
       setFriendId('');
+      setShowAddForm(false);
       setMessage('フレンドを追加しました');
       showToast('フレンドを追加しました');
     } catch (err) {
@@ -217,6 +220,11 @@ export default function Friends() {
         return `${friendName} ${id} ${email}`.toLowerCase().includes(normalizedSearch);
       })
     : friends;
+  const sortedFriends = [...filteredFriends].sort((a, b) => {
+    const nameA = a.name || a.displayName || a.email || '';
+    const nameB = b.name || b.displayName || b.email || '';
+    return nameA.localeCompare(nameB, 'ja');
+  });
 
   return (
     <main className={`${styles.container} ${styles[theme]}`}>
@@ -224,12 +232,32 @@ export default function Friends() {
         <h1 className={styles.title}>フレンド</h1>
         <div className={styles.countBadge} aria-label={`フレンド ${friends.length}人`}>
           <UserRound size={17} aria-hidden="true" />
-          <span>{friends.length}</span>
+          <span>{friends.length}人</span>
         </div>
       </header>
 
+      <div className={styles.tabs} role="tablist" aria-label="フレンド画面の切り替え">
+        <button
+          className={`${styles.tabButton} ${activeTab === 'list' ? styles.activeTab : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'list'}
+          onClick={() => setActiveTab('list')}
+        >
+          一覧
+        </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'requests' ? styles.activeTab : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'requests'}
+          onClick={() => setActiveTab('requests')}
+        >
+          申請
+        </button>
+      </div>
+
       <section className={styles.addSection}>
-        <h2 className={styles.sectionTitle}>フレンド追加</h2>
         {!currentUser ? (
           <div className={styles.emptyState}>
             <UserRoundPlus size={28} aria-hidden="true" />
@@ -237,18 +265,10 @@ export default function Friends() {
           </div>
         ) : (
           <>
-            <div className={styles.addGuide}>
-              <p>
-                自分のIDを相手に共有するか、相手のフレンドIDを入力して追加できます。
-              </p>
-            </div>
-
             <div className={styles.friendCode}>
               <div className={styles.friendCodeText}>
-                <span className={styles.friendCodeLabel}>自分のフレンドID</span>
-                <code className={styles.ownId}>
-                  {ownFriendId || '確認中...'}
-                </code>
+                <span className={styles.friendCodeLabel}>自分のID</span>
+                <code className={styles.ownId}>{ownFriendId || '確認中...'}</code>
               </div>
               <button
                 className={`${styles.copyBtn} ${copied ? styles.copied : ''}`}
@@ -264,135 +284,156 @@ export default function Friends() {
             <span className={styles.copyStatus} aria-live="polite">
               {copied ? 'フレンドコードをコピーしました' : ''}
             </span>
-            <form className={styles.addForm} onSubmit={handleAddFriend}>
-              <label className={styles.inputField}>
-                <span className={styles.inputLabel}>相手のフレンドID</span>
-                <input
-                  className={styles.input}
-                  value={friendId}
-                  onChange={(e) => setFriendId(e.target.value.toLowerCase())}
-                  placeholder="j-00000"
-                  maxLength={7}
-                  pattern="[a-z]-[0-9]{5}"
-                  title="半角英字1文字、ハイフン、数字5桁で入力してください"
-                  autoCapitalize="none"
-                  spellCheck="false"
-                  required
-                />
-              </label>
-              <button className={styles.addBtn} type="submit" disabled={adding}>
-                <UserRoundPlus size={18} />
-                <span>{adding ? '追加中...' : '追加'}</span>
-              </button>
-            </form>
+
+            <button
+              className={styles.addBtn}
+              type="button"
+              onClick={() => setShowAddForm((current) => !current)}
+              aria-expanded={showAddForm}
+            >
+              <UserRoundPlus size={18} aria-hidden="true" />
+              <span>フレンドを追加</span>
+            </button>
+
+            {showAddForm && (
+              <form className={styles.addForm} onSubmit={handleAddFriend}>
+                <label className={styles.inputField}>
+                  <span className={styles.inputLabel}>相手のフレンドID</span>
+                  <input
+                    className={styles.input}
+                    value={friendId}
+                    onChange={(e) => setFriendId(e.target.value.toLowerCase())}
+                    placeholder="j-00000"
+                    maxLength={7}
+                    pattern="[a-z]-[0-9]{5}"
+                    title="半角英字1文字、ハイフン、数字5桁で入力してください"
+                    autoCapitalize="none"
+                    spellCheck="false"
+                    required
+                  />
+                </label>
+                <button className={styles.submitBtn} type="submit" disabled={adding}>
+                  <UserRoundPlus size={18} aria-hidden="true" />
+                  <span>{adding ? '追加中...' : '追加する'}</span>
+                </button>
+              </form>
+            )}
           </>
         )}
         {message && <p className={styles.success}>{message}</p>}
         {error && <p className={styles.error}>{error}</p>}
       </section>
 
-      <section className={styles.listSection}>
-        <div className={styles.listHeader}>
-          <div>
-            <h2 className={styles.sectionTitle}>フレンド一覧</h2>
-            {currentUser && !loading && (
-              <p className={styles.friendCount}>
-                {friends.length}人のフレンドがいます
-              </p>
-            )}
+      {activeTab === 'requests' ? (
+        <section className={styles.listSection} role="tabpanel">
+          <div className={styles.requestEmpty}>
+            <UserRoundPlus size={30} aria-hidden="true" />
+            <p className={styles.note}>現在確認待ちの申請はありません。</p>
           </div>
-        </div>
-        {!currentUser && <p className={styles.note}>ログインするとフレンドを確認できます。</p>}
-        {currentUser && loading && <p className={styles.note}>読み込み中...</p>}
-        {currentUser && !loading && friends.length > 0 && (
-          <label className={styles.searchBox}>
-            <Search size={17} aria-hidden="true" />
-            <input
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              placeholder="名前またはIDで検索"
-              aria-label="フレンドを検索"
-            />
-          </label>
-        )}
-        {currentUser && !loading && friends.length === 0 && (
-          <div className={styles.emptyState}>
-            <UserRound size={30} aria-hidden="true" />
-            <p className={styles.note}>
-              まだフレンドがいません。フレンドIDを共有して友達を追加しましょう。
-            </p>
-          </div>
-        )}
-        {currentUser && !loading && friends.length > 0 && filteredFriends.length === 0 && (
-          <div className={styles.emptyState}>
-            <Search size={30} aria-hidden="true" />
-            <p className={styles.note}>一致するフレンドはいません。</p>
-          </div>
-        )}
-        {currentUser && !loading && filteredFriends.length > 0 && (
-          <ul className={styles.friendList}>
-            {filteredFriends.map((friend) => {
-              const friendName = friend.name || friend.displayName || '名前未設定';
-              const fallbackLabel = (friendName !== '名前未設定' ? friendName : friend.email || '').slice(0, 1);
-              const canShowAvatar = friend.photoURL && !failedAvatarIds[friend.id];
+        </section>
+      ) : (
+        <section className={styles.listSection} role="tabpanel">
+          {currentUser && !loading && friends.length > 0 && (
+            <label className={styles.searchBox}>
+              <Search size={17} aria-hidden="true" />
+              <input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="名前またはIDで検索"
+                aria-label="フレンドを検索"
+              />
+            </label>
+          )}
 
-              return (
-                <li key={friend.id} className={styles.friendItem}>
-                  {canShowAvatar ? (
-                    <img
-                      className={styles.avatar}
-                      src={friend.photoURL}
-                      alt={`${friendName}のアイコン`}
-                      referrerPolicy="no-referrer"
-                      onError={() => {
-                        setFailedAvatarIds((prev) => ({ ...prev, [friend.id]: true }));
-                      }}
-                    />
-                  ) : (
-                    <div className={styles.avatarFallback} aria-label={`${friendName}のアイコン`}>
-                      {fallbackLabel || <UserRound size={22} strokeWidth={2.4} />}
-                    </div>
-                  )}
-                  <div className={styles.friendMeta}>
-                    <strong className={styles.friendName}>{friendName}</strong>
-                    <span className={styles.friendId}>
-                      ID: {friend.friendId || '未発行'}
-                    </span>
-                  </div>
-                  <div
-                    className={styles.friendMenu}
-                    ref={openMenuId === friend.id ? menuRef : null}
-                  >
-                    <button
-                      type="button"
-                      className={styles.menuBtn}
-                      onClick={() =>
-                        setOpenMenuId((prev) => (prev === friend.id ? '' : friend.id))
-                      }
-                      aria-label={`${friendName}のメニュー`}
-                      aria-expanded={openMenuId === friend.id}
-                    >
-                      <MoreVertical size={18} aria-hidden="true" />
-                    </button>
-                    {openMenuId === friend.id && (
-                      <div className={styles.menuPopover}>
-                        <button
-                          type="button"
-                          className={styles.deleteBtn}
-                          onClick={() => handleDeleteFriend(friend.id)}
-                        >
-                          <Trash2 size={16} aria-hidden="true" />
-                          <span>削除</span>
-                        </button>
+          <div className={styles.listHeader}>
+            <h2 className={styles.sectionTitle}>フレンド一覧（{friends.length}人）</h2>
+            <button className={styles.sortButton} type="button" aria-label="名前順で表示">
+              <span>名前順</span>
+              <span aria-hidden="true">⌄</span>
+            </button>
+          </div>
+
+          {!currentUser && <p className={styles.note}>ログインするとフレンドを確認できます。</p>}
+          {currentUser && loading && <p className={styles.note}>読み込み中...</p>}
+          {currentUser && !loading && friends.length === 0 && (
+            <div className={styles.emptyState}>
+              <UserRound size={30} aria-hidden="true" />
+              <p className={styles.note}>
+                まだフレンドがいません。フレンドIDを共有して友達を追加しましょう。
+              </p>
+            </div>
+          )}
+          {currentUser && !loading && friends.length > 0 && sortedFriends.length === 0 && (
+            <div className={styles.emptyState}>
+              <Search size={30} aria-hidden="true" />
+              <p className={styles.note}>一致するフレンドはいません。</p>
+            </div>
+          )}
+          {currentUser && !loading && sortedFriends.length > 0 && (
+            <ul className={styles.friendList}>
+              {sortedFriends.map((friend) => {
+                const friendName = friend.name || friend.displayName || '名前未設定';
+                const fallbackLabel = (friendName !== '名前未設定' ? friendName : friend.email || '').slice(0, 1);
+                const canShowAvatar = friend.photoURL && !failedAvatarIds[friend.id];
+
+                return (
+                  <li key={friend.id} className={styles.friendItem}>
+                    {canShowAvatar ? (
+                      <img
+                        className={styles.avatar}
+                        src={friend.photoURL}
+                        alt={`${friendName}のアイコン`}
+                        referrerPolicy="no-referrer"
+                        onError={() => {
+                          setFailedAvatarIds((prev) => ({ ...prev, [friend.id]: true }));
+                        }}
+                      />
+                    ) : (
+                      <div className={styles.avatarFallback} aria-label={`${friendName}のアイコン`}>
+                        {fallbackLabel || <UserRound size={22} strokeWidth={2.4} />}
                       </div>
                     )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+                    <div className={styles.friendMeta}>
+                      <strong className={styles.friendName}>{friendName}</strong>
+                      <span className={styles.friendId}>
+                        ID: {friend.friendId || '未発行'}
+                      </span>
+                    </div>
+                    <div
+                      className={styles.friendMenu}
+                      ref={openMenuId === friend.id ? menuRef : null}
+                    >
+                      <button
+                        type="button"
+                        className={styles.menuBtn}
+                        onClick={() =>
+                          setOpenMenuId((prev) => (prev === friend.id ? '' : friend.id))
+                        }
+                        aria-label={`${friendName}のメニュー`}
+                        aria-expanded={openMenuId === friend.id}
+                      >
+                        <MoreVertical size={18} aria-hidden="true" />
+                      </button>
+                      {openMenuId === friend.id && (
+                        <div className={styles.menuPopover}>
+                          <button
+                            type="button"
+                            className={styles.deleteBtn}
+                            onClick={() => handleDeleteFriend(friend.id)}
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                            <span>削除</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
 
       {toast && (
         <div className={styles.toast} role="status" aria-live="polite">
