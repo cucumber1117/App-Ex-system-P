@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './Settings.module.css';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Info } from 'lucide-react';
+import { ChevronRight, Info, LogOut } from 'lucide-react';
 import { auth } from '../../Firebase/firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { loginWithGoogle } from '../../Firebase/auth/login';
@@ -284,81 +284,94 @@ const Settings = () => {
             <div className={styles.section}>
                 <h2 className={styles.sectionTitle}>アカウント</h2>
 
-                <div className={styles.row}>
-                    <div>
-                        <div className={styles.label}>ログイン</div>
-                        <p className={styles.description}>
-                            Googleアカウントでログインすると、設定を保存できます。
-                        </p>
-                    </div>
-
-                    <div>
-                        {currentUser ? (
+                {currentUser ? (
+                    <>
+                        <div className={styles.accountRow}>
                             <div className={styles.profileRow}>
-                                {currentUser.photoURL && (
+                                {currentUser.photoURL ? (
                                     <img
                                         className={styles.avatar}
                                         src={currentUser.photoURL}
                                         alt={currentUser.displayName || 'avatar'}
                                     />
+                                ) : (
+                                    <span className={styles.avatarFallback} aria-hidden="true">
+                                        {(profileName || currentUser.email || '?').slice(0, 1)}
+                                    </span>
                                 )}
 
-                                <div className={styles.userName}>
-                                    {profileName || currentUser.email}
+                                <div className={styles.profileText}>
+                                    <div className={styles.label}>
+                                        {profileName || currentUser.email}
+                                    </div>
+                                    <p className={styles.description}>
+                                        Googleアカウントでログイン中
+                                    </p>
                                 </div>
-
-                                <button className={styles.btn} onClick={handleLogout}>
-                                    ログアウト
-                                </button>
                             </div>
-                        ) : (
-                            <button className={styles.btn} onClick={handleLogin}>
-                                Googleでログイン
-                            </button>
-                        )}
-                    </div>
-                </div>
+                            <ChevronRight className={styles.menuArrow} size={20} aria-hidden="true" />
+                        </div>
 
-                {currentUser && (
+                        <div className={styles.row}>
+                            <div>
+                                <div className={styles.label}>名前</div>
+                                <p className={styles.description}>
+                                    フレンドなどに表示される名前を変更します。
+                                </p>
+                            </div>
+
+                            <form className={styles.nameForm} onSubmit={handleNameSubmit}>
+                                <div className={styles.nameInputRow}>
+                                    <input
+                                        className={styles.nameInput}
+                                        type="text"
+                                        value={profileName}
+                                        maxLength={30}
+                                        onChange={(event) => {
+                                            setProfileName(event.target.value);
+                                            setNameMessage('');
+                                            setNameError('');
+                                        }}
+                                        placeholder="表示名"
+                                        aria-label="表示名"
+                                        disabled={savingName}
+                                    />
+                                    <button
+                                        className={styles.btn}
+                                        type="submit"
+                                        disabled={savingName}
+                                    >
+                                        {savingName ? '保存中…' : '保存'}
+                                    </button>
+                                </div>
+                                {nameMessage && (
+                                    <p className={styles.successMessage}>{nameMessage}</p>
+                                )}
+                                {nameError && (
+                                    <p className={styles.errorMessage}>{nameError}</p>
+                                )}
+                            </form>
+                        </div>
+
+                        <div className={styles.row}>
+                            <button className={styles.logoutBtn} onClick={handleLogout} type="button">
+                                <LogOut size={18} aria-hidden="true" />
+                                <span>ログアウト</span>
+                            </button>
+                        </div>
+                    </>
+                ) : (
                     <div className={styles.row}>
                         <div>
-                            <div className={styles.label}>名前</div>
+                            <div className={styles.label}>ログイン</div>
                             <p className={styles.description}>
-                                フレンドなどに表示される名前を変更します。
+                                Googleアカウントでログインすると、設定を保存できます。
                             </p>
                         </div>
 
-                        <form className={styles.nameForm} onSubmit={handleNameSubmit}>
-                            <div className={styles.nameInputRow}>
-                                <input
-                                    className={styles.nameInput}
-                                    type="text"
-                                    value={profileName}
-                                    maxLength={30}
-                                    onChange={(event) => {
-                                        setProfileName(event.target.value);
-                                        setNameMessage('');
-                                        setNameError('');
-                                    }}
-                                    placeholder="表示名"
-                                    aria-label="表示名"
-                                    disabled={savingName}
-                                />
-                                <button
-                                    className={styles.btn}
-                                    type="submit"
-                                    disabled={savingName}
-                                >
-                                    {savingName ? '保存中…' : '保存'}
-                                </button>
-                            </div>
-                            {nameMessage && (
-                                <p className={styles.successMessage}>{nameMessage}</p>
-                            )}
-                            {nameError && (
-                                <p className={styles.errorMessage}>{nameError}</p>
-                            )}
-                        </form>
+                        <button className={styles.btn} onClick={handleLogin} type="button">
+                            Googleでログイン
+                        </button>
                     </div>
                 )}
             </div>
