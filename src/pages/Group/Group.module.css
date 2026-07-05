@@ -350,70 +350,90 @@ textarea.createInput{
 }
 
 .createCard{
-  margin-top: 32px;
+  margin-top: 24px;
   padding: 24px;
 
-  background: linear-gradient(
-    135deg,
-    #3b82f6,
-    #2563eb
-  );
+  background: #ffffff;
+  color: #1f2937;
 
-  color: white;
+  border-radius: 16px;
 
-  border-radius: 28px;
+  border: 1px solid #e5e7eb;
 
-  box-shadow:
-    0 12px 32px rgba(37,99,235,.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .createTitle{
-	font-size: 24px;
-	font-weight: 800;
-	margin-bottom: 6px;
+	font-size: 20px;
+	font-weight: 700;
+	color: #111827;
+	margin-bottom: 4px;
+	letter-spacing: -0.3px;
 }
 
 .createSub{
-	color: rgba(255,255,255,.85);
+	color: #6b7280;
 	margin-bottom: 24px;
-	opacity: 10.9;
-	font-size: 14px;
+	font-size: 13px;
 }
 
 .createInput{
   width: 100%;
 
-  padding: 16px 18px;
+  padding: 12px 14px;
 
-  border: none;
-  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
 
   background: #f9fafb;
+  color: #111827;
 
-  font-size: 16px;
+  font-size: 15px;
 
   margin-bottom: 20px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.createInput:focus {
+	outline: none;
+	background: #ffffff;
+	border-color: #2563eb;
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .createBtn{
   width: 100%;
 
-  margin-top: 24px;
+  margin-top: 8px;
 
-  padding: 18px;
+  padding: 14px;
 
   border: none;
-  border-radius: 18px;
+  border-radius: 10px;
 
-  background: white;
-  color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
 
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
 
-  box-shadow:
-    0 6px 16px rgba(0,0,0,.12);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2s);
+
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
+
+.createBtn:hover {
+	background: #1d4ed8;
+	opacity: 1;
+}
+
+.createBtn:active {
+	transform: scale(0.98) translateY(1px);
+	filter: brightness(0.95);
+}
+
 .createdId {
 	margin: 14px 0 0;
 	font-size: 13px;
@@ -513,20 +533,43 @@ textarea.createInput{
 }
 
 .dark .createCard {
-	background: linear-gradient(135deg, #3b4fd1, #5b4de6);
+	background: #1b2230;
+    border: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
 
-	box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+.dark .createTitle {
+	color: #f5f5f5;
+}
+
+.dark .createSub {
+	color: #9aa3b2;
 }
 
 .dark .createInput {
-	background: rgba(17, 19, 24, .72);
+	background: #111827;
 	color: #ffffff;
-	border: 1px solid rgba(255, 255, 255, .08);
+	border: rgba(255, 255, 255, 0.1);
+}
+
+.dark .createInput:focus {
+	background: #111827;
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
 .dark .createBtn {
-	background: #ffffff;
-	color: #4f63d9;
+	background: #3b82f6;
+	color: #ffffff;
+	box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.dark .createBtn:active {
+  background-color: #475569;
+}
+
+.dark .createBtn:hover {
+	background: #2563eb;
 }
 
 .joinedHeader {
