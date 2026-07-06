@@ -272,6 +272,7 @@ function buildWeekOverlapLayout(events) {
         key: `overlap-${clusterIndex}-${Math.round(indicatorStartMinutes)}`,
         count: clusterHiddenEvents.length,
         startMinutes: indicatorStartMinutes,
+        events: clusterHiddenEvents.map((item) => item.event),
       });
     }
   });
@@ -911,6 +912,7 @@ export default function Home() {
   const [selectedSharedGroupId, setSelectedSharedGroupId] = useState('');
   const [isLoadingShareGroups, setIsLoadingShareGroups] = useState(false);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
+  const [eventPicker, setEventPicker] = useState(null);
   const [isGroupFilterOpen, setIsGroupFilterOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1978,7 +1980,8 @@ export default function Home() {
   };
 
   const openEditModal = (calendarEvent, clickEvent) => {
-    clickEvent.stopPropagation();
+    clickEvent?.stopPropagation?.();
+    setEventPicker(null);
 
     const defaultCategory = eventCategories[0] || getDefaultCategory();
     const startDate = calendarEvent.startDate || calendarEvent.occurrenceDate || formatDateInput(new Date());
@@ -2011,6 +2014,34 @@ export default function Home() {
       notes: calendarEvent.notes || '',
     });
     setIsModalOpen(true);
+  };
+
+  const openHiddenEventPicker = (hiddenEvents, title, clickEvent) => {
+    clickEvent?.stopPropagation?.();
+
+    const selectableEvents = Array.isArray(hiddenEvents)
+      ? hiddenEvents.filter(Boolean)
+      : [];
+
+    if (selectableEvents.length === 0) return;
+
+    if (selectableEvents.length === 1 && !selectableEvents[0].isReceivedShared) {
+      openEditModal(selectableEvents[0], clickEvent);
+      return;
+    }
+
+    setEventPicker({
+      title,
+      events: selectableEvents,
+    });
+  };
+
+  const closeEventPicker = () => {
+    setEventPicker(null);
+  };
+
+  const stopWeekGesturePropagation = (event) => {
+    event.stopPropagation();
   };
 
   const closeModal = () => {
@@ -3065,10 +3096,11 @@ export default function Home() {
                                     ...getEventStyle(event),
                                     ...getWeekEventPositionStyle(event, layoutItem),
                                   }}
-                                  onClick={(e) => {
-                                    if (event.isReceivedShared) return;
-                                    openEditModal(event, e);
-                                  }}
+                                  onTouchStart={stopWeekGesturePropagation}
+                                  onPointerDown={stopWeekGesturePropagation}
+                                  onClick={(e) => openEditModal(event, e)}
+                                  aria-label={`${event.title}を編集`}
+                                  disabled={event.isReceivedShared}
                                 >
                                   <span className={styles.dayEventTime}>{getEventTimeLabel(event)}</span>
                                   <span className={styles.dayEventTitle}>{event.title}</span>
@@ -3077,14 +3109,22 @@ export default function Home() {
                             })}
 
                             {hourMoreIndicators.map((indicator) => (
-                              <span
+                              <button
                                 key={indicator.key}
+                                type="button"
                                 className={styles.weekMoreEventsBadge}
                                 style={getWeekMoreIndicatorStyle(indicator)}
-                                aria-label={`ほか${indicator.count}件の予定があります`}
+                                onTouchStart={stopWeekGesturePropagation}
+                                onPointerDown={stopWeekGesturePropagation}
+                                onClick={(e) => openHiddenEventPicker(
+                                  indicator.events,
+                                  `${formatWeekColumnTitle(date)}の重なっている予定`,
+                                  e,
+                                )}
+                                aria-label={`ほか${indicator.count}件の予定を表示`}
                               >
                                 他{indicator.count}件
-                              </span>
+                              </button>
                             ))}
                           </div>
                         );
@@ -3130,7 +3170,8 @@ export default function Home() {
 
                       const dayEvents = eventsByDate[cell.dateKey] || [];
                       const visibleMonthEvents = dayEvents.slice(0, 2);
-                      const hiddenMonthEventCount = Math.max(dayEvents.length - visibleMonthEvents.length, 0);
+                      const hiddenMonthEvents = dayEvents.slice(visibleMonthEvents.length);
+                      const hiddenMonthEventCount = hiddenMonthEvents.length;
                       const weekend = isWeekendDate(monthData.year, monthData.month, cell.day);
                       const today = isTodayDate(monthData.year, monthData.month, cell.day);
 
@@ -3184,12 +3225,18 @@ export default function Home() {
                               })}
 
                               {hiddenMonthEventCount > 0 && (
-                                <span
+                                <button
+                                  type="button"
                                   className={styles.moreEvents}
-                                  aria-label={`ほか${hiddenMonthEventCount}件の予定があります`}
+                                  onClick={(e) => openHiddenEventPicker(
+                                    hiddenMonthEvents,
+                                    `${monthData.month + 1}月${cell.day}日の予定`,
+                                    e,
+                                  )}
+                                  aria-label={`ほか${hiddenMonthEventCount}件の予定を表示`}
                                 >
                                   他{hiddenMonthEventCount}件
-                                </span>
+                                </button>
                               )}
                             </div>
                           </div>
@@ -3204,6 +3251,52 @@ export default function Home() {
             </div>
           )}
         </main>
+
+        {eventPicker && (
+          <div className={styles.eventPickerOverlay} onClick={closeEventPicker}>
+            <div
+              className={styles.eventPickerDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-label={eventPicker.title}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.eventPickerHeader}>
+                <h2 className={styles.eventPickerTitle}>{eventPicker.title}</h2>
+                <button
+                  type="button"
+                  className={styles.eventPickerCloseButton}
+                  onClick={closeEventPicker}
+                  aria-label="予定一覧を閉じる"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className={styles.eventPickerList}>
+                {eventPicker.events.map((event, index) => (
+                  <button
+                    key={`${event.id}-${event.occurrenceSegmentKey || event.occurrenceDate || index}`}
+                    type="button"
+                    className={styles.eventPickerItem}
+                    style={getEventStyle(event)}
+                    onClick={(e) => openEditModal(event, e)}
+                    disabled={event.isReceivedShared}
+                    aria-label={event.isReceivedShared
+                      ? `${event.title}は受信した共有予定のため編集できません`
+                      : `${event.title}を編集`}
+                  >
+                    <span className={styles.eventPickerItemTime}>{getEventTimeLabel(event)}</span>
+                    <span className={styles.eventPickerItemTitle}>{event.title}</span>
+                    {event.isReceivedShared && (
+                      <span className={styles.eventPickerItemNote}>閲覧のみ</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {isModalOpen && (
           <div className={styles.modalOverlay} onClick={closeModal}>
