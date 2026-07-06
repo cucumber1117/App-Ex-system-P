@@ -154,16 +154,131 @@ function getEventDurationMinutes(event) {
   return Math.min(Math.max(duration, 15), 1440);
 }
 
-function getWeekEventPositionStyle(event) {
-  const startMinutes = Number.isFinite(event.occurrenceStartMinutes)
+function getWeekEventStartMinutes(event) {
+  return Number.isFinite(event.occurrenceStartMinutes)
     ? event.occurrenceStartMinutes
     : getTimeInMinutes(event.startTime, 0);
+}
+
+function getWeekEventEndMinutes(event) {
+  return Math.min(
+    getWeekEventStartMinutes(event) + getEventDurationMinutes(event),
+    1440,
+  );
+}
+
+function getWeekEventPositionStyle(event, layout = {}) {
+  const startMinutes = getWeekEventStartMinutes(event);
   const minuteOffset = startMinutes % 60;
   const durationMinutes = getEventDurationMinutes(event);
+  const laneIndex = layout.laneIndex === 1 ? 1 : 0;
+  const columnCount = layout.columnCount === 2 ? 2 : 1;
+  const usesTwoColumns = columnCount === 2;
 
   return {
     '--week-event-top': `${(minuteOffset / 60) * 100}%`,
     '--week-event-height': `${(durationMinutes / 60) * 100}%`,
+    '--week-event-left': usesTwoColumns
+      ? (laneIndex === 0 ? '3px' : 'calc(50% + 1px)')
+      : '3px',
+    '--week-event-width': usesTwoColumns
+      ? 'calc(50% - 4px)'
+      : 'calc(100% - 6px)',
+  };
+}
+
+function getWeekMoreIndicatorStyle(indicator) {
+  const minuteOffset = indicator.startMinutes % 60;
+
+  return {
+    '--week-more-top': `${(minuteOffset / 60) * 100}%`,
+  };
+}
+
+function buildWeekOverlapLayout(events) {
+  const timedEvents = events
+    .filter((event) => !event.allDay)
+    .map((event, originalIndex) => ({
+      event,
+      originalIndex,
+      startMinutes: getWeekEventStartMinutes(event),
+      endMinutes: getWeekEventEndMinutes(event),
+    }))
+    .filter((item) => item.endMinutes > item.startMinutes)
+    .sort((a, b) => (
+      a.startMinutes - b.startMinutes
+      || a.endMinutes - b.endMinutes
+      || a.originalIndex - b.originalIndex
+    ));
+
+  const overlapClusters = [];
+
+  timedEvents.forEach((item) => {
+    const currentCluster = overlapClusters[overlapClusters.length - 1];
+
+    if (!currentCluster || item.startMinutes >= currentCluster.endMinutes) {
+      overlapClusters.push({
+        startMinutes: item.startMinutes,
+        endMinutes: item.endMinutes,
+        items: [item],
+      });
+      return;
+    }
+
+    currentCluster.items.push(item);
+    currentCluster.endMinutes = Math.max(currentCluster.endMinutes, item.endMinutes);
+  });
+
+  const visibleEvents = [];
+  const moreIndicators = [];
+
+  overlapClusters.forEach((cluster, clusterIndex) => {
+    const laneEndMinutes = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY];
+    const clusterVisibleEvents = [];
+    const clusterHiddenEvents = [];
+
+    cluster.items.forEach((item) => {
+      const availableLaneIndex = laneEndMinutes.findIndex(
+        (laneEnd) => laneEnd <= item.startMinutes,
+      );
+
+      if (availableLaneIndex === -1) {
+        clusterHiddenEvents.push(item);
+        return;
+      }
+
+      laneEndMinutes[availableLaneIndex] = item.endMinutes;
+      clusterVisibleEvents.push({
+        ...item,
+        laneIndex: availableLaneIndex,
+      });
+    });
+
+    const columnCount = cluster.items.length > 1 ? 2 : 1;
+
+    clusterVisibleEvents.forEach((item) => {
+      visibleEvents.push({
+        ...item,
+        columnCount,
+      });
+    });
+
+    if (clusterHiddenEvents.length > 0) {
+      const indicatorStartMinutes = Math.min(
+        ...clusterHiddenEvents.map((item) => item.startMinutes),
+      );
+
+      moreIndicators.push({
+        key: `overlap-${clusterIndex}-${Math.round(indicatorStartMinutes)}`,
+        count: clusterHiddenEvents.length,
+        startMinutes: indicatorStartMinutes,
+      });
+    }
+  });
+
+  return {
+    visibleEvents,
+    moreIndicators,
   };
 }
 
@@ -1811,6 +1926,17 @@ export default function Home() {
     return grouped;
   }, [visibleEvents, weekTimelineDates]);
 
+
+  const currentWeekEventLayoutByDate = useMemo(() => {
+    const layoutByDate = {};
+
+    Object.entries(currentWeekEventsByDate).forEach(([dateKey, dayEvents]) => {
+      layoutByDate[dateKey] = buildWeekOverlapLayout(dayEvents);
+    });
+
+    return layoutByDate;
+  }, [currentWeekEventsByDate]);
+
   const isWeekendDate = (targetYear, targetMonth, day) => {
     const dayOfWeek = new Date(targetYear, targetMonth, day).getDay();
     return dayOfWeek === 0 || dayOfWeek === 6;
@@ -2902,13 +3028,16 @@ export default function Home() {
 
                       {weekTimelineDates.map((date) => {
                         const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
-                        const hourEvents = (currentWeekEventsByDate[dateKey] || []).filter((event) => {
-                          if (event.allDay) return false;
-                          const startMinutes = Number.isFinite(event.occurrenceStartMinutes)
-                            ? event.occurrenceStartMinutes
-                            : getTimeInMinutes(event.startTime, 0);
-                          return Math.floor(startMinutes / 60) === hour;
-                        });
+                        const dayLayout = currentWeekEventLayoutByDate[dateKey] || {
+                          visibleEvents: [],
+                          moreIndicators: [],
+                        };
+                        const hourEventLayouts = dayLayout.visibleEvents.filter((item) => (
+                          Math.floor(item.startMinutes / 60) === hour
+                        ));
+                        const hourMoreIndicators = dayLayout.moreIndicators.filter((indicator) => (
+                          Math.floor(indicator.startMinutes / 60) === hour
+                        ));
 
                         const isTodayColumn = isTodayDate(date.getFullYear(), date.getMonth(), date.getDate());
 
@@ -2924,23 +3053,38 @@ export default function Home() {
                               </div>
                             )}
 
-                            {hourEvents.map((event) => (
-                              <button
-                                key={`${event.id}-${event.occurrenceSegmentKey || event.occurrenceDate}-${hour}`}
-                                type="button"
-                                className={`${styles.dayEventItem} ${styles.weekEventItem}`}
-                                style={{
-                                  ...getEventStyle(event),
-                                  ...getWeekEventPositionStyle(event),
-                                }}
-                                onClick={(e) => {
-                                  if (event.isReceivedShared) return;
-                                  openEditModal(event, e);
-                                }}
+                            {hourEventLayouts.map((layoutItem) => {
+                              const { event } = layoutItem;
+
+                              return (
+                                <button
+                                  key={`${event.id}-${event.occurrenceSegmentKey || event.occurrenceDate}-${hour}`}
+                                  type="button"
+                                  className={`${styles.dayEventItem} ${styles.weekEventItem}`}
+                                  style={{
+                                    ...getEventStyle(event),
+                                    ...getWeekEventPositionStyle(event, layoutItem),
+                                  }}
+                                  onClick={(e) => {
+                                    if (event.isReceivedShared) return;
+                                    openEditModal(event, e);
+                                  }}
+                                >
+                                  <span className={styles.dayEventTime}>{getEventTimeLabel(event)}</span>
+                                  <span className={styles.dayEventTitle}>{event.title}</span>
+                                </button>
+                              );
+                            })}
+
+                            {hourMoreIndicators.map((indicator) => (
+                              <span
+                                key={indicator.key}
+                                className={styles.weekMoreEventsBadge}
+                                style={getWeekMoreIndicatorStyle(indicator)}
+                                aria-label={`ほか${indicator.count}件の予定があります`}
                               >
-                                <span className={styles.dayEventTime}>{getEventTimeLabel(event)}</span>
-                                <span className={styles.dayEventTitle}>{event.title}</span>
-                              </button>
+                                他{indicator.count}件
+                              </span>
                             ))}
                           </div>
                         );
@@ -2985,6 +3129,8 @@ export default function Home() {
                       }
 
                       const dayEvents = eventsByDate[cell.dateKey] || [];
+                      const visibleMonthEvents = dayEvents.slice(0, 2);
+                      const hiddenMonthEventCount = Math.max(dayEvents.length - visibleMonthEvents.length, 0);
                       const weekend = isWeekendDate(monthData.year, monthData.month, cell.day);
                       const today = isTodayDate(monthData.year, monthData.month, cell.day);
 
@@ -3005,7 +3151,7 @@ export default function Home() {
                             <div className={styles.dayNumber}>{cell.day}</div>
 
                             <div className={styles.eventList}>
-                              {dayEvents.map((event) => {
+                              {visibleMonthEvents.map((event) => {
                                 const timeLabel = getEventTimeLabel(event);
                                 const repeatLabel = getRepeatLabel(event.repeat);
 
@@ -3036,6 +3182,15 @@ export default function Home() {
                                   </button>
                                 );
                               })}
+
+                              {hiddenMonthEventCount > 0 && (
+                                <span
+                                  className={styles.moreEvents}
+                                  aria-label={`ほか${hiddenMonthEventCount}件の予定があります`}
+                                >
+                                  他{hiddenMonthEventCount}件
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
