@@ -96,8 +96,12 @@ function getDefaultEventForm(baseDate = new Date(), category = getDefaultCategor
 
 function getEventTimeLabel(event) {
   if (event.allDay) return '終日';
-  if (event.startTime && event.endTime) return `${event.startTime}〜${event.endTime}`;
-  if (event.startTime) return event.startTime;
+
+  const startTime = event.occurrenceStartTime || event.startTime;
+  const endTime = event.occurrenceEndTime || event.endTime;
+
+  if (startTime && endTime) return `${startTime}〜${endTime}`;
+  if (startTime) return startTime;
   return '';
 }
 
@@ -125,6 +129,10 @@ function getTimeInMinutes(timeText, fallback = 0) {
 function getEventDurationMinutes(event) {
   if (event.allDay) return 0;
 
+  if (Number.isFinite(event.occurrenceDurationMinutes)) {
+    return Math.min(Math.max(event.occurrenceDurationMinutes, 15), 1440);
+  }
+
   const startMinutes = getTimeInMinutes(event.startTime, 0);
   const endMinutes = getTimeInMinutes(event.endTime, startMinutes + 60);
   const startDate = parseDateOnly(event.startDate || event.occurrenceDate);
@@ -147,7 +155,9 @@ function getEventDurationMinutes(event) {
 }
 
 function getWeekEventPositionStyle(event) {
-  const startMinutes = getTimeInMinutes(event.startTime, 0);
+  const startMinutes = Number.isFinite(event.occurrenceStartMinutes)
+    ? event.occurrenceStartMinutes
+    : getTimeInMinutes(event.startTime, 0);
   const minuteOffset = startMinutes % 60;
   const durationMinutes = getEventDurationMinutes(event);
 
@@ -201,7 +211,18 @@ function getEventStyle(event) {
   };
 }
 
-function isEventOnDate(event, dateKey) {
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+function formatMinutesAsTime(totalMinutes) {
+  const safeMinutes = Math.max(0, Math.min(1440, Math.round(totalMinutes)));
+  if (safeMinutes === 1440) return '24:00';
+
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+  return `${pad(hours)}:${pad(minutes)}`;
+}
+
+function doesEventStartOnDate(event, dateKey) {
   if (!event?.startDate || !dateKey) return false;
 
   const repeat = event.repeat || 'none';
@@ -233,6 +254,104 @@ function isEventOnDate(event, dateKey) {
   }
 
   return event.startDate === dateKey;
+}
+
+function getEventRangeDurationMs(event) {
+  if (!event?.startDate) return null;
+
+  const endDate = event.endDate || event.startDate;
+  const startDateTime = getEventDateTimeValue(event.startDate, event.startTime, false);
+  const endDateTime = getEventDateTimeValue(endDate, event.endTime, true);
+
+  if (
+    Number.isNaN(startDateTime.getTime()) ||
+    Number.isNaN(endDateTime.getTime())
+  ) {
+    return null;
+  }
+
+  let durationMs = endDateTime.getTime() - startDateTime.getTime();
+
+  // 既存データで同日かつ終了時刻が開始時刻以前の場合は、翌日終了として扱う。
+  if (durationMs <= 0 && endDate === event.startDate) {
+    durationMs += DAY_IN_MS;
+  }
+
+  return durationMs > 0 ? durationMs : null;
+}
+
+function getEventOccurrenceSegments(event, dateKey) {
+  if (!event?.startDate || !dateKey) return [];
+
+  const targetDate = parseDateOnly(dateKey);
+  const durationMs = getEventRangeDurationMs(event);
+
+  if (!targetDate || !durationMs) return [];
+
+  const targetStartMs = targetDate.getTime();
+  const targetEndMs = targetStartMs + DAY_IN_MS;
+  const repeat = event.repeat || 'none';
+  const candidateStartDateKeys = [];
+
+  if (repeat === 'none') {
+    candidateStartDateKeys.push(event.startDate);
+  } else {
+    // 日をまたぐ繰り返し予定では、前日に始まった回も対象日に続くため遡って確認する。
+    const lookbackDays = Math.min(Math.max(Math.ceil(durationMs / DAY_IN_MS), 1), 370);
+
+    for (let dayOffset = 0; dayOffset <= lookbackDays; dayOffset += 1) {
+      const candidateDate = new Date(targetDate);
+      candidateDate.setDate(candidateDate.getDate() - dayOffset);
+      candidateStartDateKeys.push(formatDateInput(candidateDate));
+    }
+  }
+
+  return candidateStartDateKeys.flatMap((candidateDateKey) => {
+    if (!doesEventStartOnDate(event, candidateDateKey)) return [];
+
+    const occurrenceStart = getEventDateTimeValue(
+      candidateDateKey,
+      event.startTime,
+      false,
+    );
+
+    if (Number.isNaN(occurrenceStart.getTime())) return [];
+
+    const occurrenceStartMs = occurrenceStart.getTime();
+    const occurrenceEndMs = occurrenceStartMs + durationMs;
+    const overlapStartMs = Math.max(occurrenceStartMs, targetStartMs);
+    const overlapEndMs = Math.min(occurrenceEndMs, targetEndMs);
+
+    // 終了がちょうど0:00の場合、翌日側には0分の予定を作らない。
+    if (overlapStartMs >= overlapEndMs) return [];
+
+    const occurrenceStartMinutes = (overlapStartMs - targetStartMs) / 60000;
+    const occurrenceEndMinutes = (overlapEndMs - targetStartMs) / 60000;
+    const occurrenceDurationMinutes = occurrenceEndMinutes - occurrenceStartMinutes;
+
+    return [{
+      ...event,
+      occurrenceDate: dateKey,
+      occurrenceStartDate: candidateDateKey,
+      occurrenceStartMinutes,
+      occurrenceEndMinutes,
+      occurrenceDurationMinutes,
+      occurrenceStartTime: formatMinutesAsTime(occurrenceStartMinutes),
+      occurrenceEndTime: formatMinutesAsTime(occurrenceEndMinutes),
+      occurrenceContinuesFromPreviousDay: occurrenceStartMs < targetStartMs,
+      occurrenceContinuesToNextDay: occurrenceEndMs > targetEndMs,
+      occurrenceSegmentKey: [
+        candidateDateKey,
+        dateKey,
+        Math.round(occurrenceStartMinutes),
+        Math.round(occurrenceEndMinutes),
+      ].join('-'),
+    }];
+  });
+}
+
+function isEventOnDate(event, dateKey) {
+  return getEventOccurrenceSegments(event, dateKey).length > 0;
 }
 
 function buildCalendarMonth(year, month, weekStartDay) {
@@ -294,6 +413,271 @@ function getWeekDates(baseDate, weekStartDay) {
 function formatHeaderDate(date) {
   const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
   return `${date.getMonth() + 1}月${date.getDate()}日（${weekdayLabels[date.getDay()]}）`;
+}
+
+
+const DATE_PICKER_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+const TIME_PICKER_HOURS = Array.from({ length: 24 }, (_, index) => index);
+const TIME_PICKER_MINUTES = Array.from({ length: 60 }, (_, index) => index);
+
+function formatDatePickerLabel(dateText) {
+  const date = parseDateOnly(dateText);
+  if (!date) return '日付を選択';
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
+}
+
+function parseTimeParts(timeText) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(timeText || ''));
+  if (!match) return { hour: 0, minute: 0 };
+
+  const hour = Math.min(Math.max(Number(match[1]) || 0, 0), 23);
+  const minute = Math.min(Math.max(Number(match[2]) || 0, 0), 59);
+  return { hour, minute };
+}
+
+function getDatePickerCells(year, month) {
+  const firstDate = new Date(year, month, 1);
+  const gridStart = new Date(year, month, 1 - firstDate.getDay());
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart);
+    date.setDate(gridStart.getDate() + index);
+
+    return {
+      date,
+      key: formatDateInput(date),
+      isCurrentMonth: date.getMonth() === month,
+    };
+  });
+}
+
+function CalendarFieldIcon() {
+  return (
+    <svg className={styles.dateTimeFieldIcon} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 3v3M17 3v3M4.5 9h15M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+    </svg>
+  );
+}
+
+function ClockFieldIcon() {
+  return (
+    <svg className={styles.dateTimeFieldIcon} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3.2 2" />
+    </svg>
+  );
+}
+
+function DatePickerField({
+  value,
+  isOpen,
+  pickerView,
+  onToggle,
+  onSelect,
+  onMoveMonth,
+  onSelectToday,
+}) {
+  const selectedDate = parseDateOnly(value);
+  const today = new Date();
+  const cells = getDatePickerCells(pickerView.year, pickerView.month);
+
+  return (
+    <div className={`${styles.dateTimePickerControl} ${styles.dateTimePickerDateControl}`}>
+      <button
+        type="button"
+        className={`${styles.dateTimePickerButton} ${isOpen ? styles.dateTimePickerButtonOpen : ''}`}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        onClick={onToggle}
+      >
+        <span className={styles.dateTimePickerValue}>{formatDatePickerLabel(value)}</span>
+        <CalendarFieldIcon />
+      </button>
+
+      {isOpen && (
+        <div className={styles.datePickerPopover} role="dialog" aria-label="日付を選択">
+          <div className={styles.datePickerHeader}>
+            <button
+              type="button"
+              className={styles.datePickerNavButton}
+              aria-label="前の月"
+              onClick={() => onMoveMonth(-1)}
+            >
+              ‹
+            </button>
+            <span className={styles.datePickerMonthLabel}>
+              {pickerView.year}年{pickerView.month + 1}月
+            </span>
+            <button
+              type="button"
+              className={styles.datePickerNavButton}
+              aria-label="次の月"
+              onClick={() => onMoveMonth(1)}
+            >
+              ›
+            </button>
+          </div>
+
+          <div className={styles.datePickerWeekdays} aria-hidden="true">
+            {DATE_PICKER_WEEKDAYS.map((weekday, index) => (
+              <span
+                key={weekday}
+                className={`${styles.datePickerWeekday} ${
+                  index === 0
+                    ? styles.datePickerSunday
+                    : index === 6
+                      ? styles.datePickerSaturday
+                      : ''
+                }`}
+              >
+                {weekday}
+              </span>
+            ))}
+          </div>
+
+          <div className={styles.datePickerGrid}>
+            {cells.map(({ date, key, isCurrentMonth }) => {
+              const isSelected = selectedDate && formatDateInput(selectedDate) === key;
+              const isToday = formatDateInput(today) === key;
+              const dayOfWeek = date.getDay();
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`${styles.datePickerDay} ${
+                    !isCurrentMonth ? styles.datePickerDayOutside : ''
+                  } ${isToday ? styles.datePickerDayToday : ''} ${
+                    isSelected ? styles.datePickerDaySelected : ''
+                  } ${dayOfWeek === 0 ? styles.datePickerSunday : ''} ${
+                    dayOfWeek === 6 ? styles.datePickerSaturday : ''
+                  }`}
+                  aria-pressed={Boolean(isSelected)}
+                  onClick={() => onSelect(date)}
+                >
+                  {date.getDate()}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className={styles.datePickerFooter}>
+            <button
+              type="button"
+              className={styles.datePickerTodayButton}
+              onClick={onSelectToday}
+            >
+              今日
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TimePickerField({ value, isOpen, onToggle, onChange, onClose }) {
+  const { hour, minute } = parseTimeParts(value);
+  const hourListRef = useRef(null);
+  const minuteListRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      const centerSelectedOption = (listElement, selectedValue) => {
+        if (!listElement) return;
+        const selectedOption = listElement.querySelector(`[data-value="${selectedValue}"]`);
+        if (!selectedOption) return;
+
+        listElement.scrollTop = Math.max(
+          0,
+          selectedOption.offsetTop - (listElement.clientHeight - selectedOption.offsetHeight) / 2,
+        );
+      };
+
+      centerSelectedOption(hourListRef.current, hour);
+      centerSelectedOption(minuteListRef.current, minute);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [hour, isOpen, minute]);
+
+  const updateTime = (nextHour, nextMinute) => {
+    onChange(`${pad(nextHour)}:${pad(nextMinute)}`);
+  };
+
+  return (
+    <div className={`${styles.dateTimePickerControl} ${styles.dateTimePickerTimeControl}`}>
+      <button
+        type="button"
+        className={`${styles.dateTimePickerButton} ${isOpen ? styles.dateTimePickerButtonOpen : ''}`}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        onClick={onToggle}
+      >
+        <span className={styles.dateTimePickerValue}>{`${pad(hour)}:${pad(minute)}`}</span>
+        <ClockFieldIcon />
+      </button>
+
+      {isOpen && (
+        <div className={`${styles.datePickerPopover} ${styles.timePickerPopover}`} role="dialog" aria-label="時刻を選択">
+          <div className={styles.timePickerHeader}>時刻を選択</div>
+          <div className={styles.timePickerColumns}>
+            <div className={styles.timePickerColumnBlock}>
+              <span className={styles.timePickerColumnLabel}>時</span>
+              <div ref={hourListRef} className={styles.timePickerList} role="listbox" aria-label="時">
+                {TIME_PICKER_HOURS.map((hourValue) => (
+                  <button
+                    key={hourValue}
+                    type="button"
+                    data-value={hourValue}
+                    role="option"
+                    aria-selected={hourValue === hour}
+                    className={`${styles.timePickerOption} ${
+                      hourValue === hour ? styles.timePickerOptionSelected : ''
+                    }`}
+                    onClick={() => updateTime(hourValue, minute)}
+                  >
+                    {pad(hourValue)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <span className={styles.timePickerSeparator}>:</span>
+
+            <div className={styles.timePickerColumnBlock}>
+              <span className={styles.timePickerColumnLabel}>分</span>
+              <div ref={minuteListRef} className={styles.timePickerList} role="listbox" aria-label="分">
+                {TIME_PICKER_MINUTES.map((minuteValue) => (
+                  <button
+                    key={minuteValue}
+                    type="button"
+                    data-value={minuteValue}
+                    role="option"
+                    aria-selected={minuteValue === minute}
+                    className={`${styles.timePickerOption} ${
+                      minuteValue === minute ? styles.timePickerOptionSelected : ''
+                    }`}
+                    onClick={() => updateTime(hour, minuteValue)}
+                  >
+                    {pad(minuteValue)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.timePickerFooter}>
+            <button type="button" className={styles.timePickerDoneButton} onClick={onClose}>
+              完了
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function readStoredCategories() {
@@ -420,6 +804,11 @@ export default function Home() {
       ? window.matchMedia('(max-width: 600px)').matches
       : false
   ));
+  const [activeDateTimePicker, setActiveDateTimePicker] = useState(null);
+  const [datePickerView, setDatePickerView] = useState(() => {
+    const today = new Date();
+    return { year: today.getFullYear(), month: today.getMonth() };
+  });
 
   const displayBaseDateRef = useRef(new Date());
   const hasScrolledToCurrentMonthRef = useRef(false);
@@ -429,6 +818,7 @@ export default function Home() {
   const groupFilterRef = useRef(null);
   const searchPanelRef = useRef(null);
   const searchInputRef = useRef(null);
+  const dateTimePickerAreaRef = useRef(null);
   const scrollRafRef = useRef(null);
   const activeMonthKeyRef = useRef(formatMonthKey(
     displayBaseDateRef.current.getFullYear(),
@@ -696,6 +1086,33 @@ export default function Home() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isGroupFilterOpen, isSearchOpen]);
+
+  useEffect(() => {
+    if (!activeDateTimePicker) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (
+        dateTimePickerAreaRef.current &&
+        !dateTimePickerAreaRef.current.contains(event.target)
+      ) {
+        setActiveDateTimePicker(null);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setActiveDateTimePicker(null);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeDateTimePicker]);
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -1339,17 +1756,13 @@ export default function Home() {
         grouped[dateKey] = [];
 
         visibleEvents.forEach((event) => {
-          if (!isEventOnDate(event, dateKey)) return;
-
-          grouped[dateKey].push({
-            ...event,
-            occurrenceDate: dateKey,
-          });
+          grouped[dateKey].push(...getEventOccurrenceSegments(event, dateKey));
         });
 
         grouped[dateKey].sort((a, b) => {
           if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
-          return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+          return (a.occurrenceStartMinutes ?? getTimeInMinutes(a.startTime, 0))
+            - (b.occurrenceStartMinutes ?? getTimeInMinutes(b.startTime, 0));
         });
       }
     });
@@ -1364,16 +1777,14 @@ export default function Home() {
   );
 
   const currentDayEvents = useMemo(() => {
-    const dayEvents = visibleEvents
-      .filter((event) => isEventOnDate(event, currentDateKey))
-      .map((event) => ({
-        ...event,
-        occurrenceDate: currentDateKey,
-      }));
+    const dayEvents = visibleEvents.flatMap((event) => (
+      getEventOccurrenceSegments(event, currentDateKey)
+    ));
 
     dayEvents.sort((a, b) => {
       if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
-      return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+      return (a.occurrenceStartMinutes ?? getTimeInMinutes(a.startTime, 0))
+        - (b.occurrenceStartMinutes ?? getTimeInMinutes(b.startTime, 0));
     });
 
     return dayEvents;
@@ -1384,16 +1795,14 @@ export default function Home() {
 
     weekTimelineDates.forEach((date) => {
       const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
-      const dayEvents = visibleEvents
-        .filter((event) => isEventOnDate(event, dateKey))
-        .map((event) => ({
-          ...event,
-          occurrenceDate: dateKey,
-        }));
+      const dayEvents = visibleEvents.flatMap((event) => (
+        getEventOccurrenceSegments(event, dateKey)
+      ));
 
       dayEvents.sort((a, b) => {
         if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
-        return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+        return (a.occurrenceStartMinutes ?? getTimeInMinutes(a.startTime, 0))
+          - (b.occurrenceStartMinutes ?? getTimeInMinutes(b.startTime, 0));
       });
 
       grouped[dateKey] = dayEvents;
@@ -1437,6 +1846,7 @@ export default function Home() {
     setIsCategoryFormOpen(false);
     setCategoryDraftMode('add');
     setCategoryDraft({ id: null, name: '', color: defaultCategory.color });
+    setActiveDateTimePicker(null);
     setEventForm(getDefaultEventForm(baseDate, defaultCategory));
     setIsModalOpen(true);
   };
@@ -1456,6 +1866,7 @@ export default function Home() {
     setIsCategoryFormOpen(false);
     setCategoryDraftMode('add');
     setCategoryDraft({ id: null, name: '', color: defaultCategory.color });
+    setActiveDateTimePicker(null);
     setEventForm({
       title: calendarEvent.title || '',
       location: calendarEvent.location || '',
@@ -1482,6 +1893,7 @@ export default function Home() {
     setEditingEventId(null);
     setIsCategoryFormOpen(false);
     setCategoryDraftMode('add');
+    setActiveDateTimePicker(null);
   };
 
   const handleFormChange = (key, value) => {
@@ -1489,6 +1901,39 @@ export default function Home() {
       ...prev,
       [key]: value,
     }));
+  };
+
+  const toggleDateTimePicker = (pickerKey) => {
+    if (activeDateTimePicker === pickerKey) {
+      setActiveDateTimePicker(null);
+      return;
+    }
+
+    if (pickerKey === 'startDate' || pickerKey === 'endDate') {
+      const selectedDate = parseDateOnly(eventForm[pickerKey]) || new Date();
+      setDatePickerView({
+        year: selectedDate.getFullYear(),
+        month: selectedDate.getMonth(),
+      });
+    }
+
+    setActiveDateTimePicker(pickerKey);
+  };
+
+  const moveDatePickerMonth = (amount) => {
+    setDatePickerView((prev) => {
+      const nextDate = new Date(prev.year, prev.month + amount, 1);
+      return { year: nextDate.getFullYear(), month: nextDate.getMonth() };
+    });
+  };
+
+  const selectDateFromPicker = (field, date) => {
+    handleFormChange(field, formatDateInput(date));
+    setActiveDateTimePicker(null);
+  };
+
+  const selectTodayFromPicker = (field) => {
+    selectDateFromPicker(field, new Date());
   };
 
   const handleCategorySelect = (category) => {
@@ -2412,8 +2857,10 @@ export default function Home() {
                         const dateKey = formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
                         const hourEvents = (currentWeekEventsByDate[dateKey] || []).filter((event) => {
                           if (event.allDay) return false;
-                          const eventHour = Number(String(event.startTime || '00:00').split(':')[0]);
-                          return eventHour === hour;
+                          const startMinutes = Number.isFinite(event.occurrenceStartMinutes)
+                            ? event.occurrenceStartMinutes
+                            : getTimeInMinutes(event.startTime, 0);
+                          return Math.floor(startMinutes / 60) === hour;
                         });
 
                         const isTodayColumn = isTodayDate(date.getFullYear(), date.getMonth(), date.getDate());
@@ -2432,7 +2879,7 @@ export default function Home() {
 
                             {hourEvents.map((event) => (
                               <button
-                                key={`${event.id}-${event.occurrenceDate}-${hour}`}
+                                key={`${event.id}-${event.occurrenceSegmentKey || event.occurrenceDate}-${hour}`}
                                 type="button"
                                 className={`${styles.dayEventItem} ${styles.weekEventItem}`}
                                 style={{
@@ -2517,7 +2964,7 @@ export default function Home() {
 
                                 return (
                                   <button
-                                    key={`${event.id}-${event.occurrenceDate}`}
+                                    key={`${event.id}-${event.occurrenceSegmentKey || event.occurrenceDate}`}
                                     type="button"
                                     className={styles.eventItem}
                                     style={getEventStyle(event)}
@@ -2604,22 +3051,26 @@ export default function Home() {
                   />
                 </div>
 
-                <div className={styles.formCard}>
+                <div ref={dateTimePickerAreaRef} className={`${styles.formCard} ${styles.dateTimeFormCard}`}>
                   <div className={styles.dateTimeRow}>
                     <span className={styles.dateTimeLabel}>開始</span>
                     <div className={styles.dateTimeInputs}>
-                      <input
-                        type="date"
-                        className={styles.dateInput}
+                      <DatePickerField
                         value={eventForm.startDate}
-                        onChange={(e) => handleFormChange('startDate', e.target.value)}
+                        isOpen={activeDateTimePicker === 'startDate'}
+                        pickerView={datePickerView}
+                        onToggle={() => toggleDateTimePicker('startDate')}
+                        onSelect={(date) => selectDateFromPicker('startDate', date)}
+                        onMoveMonth={moveDatePickerMonth}
+                        onSelectToday={() => selectTodayFromPicker('startDate')}
                       />
 
-                      <input
-                        type="time"
-                        className={styles.timeInput}
+                      <TimePickerField
                         value={eventForm.startTime}
-                        onChange={(e) => handleFormChange('startTime', e.target.value)}
+                        isOpen={activeDateTimePicker === 'startTime'}
+                        onToggle={() => toggleDateTimePicker('startTime')}
+                        onChange={(value) => handleFormChange('startTime', value)}
+                        onClose={() => setActiveDateTimePicker(null)}
                       />
                     </div>
                   </div>
@@ -2627,18 +3078,22 @@ export default function Home() {
                   <div className={styles.dateTimeRow}>
                     <span className={styles.dateTimeLabel}>終了</span>
                     <div className={styles.dateTimeInputs}>
-                      <input
-                        type="date"
-                        className={styles.dateInput}
+                      <DatePickerField
                         value={eventForm.endDate}
-                        onChange={(e) => handleFormChange('endDate', e.target.value)}
+                        isOpen={activeDateTimePicker === 'endDate'}
+                        pickerView={datePickerView}
+                        onToggle={() => toggleDateTimePicker('endDate')}
+                        onSelect={(date) => selectDateFromPicker('endDate', date)}
+                        onMoveMonth={moveDatePickerMonth}
+                        onSelectToday={() => selectTodayFromPicker('endDate')}
                       />
 
-                      <input
-                        type="time"
-                        className={styles.timeInput}
+                      <TimePickerField
                         value={eventForm.endTime}
-                        onChange={(e) => handleFormChange('endTime', e.target.value)}
+                        isOpen={activeDateTimePicker === 'endTime'}
+                        onToggle={() => toggleDateTimePicker('endTime')}
+                        onChange={(value) => handleFormChange('endTime', value)}
+                        onClose={() => setActiveDateTimePicker(null)}
                       />
                     </div>
                   </div>
