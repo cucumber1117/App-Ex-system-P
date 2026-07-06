@@ -134,6 +134,45 @@
   position: static;
 }
 
+.todayHeaderButton {
+  min-width: 52px;
+  min-height: 36px;
+  border: 1px solid rgba(90, 200, 250, 0.42);
+  border-radius: 999px;
+  background: rgba(90, 200, 250, 0.12);
+  color: #5ac8fa;
+  font-family: inherit;
+  font-size: clamp(13px, 3.2vw, 16px);
+  font-weight: 800;
+  line-height: 1;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.todayHeaderButton:hover,
+.todayHeaderButton:focus-visible {
+  border-color: #5ac8fa;
+  background: rgba(90, 200, 250, 0.2);
+  outline: none;
+}
+
+.todayHeaderButton:active {
+  transform: scale(0.97);
+}
+
+.light .todayHeaderButton {
+  border-color: rgba(47, 128, 237, 0.35);
+  background: rgba(47, 128, 237, 0.1);
+  color: #2f80ed;
+}
+
+.light .todayHeaderButton:hover,
+.light .todayHeaderButton:focus-visible {
+  border-color: #2f80ed;
+  background: rgba(47, 128, 237, 0.16);
+}
+
 .monthTitleRow {
   padding: clamp(10px, 4vw, 18px) clamp(20px, 8vw, 44px) clamp(12px, 4vw, 22px);
 }
@@ -919,7 +958,14 @@
   }
 
   .headerButtons {
-    gap: 14px;
+    gap: 10px;
+  }
+
+  .todayHeaderButton {
+    min-width: 46px;
+    min-height: 32px;
+    padding: 7px 10px;
+    font-size: 13px;
   }
 
   .addIconButton {
@@ -1059,7 +1105,14 @@
 /* very small smartphone */
 @media (max-width: 360px) {
   .headerButtons {
-    gap: 10px;
+    gap: 7px;
+  }
+
+  .todayHeaderButton {
+    min-width: 42px;
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 12px;
   }
 
   .monthTitleRow {

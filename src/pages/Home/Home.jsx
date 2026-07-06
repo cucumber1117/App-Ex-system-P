@@ -2495,6 +2495,44 @@ export default function Home() {
     setIsSearchOpen((prev) => !prev);
   };
 
+  const handleTodayClick = () => {
+    const today = new Date();
+    const targetDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setIsGroupFilterOpen(false);
+
+    if (calendarView === 'month') {
+      openMonthView(targetDate.getFullYear(), targetDate.getMonth());
+      return;
+    }
+
+    if (calendarView === 'year') {
+      if (yearScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(yearScrollRafRef.current);
+        yearScrollRafRef.current = null;
+      }
+
+      if (yearTransitionRafRef.current !== null) {
+        window.cancelAnimationFrame(yearTransitionRafRef.current);
+        yearTransitionRafRef.current = null;
+      }
+
+      pendingYearScrollRef.current = targetDate.getFullYear();
+      activeYearRef.current = targetDate.getFullYear();
+      hasScrolledToCurrentYearRef.current = false;
+      yearTransitionStableFramesRef.current = 0;
+      yearTransitionLockRef.current = true;
+    }
+
+    setCurrentDate(targetDate);
+  };
+
   const handleSearchResultClick = (calendarEvent) => {
     const targetDate = parseDateOnly(calendarEvent.startDate || calendarEvent.occurrenceDate);
 
@@ -2569,6 +2607,15 @@ export default function Home() {
                 onClick={handleSearchToggle}
               >
                 ⌕
+              </button>
+
+              <button
+                className={styles.todayHeaderButton}
+                type="button"
+                aria-label="今日に戻る"
+                onClick={handleTodayClick}
+              >
+                今日
               </button>
 
               <button
