@@ -111,9 +111,32 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
   min-height: 62px;
   padding: 10px 0;
   border-bottom: 1px solid #edf0f4;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.accountRow:hover .profileText .label {
+  color: #2563eb;
+}
+
+.accountArrow {
+  flex: 0 0 auto;
+  color: #9aa4b2;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.accountRow:hover .accountArrow {
+  color: #2563eb;
+  transform: translateX(3px);
 }
 
 .avatar,
@@ -442,6 +465,18 @@
 
 .dark .accountRow {
   border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .accountRow:hover .profileText .label {
+  color: #c8d0ff;
+}
+
+.dark .accountArrow {
+  color: #aeb7c4;
+}
+
+.dark .accountRow:hover .accountArrow {
+  color: #c8d0ff;
 }
 
 .dark .userName {

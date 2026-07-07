@@ -388,14 +388,43 @@
 .friendItem {
   position: relative;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   min-height: 70px;
-  padding: 10px 12px;
+  padding: 0 8px 0 12px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #ffffff;
+}
+
+.friendMain {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.friendMain:hover .friendName,
+.friendMain:hover .friendArrow {
+  color: #2563eb;
+}
+
+.friendArrow {
+  color: #9aa4b2;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.friendMain:hover .friendArrow {
+  transform: translateX(3px);
 }
 
 .avatar,
@@ -635,6 +664,15 @@
   color: #ffffff;
 }
 
+.dark .friendMain:hover .friendName,
+.dark .friendMain:hover .friendArrow {
+  color: #c8d0ff;
+}
+
+.dark .friendArrow {
+  color: #aeb7c4;
+}
+
 .dark .menuPopover {
   border-color: rgba(255, 255, 255, 0.08);
   background: #232a35;
@@ -671,8 +709,7 @@
   }
 
   .friendItem {
-    grid-template-columns: 48px minmax(0, 1fr) auto;
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .friendMenu {

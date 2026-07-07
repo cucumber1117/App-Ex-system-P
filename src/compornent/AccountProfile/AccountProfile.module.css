@@ -1,0 +1,361 @@
+.container {
+  min-height: 100vh;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 132px;
+  background: #f8fafc;
+  color: #111827;
+}
+
+.header,
+.card {
+  width: min(100%, 430px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  margin-bottom: 18px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.backButton:hover {
+  color: #2563eb;
+}
+
+.title {
+  grid-column: 2;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.card {
+  padding: 32px 28px 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.avatarWrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.avatar,
+.avatarFallback {
+  width: 132px;
+  height: 132px;
+  border: 2px solid #111827;
+  border-radius: 50%;
+}
+
+.avatar {
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 44px;
+  font-weight: 900;
+}
+
+.infoList {
+  display: grid;
+  gap: 24px;
+}
+
+.infoGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.infoGroup h2,
+.statusHeader h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.infoGroup p,
+.statusText {
+  margin: 0;
+  color: #4b5563;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.statusHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.editButton,
+.primaryButton {
+  min-height: 44px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 8px;
+  background: #2f7df6;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 0 6px 14px rgba(47, 125, 246, 0.22);
+}
+
+.editButton:hover,
+.primaryButton:hover {
+  background: #2563eb;
+}
+
+.divider {
+  height: 1px;
+  margin: 28px 0 22px;
+  background: #e5e7eb;
+}
+
+.logoutButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 58px;
+  border: none;
+  border-radius: 8px;
+  background: #ff2d3d;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 900;
+  box-shadow: 0 8px 16px rgba(255, 45, 61, 0.22);
+}
+
+.logoutButton:hover {
+  background: #dc2626;
+}
+
+.editForm {
+  display: grid;
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #111827;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  outline: none;
+}
+
+.field input {
+  min-height: 46px;
+  padding: 10px 12px;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 96px;
+  padding: 12px;
+  line-height: 1.5;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.editActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.secondaryButton {
+  min-height: 44px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.secondaryButton:hover {
+  background: #f3f4f6;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.success,
+.error {
+  margin: 18px 0 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.success {
+  color: #12833d;
+}
+
+.error {
+  color: #d92d20;
+}
+
+.dark {
+  background: #111318;
+  color: #f8fafc;
+}
+
+.dark .card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #1f242d;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.dark .backButton,
+.dark .title,
+.dark .infoGroup h2,
+.dark .statusHeader h2,
+.dark .field {
+  color: #f8fafc;
+}
+
+.dark .backButton:hover {
+  color: #c8d0ff;
+}
+
+.dark .infoGroup p,
+.dark .statusText {
+  color: #cbd5e1;
+}
+
+.dark .avatarFallback {
+  border-color: #cbd5e1;
+  background: rgba(124, 140, 255, 0.16);
+  color: #c8d0ff;
+}
+
+.dark .divider {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .field input,
+.dark .field textarea {
+  border-color: #414957;
+  background: #2b313b;
+  color: #ffffff;
+}
+
+.dark .field input:focus,
+.dark .field textarea:focus {
+  border-color: #7c8cff;
+  background: #303744;
+  box-shadow: 0 0 0 3px rgba(124, 140, 255, 0.18);
+}
+
+.dark .secondaryButton {
+  border-color: #414957;
+  background: #2b313b;
+  color: #f8fafc;
+}
+
+.dark .secondaryButton:hover {
+  background: #303744;
+}
+
+.dark .success {
+  color: #86efac;
+}
+
+.dark .error {
+  color: #fca5a5;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 136px;
+  }
+
+  .title {
+    font-size: 21px;
+  }
+
+  .card {
+    padding: 30px 28px 28px;
+  }
+}
+
+@media (max-width: 420px) {
+  .card {
+    padding: 26px 20px 24px;
+  }
+
+  .avatar,
+  .avatarFallback {
+    width: 118px;
+    height: 118px;
+  }
+
+  .infoGroup h2,
+  .statusHeader h2 {
+    font-size: 20px;
+  }
+
+  .infoGroup p,
+  .statusText {
+    font-size: 17px;
+  }
+}

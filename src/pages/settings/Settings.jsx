@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './Settings.module.css';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Info, LogOut } from 'lucide-react';
+import { ChevronRight, Info } from 'lucide-react';
 import { auth } from '../../Firebase/firebaseConfig';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { loginWithGoogle } from '../../Firebase/auth/login';
 import {
     getUserSettings,
     setUserSettings,
-    updateUserName,
 } from '../../Firebase/auth/users';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -19,9 +18,6 @@ const Settings = () => {
     const [loading, setLoading] = useState(false);
     const [toast, setToast] = useState('');
     const [profileName, setProfileName] = useState('');
-    const [savingName, setSavingName] = useState(false);
-    const [nameMessage, setNameMessage] = useState('');
-    const [nameError, setNameError] = useState('');
 
     // 通知設定
     const [notifications, setNotifications] = useState(false);
@@ -58,8 +54,6 @@ const Settings = () => {
         const unsub = onAuthStateChanged(auth, async (u) => {
             setCurrentUser(u);
             setProfileName(u?.displayName || '');
-            setNameMessage('');
-            setNameError('');
 
             if (u) {
                 setLoading(true);
@@ -146,45 +140,6 @@ const Settings = () => {
             await loginWithGoogle();
         } catch (err) {
             console.error(err);
-        }
-    };
-
-    const handleLogout = async () => {
-        try {
-            await signOut(auth);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleNameSubmit = async (event) => {
-        event.preventDefault();
-
-        const normalizedName = profileName.trim();
-        setNameMessage('');
-        setNameError('');
-
-        if (!normalizedName) {
-            setNameError('名前を入力してください。');
-            return;
-        }
-
-        if (normalizedName.length > 30) {
-            setNameError('名前は30文字以内で入力してください。');
-            return;
-        }
-
-        setSavingName(true);
-
-        try {
-            const savedName = await updateUserName(currentUser, normalizedName);
-            setProfileName(savedName);
-            setNameMessage('名前を変更しました。');
-        } catch (err) {
-            console.error(err);
-            setNameError(err.message || '名前を変更できませんでした。');
-        } finally {
-            setSavingName(false);
         }
     };
 
@@ -286,7 +241,11 @@ const Settings = () => {
 
                 {currentUser ? (
                     <>
-                        <div className={styles.accountRow}>
+                        <button
+                            className={styles.accountRow}
+                            type="button"
+                            onClick={() => navigate('/settings/account')}
+                        >
                             <div className={styles.profileRow}>
                                 {currentUser.photoURL ? (
                                     <img
@@ -309,56 +268,8 @@ const Settings = () => {
                                     </p>
                                 </div>
                             </div>
-                            <ChevronRight className={styles.menuArrow} size={20} aria-hidden="true" />
-                        </div>
-
-                        <div className={styles.row}>
-                            <div>
-                                <div className={styles.label}>名前</div>
-                                <p className={styles.description}>
-                                    フレンドなどに表示される名前を変更します。
-                                </p>
-                            </div>
-
-                            <form className={styles.nameForm} onSubmit={handleNameSubmit}>
-                                <div className={styles.nameInputRow}>
-                                    <input
-                                        className={styles.nameInput}
-                                        type="text"
-                                        value={profileName}
-                                        maxLength={30}
-                                        onChange={(event) => {
-                                            setProfileName(event.target.value);
-                                            setNameMessage('');
-                                            setNameError('');
-                                        }}
-                                        placeholder="表示名"
-                                        aria-label="表示名"
-                                        disabled={savingName}
-                                    />
-                                    <button
-                                        className={styles.btn}
-                                        type="submit"
-                                        disabled={savingName}
-                                    >
-                                        {savingName ? '保存中…' : '保存'}
-                                    </button>
-                                </div>
-                                {nameMessage && (
-                                    <p className={styles.successMessage}>{nameMessage}</p>
-                                )}
-                                {nameError && (
-                                    <p className={styles.errorMessage}>{nameError}</p>
-                                )}
-                            </form>
-                        </div>
-
-                        <div className={styles.row}>
-                            <button className={styles.logoutBtn} onClick={handleLogout} type="button">
-                                <LogOut size={18} aria-hidden="true" />
-                                <span>ログアウト</span>
-                            </button>
-                        </div>
+                            <ChevronRight className={styles.accountArrow} size={20} aria-hidden="true" />
+                        </button>
                     </>
                 ) : (
                     <div className={styles.row}>

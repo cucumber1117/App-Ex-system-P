@@ -5,6 +5,7 @@ import Group from './pages/Group/Group.jsx';
 import Friends from './pages/Friends/Friends.jsx';
 import Settings from './pages/settings/Settings.jsx';
 import AppInfo from './pages/settings/AppInfo.jsx';
+import AccountInfo from './pages/settings/AccountInfo.jsx';
 import Footer from './compornent/Footer/Footer.jsx';
 import './theme.css';
 import appIcon from './assets/icon.png';
@@ -120,6 +121,7 @@ function App() {
           <Route path="/create" element={<Group />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/account" element={<AccountInfo />} />
           <Route path="/settings/app-info" element={<AppInfo />} />
         </Routes>
 

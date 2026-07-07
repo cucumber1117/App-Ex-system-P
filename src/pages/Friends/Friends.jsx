@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Copy, MoreVertical, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
+import { Check, ChevronRight, Copy, MoreVertical, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
 import {
@@ -9,6 +9,7 @@ import {
   listFriends,
 } from '../../Firebase/auth/friends';
 import { useTheme } from '../../contexts/ThemeContext';
+import AccountProfile from '../../compornent/AccountProfile/AccountProfile';
 import styles from './Friends.module.css';
 
 export default function Friends() {
@@ -27,6 +28,7 @@ export default function Friends() {
   const [failedAvatarIds, setFailedAvatarIds] = useState({});
   const [copied, setCopied] = useState(false);
   const [openMenuId, setOpenMenuId] = useState('');
+  const [selectedFriend, setSelectedFriend] = useState(null);
   const [toast, setToast] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -226,6 +228,16 @@ export default function Friends() {
     return nameA.localeCompare(nameB, 'ja');
   });
 
+  if (selectedFriend) {
+    return (
+      <AccountProfile
+        profile={selectedFriend}
+        title="フレンド情報"
+        onBack={() => setSelectedFriend(null)}
+      />
+    );
+  }
+
   return (
     <main className={`${styles.container} ${styles[theme]}`}>
       <header className={styles.header}>
@@ -378,27 +390,34 @@ export default function Friends() {
 
                 return (
                   <li key={friend.id} className={styles.friendItem}>
-                    {canShowAvatar ? (
-                      <img
-                        className={styles.avatar}
-                        src={friend.photoURL}
-                        alt={`${friendName}のアイコン`}
-                        referrerPolicy="no-referrer"
-                        onError={() => {
-                          setFailedAvatarIds((prev) => ({ ...prev, [friend.id]: true }));
-                        }}
-                      />
-                    ) : (
-                      <div className={styles.avatarFallback} aria-label={`${friendName}のアイコン`}>
-                        {fallbackLabel || <UserRound size={22} strokeWidth={2.4} />}
+                    <button
+                      className={styles.friendMain}
+                      type="button"
+                      onClick={() => setSelectedFriend(friend)}
+                    >
+                      {canShowAvatar ? (
+                        <img
+                          className={styles.avatar}
+                          src={friend.photoURL}
+                          alt={`${friendName}のアイコン`}
+                          referrerPolicy="no-referrer"
+                          onError={() => {
+                            setFailedAvatarIds((prev) => ({ ...prev, [friend.id]: true }));
+                          }}
+                        />
+                      ) : (
+                        <div className={styles.avatarFallback} aria-label={`${friendName}のアイコン`}>
+                          {fallbackLabel || <UserRound size={22} strokeWidth={2.4} />}
+                        </div>
+                      )}
+                      <div className={styles.friendMeta}>
+                        <strong className={styles.friendName}>{friendName}</strong>
+                        <span className={styles.friendId}>
+                          ID: {friend.friendId || '未発行'}
+                        </span>
                       </div>
-                    )}
-                    <div className={styles.friendMeta}>
-                      <strong className={styles.friendName}>{friendName}</strong>
-                      <span className={styles.friendId}>
-                        ID: {friend.friendId || '未発行'}
-                      </span>
-                    </div>
+                      <ChevronRight className={styles.friendArrow} size={20} aria-hidden="true" />
+                    </button>
                     <div
                       className={styles.friendMenu}
                       ref={openMenuId === friend.id ? menuRef : null}
