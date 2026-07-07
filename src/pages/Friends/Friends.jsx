@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, ChevronRight, Copy, MoreVertical, Search, Trash2, UserRound, UserRoundPlus } from 'lucide-react';
+import { Check, ChevronRight, Copy, Search, UserRound, UserRoundPlus } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../Firebase/firebaseConfig';
 import {
@@ -14,7 +14,6 @@ import styles from './Friends.module.css';
 
 export default function Friends() {
   const { theme } = useTheme();
-  const menuRef = useRef(null);
   const toastTimerRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [ownFriendId, setOwnFriendId] = useState('');
@@ -27,7 +26,6 @@ export default function Friends() {
   const [adding, setAdding] = useState(false);
   const [failedAvatarIds, setFailedAvatarIds] = useState({});
   const [copied, setCopied] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState('');
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [toast, setToast] = useState('');
   const [message, setMessage] = useState('');
@@ -92,29 +90,6 @@ export default function Friends() {
     });
     return () => unsub();
   }, [refreshFriends]);
-
-  useEffect(() => {
-    if (!openMenuId) return undefined;
-
-    const handlePointerDown = (event) => {
-      if (menuRef.current?.contains(event.target)) return;
-      setOpenMenuId('');
-    };
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setOpenMenuId('');
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [openMenuId]);
 
   useEffect(() => () => {
     window.clearTimeout(toastTimerRef.current);
@@ -202,7 +177,7 @@ export default function Friends() {
 
         await deleteFriend(currentUser.uid, friendUid);
         await refreshFriends(currentUser.uid);
-        setOpenMenuId('');
+        setSelectedFriend(null);
 
         setMessage('フレンドを削除しました');
         showToast('フレンドを削除しました');
@@ -234,6 +209,7 @@ export default function Friends() {
         profile={selectedFriend}
         title="フレンド情報"
         onBack={() => setSelectedFriend(null)}
+        onDeleteFriend={() => handleDeleteFriend(selectedFriend.id)}
       />
     );
   }
@@ -390,11 +366,7 @@ export default function Friends() {
 
                 return (
                   <li key={friend.id} className={styles.friendItem}>
-                    <button
-                      className={styles.friendMain}
-                      type="button"
-                      onClick={() => setSelectedFriend(friend)}
-                    >
+                    <div className={styles.friendMain}>
                       {canShowAvatar ? (
                         <img
                           className={styles.avatar}
@@ -412,40 +384,16 @@ export default function Friends() {
                       )}
                       <div className={styles.friendMeta}>
                         <strong className={styles.friendName}>{friendName}</strong>
-                        <span className={styles.friendId}>
-                          ID: {friend.friendId || '未発行'}
-                        </span>
                       </div>
-                      <ChevronRight className={styles.friendArrow} size={20} aria-hidden="true" />
-                    </button>
-                    <div
-                      className={styles.friendMenu}
-                      ref={openMenuId === friend.id ? menuRef : null}
-                    >
-                      <button
-                        type="button"
-                        className={styles.menuBtn}
-                        onClick={() =>
-                          setOpenMenuId((prev) => (prev === friend.id ? '' : friend.id))
-                        }
-                        aria-label={`${friendName}のメニュー`}
-                        aria-expanded={openMenuId === friend.id}
-                      >
-                        <MoreVertical size={18} aria-hidden="true" />
-                      </button>
-                      {openMenuId === friend.id && (
-                        <div className={styles.menuPopover}>
-                          <button
-                            type="button"
-                            className={styles.deleteBtn}
-                            onClick={() => handleDeleteFriend(friend.id)}
-                          >
-                            <Trash2 size={16} aria-hidden="true" />
-                            <span>削除</span>
-                          </button>
-                        </div>
-                      )}
                     </div>
+                    <button
+                      type="button"
+                      className={styles.profileArrow}
+                      onClick={() => setSelectedFriend(friend)}
+                      aria-label={`${friendName}のプロフィール`}
+                    >
+                      <ChevronRight size={20} aria-hidden="true" />
+                    </button>
                   </li>
                 );
               })}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import AccountProfile from '../../compornent/AccountProfile/AccountProfile';
 import { auth } from '../../Firebase/firebaseConfig';
+import { getOrCreateFriendId } from '../../Firebase/auth/friends';
 import { getUserProfile, updateUserProfile } from '../../Firebase/auth/users';
 
 const AccountInfo = () => {
@@ -21,7 +22,10 @@ const AccountInfo = () => {
       }
 
       try {
-        const savedProfile = await getUserProfile(user.uid);
+        const [savedProfile, friendId] = await Promise.all([
+          getUserProfile(user.uid),
+          getOrCreateFriendId(user.uid),
+        ]);
         setProfile({
           uid: user.uid,
           name: user.displayName || '',
@@ -29,6 +33,7 @@ const AccountInfo = () => {
           photoURL: user.photoURL || '',
           metadata: user.metadata,
           ...savedProfile,
+          friendId,
         });
       } catch (err) {
         console.error(err);

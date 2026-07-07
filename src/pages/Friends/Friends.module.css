@@ -169,7 +169,7 @@
 .copyBtn,
 .addBtn,
 .submitBtn,
-.deleteBtn {
+.profileArrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -194,7 +194,7 @@
 .copyBtn:hover,
 .addBtn:hover,
 .submitBtn:hover,
-.deleteBtn:hover {
+.profileArrow:hover {
   transform: translateY(-1px);
 }
 
@@ -400,31 +400,13 @@
 
 .friendMain {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 20px;
+  grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   min-width: 0;
   min-height: 68px;
   padding: 10px 0;
-  border: none;
-  background: transparent;
   color: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-
-.friendMain:hover .friendName,
-.friendMain:hover .friendArrow {
-  color: #2563eb;
-}
-
-.friendArrow {
-  color: #9aa4b2;
-  transition: color 0.15s ease, transform 0.15s ease;
-}
-
-.friendMain:hover .friendArrow {
-  transform: translateX(3px);
 }
 
 .avatar,
@@ -452,8 +434,7 @@
   min-width: 0;
 }
 
-.friendName,
-.friendId {
+.friendName {
   display: block;
 }
 
@@ -465,34 +446,7 @@
   white-space: nowrap;
 }
 
-.friendId {
-  margin-top: 4px;
-  color: #697586;
-  font-size: 12px;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.deleteBtn {
-  width: 100%;
-  justify-content: flex-start;
-  padding: 0 12px;
-  background: transparent;
-  color: #b91c1c;
-  box-shadow: none;
-}
-
-.deleteBtn:hover {
-  background: #fecaca;
-  transform: none;
-}
-
-.friendMenu {
-  position: relative;
-  justify-self: end;
-}
-
-.menuBtn {
+.profileArrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -501,27 +455,14 @@
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: #697586;
+  color: #9aa4b2;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
-.menuBtn:hover {
+.profileArrow:hover {
   background: #f1f5fb;
-  color: #1f2933;
-}
-
-.menuPopover {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 5;
-  min-width: 116px;
-  padding: 6px;
-  border: 1px solid #e4e8ee;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 10px 24px rgba(31, 41, 51, 0.14);
+  color: #2563eb;
 }
 
 .toast {
@@ -566,7 +507,6 @@
 .dark .addGuide p,
 .dark .inputLabel,
 .dark .friendCodeLabel,
-.dark .friendId,
 .dark .friendCount,
 .dark .sortButton {
   color: #aeb7c4;
@@ -646,37 +586,13 @@
   background: #7182ff;
 }
 
-.dark .deleteBtn {
-  background: transparent;
-  color: #fca5a5;
-}
-
-.dark .deleteBtn:hover {
-  background: rgba(239, 68, 68, 0.24);
-}
-
-.dark .menuBtn {
+.dark .profileArrow {
   color: #aeb7c4;
 }
 
-.dark .menuBtn:hover {
+.dark .profileArrow:hover {
   background: #2b313b;
-  color: #ffffff;
-}
-
-.dark .friendMain:hover .friendName,
-.dark .friendMain:hover .friendArrow {
   color: #c8d0ff;
-}
-
-.dark .friendArrow {
-  color: #aeb7c4;
-}
-
-.dark .menuPopover {
-  border-color: rgba(255, 255, 255, 0.08);
-  background: #232a35;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34);
 }
 
 .dark .emptyState {
@@ -712,7 +628,4 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .friendMenu {
-    justify-self: end;
-  }
 }

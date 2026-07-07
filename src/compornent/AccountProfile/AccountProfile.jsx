@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, LogOut, UserRound } from 'lucide-react';
+import { ArrowLeft, LogOut, Trash2, UserRound } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import styles from './AccountProfile.module.css';
 
@@ -39,6 +39,7 @@ const AccountProfile = ({
   onBack,
   onSave,
   onLogout,
+  onDeleteFriend,
 }) => {
   const { theme } = useTheme();
   const [editing, setEditing] = useState(false);
@@ -49,7 +50,7 @@ const AccountProfile = ({
 
   const displayName = profile?.name || profile?.displayName || profile?.email || '名前未設定';
   const displayStatus = profile?.status || 'ステータス未設定';
-  const userId = profile?.uid || profile?.id || '未登録';
+  const friendId = profile?.friendId || '未発行';
   const createdAt = profile?.createdAt || profile?.metadata?.creationTime;
   const avatarLabel = (displayName || profile?.email || '?').slice(0, 1);
 
@@ -59,7 +60,7 @@ const AccountProfile = ({
     setMessage('');
     setError('');
     setEditing(false);
-  }, [displayName, profile?.status, userId]);
+  }, [displayName, profile?.status, friendId]);
 
   const createdAtText = useMemo(() => formatDateTime(createdAt), [createdAt]);
 
@@ -152,8 +153,8 @@ const AccountProfile = ({
               <p>{displayName}</p>
             </div>
             <div className={styles.infoGroup}>
-              <h2>ユーザーID</h2>
-              <p>{userId}</p>
+              <h2>フレンドID</h2>
+              <p>{friendId}</p>
             </div>
             <div className={styles.infoGroup}>
               <h2>アカウント作成日</h2>
@@ -181,6 +182,16 @@ const AccountProfile = ({
             <button className={styles.logoutButton} type="button" onClick={onLogout}>
               <LogOut size={20} aria-hidden="true" />
               <span>ログアウト</span>
+            </button>
+          </>
+        )}
+
+        {!editable && onDeleteFriend && (
+          <>
+            <div className={styles.divider} />
+            <button className={styles.dangerButton} type="button" onClick={onDeleteFriend}>
+              <Trash2 size={20} aria-hidden="true" />
+              <span>フレンドを削除</span>
             </button>
           </>
         )}
