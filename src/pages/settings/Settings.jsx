@@ -623,7 +623,7 @@ const Settings = () => {
 
                 <div className={styles.dangerZone}>
                     <div>
-                        <div className={styles.dangerLabel}>危険操作</div>
+                        <div className={styles.dangerLabel}>設定の初期化</div>
                         <p className={styles.description}>
                             表示設定や通知設定を初期状態に戻します。予定やフレンドは削除されません。
                         </p>

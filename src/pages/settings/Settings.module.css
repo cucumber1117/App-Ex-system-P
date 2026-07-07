@@ -376,6 +376,7 @@
 }
 
 .menuLabel {
+  overflow-wrap: anywhere;
   font-size: 15px;
   font-weight: 800;
   transition: color 0.15s ease;
@@ -388,6 +389,8 @@
 }
 
 .menuArrow {
+  justify-self: end;
+  flex: 0 0 auto;
   color: #9aa4b2;
   transition: transform 0.15s ease, color 0.15s ease;
 }
@@ -635,6 +638,7 @@
   }
 
   .menuIcon {
+    display: flex;
     width: 38px;
     height: 38px;
   }
