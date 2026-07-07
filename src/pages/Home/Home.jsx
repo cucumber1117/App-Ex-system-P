@@ -832,6 +832,14 @@ function readStoredEvents() {
   }
 }
 
+function writeStoredEvents(events) {
+  try {
+    localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events));
+  } catch (error) {
+    console.error('failed to save events', error);
+  }
+}
+
 function buildEventFromGroupShare(share) {
   return {
     ...(share.schedule || {}),
@@ -966,6 +974,11 @@ export default function Home() {
   const yearTransitionRafRef = useRef(null);
   const yearTransitionStableFramesRef = useRef(0);
 
+  const cacheAndSetEvents = useCallback((nextEvents) => {
+    writeStoredEvents(nextEvents);
+    setEvents(nextEvents);
+  }, []);
+
   const year = currentDate.getFullYear();
   const weekStartDay = weekStart === 'monday' ? 1 : 0;
   const currentMonthLabel = `${currentDate.getMonth() + 1}月`;
@@ -1089,6 +1102,7 @@ export default function Home() {
 
     const unsub = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      const localEvents = readStoredEvents();
 
       if (!user) {
         setWeekStart(readLocalWeekStart());
@@ -1096,9 +1110,11 @@ export default function Home() {
         setReceivedGroupShares([]);
         setSelectedSharedGroupId('');
         setIsLoadingShareGroups(false);
-        setEvents(readStoredEvents());
+        setEvents(localEvents);
         return;
       }
+
+      setEvents(localEvents);
 
       try {
         setIsLoadingShareGroups(true);
@@ -1108,14 +1124,13 @@ export default function Home() {
           listCalendarEvents(user.uid),
           listReceivedSchedules(user.uid),
         ]);
-        const localEvents = readStoredEvents();
         const localEventsToMigrate = localEvents.filter((localEvent) => (
           localEvent?.id && !firebaseEvents.some((event) => String(event.id) === String(localEvent.id))
         ));
 
-        if (localEventsToMigrate.length > 0) {
-          await saveCalendarEvents(user.uid, localEventsToMigrate);
-        }
+        const migratedEvents = localEventsToMigrate.length > 0
+          ? await saveCalendarEvents(user.uid, localEventsToMigrate)
+          : [];
 
         const groupStoredShares = (await Promise.all(
           groupItems.map((group) => listGroupSharedSchedules(group.id, user.uid))
@@ -1131,13 +1146,12 @@ export default function Home() {
         setWeekStart(settings.weekStart || readLocalWeekStart());
         setJoinedGroups(groupItems);
         setReceivedGroupShares([...groupSharesById.values()]);
-        setEvents([...firebaseEvents, ...localEventsToMigrate]);
-        localStorage.removeItem(EVENT_STORAGE_KEY);
+        cacheAndSetEvents([...firebaseEvents, ...migratedEvents]);
       } catch (err) {
         console.error('load home data', err);
         setJoinedGroups([]);
         setReceivedGroupShares([]);
-        setEvents(readStoredEvents());
+        setEvents(localEvents);
       } finally {
         setIsLoadingShareGroups(false);
       }
@@ -1150,7 +1164,7 @@ export default function Home() {
       unsub();
       window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [cacheAndSetEvents]);
 
   useEffect(() => {
     if (!selectedSharedGroupId) return;
@@ -1298,14 +1312,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (currentUser) return;
-
-    try {
-      localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events));
-    } catch (error) {
-      console.error('failed to save events', error);
-    }
-  }, [currentUser, events]);
+    writeStoredEvents(events);
+  }, [events]);
 
   useEffect(() => {
     try {
@@ -2153,13 +2161,14 @@ export default function Home() {
           : event
       ));
 
+      cacheAndSetEvents(updatedEvents);
+
       if (currentUser) {
         try {
           await saveCalendarEvents(currentUser.uid, updatedEvents);
         } catch (err) {
           console.error(err);
           alert('予定の更新を保存できませんでした。');
-          return;
         }
       }
 
@@ -2168,8 +2177,6 @@ export default function Home() {
           category.id === categoryDraft.id ? updatedCategory : category
         ))
       ));
-
-      setEvents(updatedEvents);
 
       if (eventForm.categoryId === categoryDraft.id) {
         handleCategorySelect(updatedCategory);
@@ -2213,18 +2220,18 @@ export default function Home() {
         : event
     ));
 
+    cacheAndSetEvents(updatedEvents);
+
     if (currentUser) {
       try {
         await saveCalendarEvents(currentUser.uid, updatedEvents);
       } catch (err) {
         console.error(err);
         alert('予定の更新を保存できませんでした。');
-        return;
       }
     }
 
     setEventCategories((prev) => prev.filter((item) => item.id !== category.id));
-    setEvents(updatedEvents);
 
     if (eventForm.categoryId === category.id) {
       handleCategorySelect(defaultCategory);
@@ -2347,24 +2354,26 @@ export default function Home() {
     try {
       if (modalMode === 'edit' && editingEventId !== null) {
         const updatedEvent = buildEventFromForm(editingEventId);
+        const updatedEvents = events.map((event) => (
+          event.id === editingEventId ? updatedEvent : event
+        ));
 
+        cacheAndSetEvents(updatedEvents);
         if (currentUser) {
           await saveCalendarEvent(currentUser.uid, updatedEvent);
         }
-        setEvents((prev) => (
-          prev.map((event) => (event.id === editingEventId ? updatedEvent : event))
-        ));
         await shareEventToSelectedGroup(updatedEvent);
         closeModal();
         return;
       }
 
       const newEvent = buildEventFromForm(Date.now());
+      const updatedEvents = [...events, newEvent];
+      cacheAndSetEvents(updatedEvents);
       await shareEventToSelectedGroup(newEvent);
       if (currentUser) {
         await saveCalendarEvent(currentUser.uid, newEvent);
       }
-      setEvents((prev) => [...prev, newEvent]);
       closeModal();
     } catch (err) {
       console.error(err);
@@ -2381,10 +2390,11 @@ export default function Home() {
     if (!ok) return;
 
     try {
+      const updatedEvents = events.filter((event) => event.id !== editingEventId);
+      cacheAndSetEvents(updatedEvents);
       if (currentUser) {
         await deleteCalendarEvent(currentUser.uid, editingEventId);
       }
-      setEvents((prev) => prev.filter((event) => event.id !== editingEventId));
       closeModal();
     } catch (err) {
       console.error(err);
