@@ -180,15 +180,26 @@ textarea.createInput{
 .inviteActions,
 .inviteForm {
 	display: flex;
+	align-items: stretch;
 	gap: 8px;
+	margin-top: 16px;
+	width: 100%;
 }
 .acceptBtn,
 .declineBtn,
 .inviteBtn {
-	padding: 10px 14px;
+	flex-shrink: 0;
+	padding: 0 16px;
 	border: none;
-	border-radius: 12px;
-	font-weight: 600;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 700;
+	white-space: nowrap;
+	box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 .acceptBtn,
 .inviteBtn {
@@ -205,10 +216,18 @@ textarea.createInput{
 .inviteSelect {
 	flex: 1;
 	min-width: 0;
-	padding: 12px 14px;
+	padding: 10px 12px;
 	border: 1px solid #ddd;
-	border-radius: 12px;
-	background: #fff;
+	border-radius: 8px;
+	background: #f9fafb;
+	font-size: 14px;
+	color: #111827;
+	cursor: pointer;
+
+	box-sizing: border-box;
+
+	display:  flex;
+	align-items: center;
 }
 .inviteBtn:disabled {
 	opacity: .55;
@@ -237,20 +256,21 @@ textarea.createInput{
 }
 .detail {
 	background: #ffffff;
-	border-radius: 28px;
-	padding: 26px;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
-	margin-top: 32px;
-	line-height: 1.6;
+	border-radius: 16px;
+	padding: 20px 24px;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, .02);
+	margin-top: 24px;
 }
 .detailTitle {
 	font-size: 22px;
 	font-weight: 800;
 }
 .detailItem {
-	margin: 6px 0;
+	margin: 0;
 	font-size: 14px;
-	color: #666;
+	color: #4b5563;
+	font-weight: 600;
 }
 
 .joinBtn {
@@ -263,9 +283,10 @@ textarea.createInput{
 	transition: transform 0.1s;
 }
 .joinedLabel {
-	margin-top: 8px;
+	margin: 0;
+	margin-top: 14px;
 	color: #16a34a;
-	font-weight: 600;
+	font-weight: 700;
 }
 .joinedActions {
 	display: flex;
@@ -469,8 +490,7 @@ textarea.createInput{
 
 .dark .item,
 .dark .joinedItem,
-.dark .inviteItem,
-.dark .detail {
+.dark .inviteItem {
 	background: #1b2230;
 	color: #f5f5f5;
 
@@ -780,6 +800,7 @@ textarea.createInput{
 .groupIdRow {
   display: flex;
   align-items: center;
+  gap: 8px;
   justify-content: space-between;
   margin-top: 8px;
 }
@@ -829,22 +850,36 @@ textarea.createInput{
   cursor: pointer;
 }
 .groupName {
-	font-size: 17px;
-	font-weight: 600;
+	font-size: 18px;
+	font-weight: 700;
+	color: #111827;
 }
 .groupId {
+	margin: 0;
 	font-size: 13px;
-	color: #8a8a8a;
+	color: #6b7280;
+	font-weight: 500;
 }
 
 .groupNameRow {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 4px;
 	width: 100%;
 }
 .renameBtn {
 	margin-left: auto;
+	padding: 6px 12px;
+	border: none;
+	border-radius: 8px;
+	background: #f3f4f6;
+	color: #4b5563;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	white-space: nowrap;
 }
 
 .inviteSelect{
@@ -893,4 +928,24 @@ textarea.createInput{
   background:#111827;
 
   border:1px solid rgba(255,255,255,.08);
+}
+
+.dark .friendSelectArea label,
+.dark .friendSelectArea {
+	color: #e5e7eb !important;
+}
+
+.dark .placeholderText {
+	color: #9aa3b2 !important;
+}
+
+.dark label,
+.dark .label,
+.dark .field label,
+.dark .field .label {
+	color: #e5e7eb !important;
+}
+
+.dark .field {
+	color: #e5e7eb !important;
 }
