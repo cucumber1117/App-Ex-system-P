@@ -184,22 +184,22 @@ textarea.createInput{
 	gap: 8px;
 	margin-top: 16px;
 	width: 100%;
+	box-sizing: border-box;
 }
 .acceptBtn,
 .declineBtn,
 .inviteBtn {
-	flex-shrink: 0;
-	padding: 0 16px;
+	height: auto;
+	padding: 12px 20px;
+
 	border: none;
-	border-radius: 8px;
+	border-radius: 10px;
 	font-size: 14px;
 	font-weight: 700;
 	white-space: nowrap;
 	box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 	cursor: pointer;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+
 }
 .acceptBtn,
 .inviteBtn {
@@ -216,18 +216,15 @@ textarea.createInput{
 .inviteSelect {
 	flex: 1;
 	min-width: 0;
-	padding: 10px 12px;
+	padding: 12px 14px;
 	border: 1px solid #ddd;
-	border-radius: 8px;
+	border-radius: 10px;
 	background: #f9fafb;
 	font-size: 14px;
 	color: #111827;
 	cursor: pointer;
 
 	box-sizing: border-box;
-
-	display:  flex;
-	align-items: center;
 }
 .inviteBtn:disabled {
 	opacity: .55;
