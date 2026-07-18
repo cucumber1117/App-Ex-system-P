@@ -34,6 +34,7 @@ const Group = () => {
   const [editingGroupName, setEditingGroupName] = useState('');
   const [savingGroupName, setSavingGroupName] = useState(false);
   const [copiedGroupId, setCopiedGroupId] = useState('');
+  const [activeTab, setActiveTab] = useState('list');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -290,9 +291,21 @@ const Group = () => {
 
   return (
     <div className={`${styles.container} ${styles[theme]}`}>
-      <h1 className={styles.title}>グループ作成 / 検索</h1>
+      <h1 className={styles.title}>グループ</h1>
 
-      {currentUser && groupInvites.length > 0 && (
+      <div className={styles.tabs}>
+        <button className={`${styles.tab} ${activeTab === "list" ? styles.activeTab : ""}`} onClick={() => setActiveTab("list")}>
+          一覧
+        </button>
+
+        <button className={`${styles.tab} ${activeTab === "create" ? styles.activeTab : ""}`} onClick={() => setActiveTab("create")}>
+          作成
+        </button>
+      </div>
+
+      {activeTab === "list" && (
+        <>
+        {currentUser && groupInvites.length > 0 && (
         <section className={styles.invites}>
           <h2 className={styles.sectionTitle}>受け取った招待</h2>
           <ul className={styles.inviteList}>
@@ -563,8 +576,11 @@ const Group = () => {
           </div>
         )}
       </div>
+        </>
+      )}
 
-      <div className={styles.createCard}>
+      {activeTab === "create" && (
+              <div className={styles.createCard}>
         <h2 className={styles.createTitle}>
           グループ作成
         </h2>
@@ -632,6 +648,8 @@ const Group = () => {
           )}
         </form>
     </div>
+      )}
+
     </div>
   );
 };

@@ -10,7 +10,17 @@
     "Helvetica Neue",
     "Noto Sans JP",
     sans-serif;
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
+
+.container > * {
+	width: min(100%, 430px);
+	box-sizing: border-box;
+}
+
 .light {
 	background-color: #f8f9fa;
 	color: #333;
@@ -945,4 +955,71 @@ textarea.createInput{
 
 .dark .field {
 	color: #e5e7eb !important;
+}
+
+
+.tabs {
+  display: flex;
+  margin: 20px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #eceff3;
+  padding: 4px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 600;
+  color: #5c6b73;
+  cursor: pointer;
+  transition: .2s;
+  border-radius: 8px;
+}
+
+.activeTab {
+  background: #2962ff;
+  color: white;
+}
+
+.dark .tabs{
+	background: #1b2230;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .tab {
+	color: #ffffff;
+}
+
+.dark .activeTab {
+	background: #4d6ef2;
+	color: #ffffff;
+	box-shadow: 0 4px 12px rgab(77, 110, 242, 0.25);
+}
+
+.dark .detail {
+	background: #1b2230;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.dark .detailTitle {
+	color: #ffffff;
+}
+
+.dark .inviteSelect{
+	background: #111827;
+	color: #ffffff;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .groupName {
+    color: #ffffff; 
+}
+.dark .renameBtn {
+    background: #273244; 
+    color: #8ab4ff;   
 }
