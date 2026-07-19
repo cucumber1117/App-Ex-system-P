@@ -64,6 +64,10 @@ const AccountProfile = ({
 
   const createdAtText = useMemo(() => formatDateTime(createdAt), [createdAt]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [friendId]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setMessage('');
